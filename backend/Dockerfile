@@ -15,6 +15,10 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
 
 FROM base AS runtime
+# libexpat1: required by the pyosmium wheel (OSM PBF reader, D08/D19); not in slim images.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libexpat1 \
+ && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app app \
  && mkdir -p /var/lib/prostoriq/raw && chown app:app /var/lib/prostoriq/raw
 COPY --from=deps /opt/venv /opt/venv

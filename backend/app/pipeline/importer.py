@@ -24,9 +24,11 @@ from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import IntegrityError
 
 from app.adapters.ckan import fetch_package
+from app.adapters.coordinates_csv import parse_coordinates_csv
 from app.adapters.districts_shp import parse_districts_shp
 from app.adapters.geojson_points import parse_geojson_points
 from app.adapters.http import FetchError, SafeFetcher
+from app.adapters.osm import OsmExtract, as_parse_result, extract_osm, extract_timestamp
 from app.adapters.parsing import ParseIssue, ParseResult
 from app.adapters.registry import Registry, SourceSpec
 from app.adapters.spaces_csv import parse_spaces_csv
@@ -35,7 +37,18 @@ logger = logging.getLogger("app.pipeline")
 
 COUNT_CHANGE_REVIEW_RATIO = 0.20
 MAX_STORED_ERRORS = 500
-_EXT = {"spaces_csv": "csv", "geojson_points": "geojson", "districts_shp": "zip"}
+_EXT = {
+    "spaces_csv": "csv",
+    "geojson_points": "geojson",
+    "districts_shp": "zip",
+    "osm_competitors": "osm.pbf",
+    "osm_addresses": "osm.pbf",
+    "coordinates_csv": "csv",
+}
+_OSM_KINDS = {"osm_competitors", "osm_addresses"}
+# One PBF feeds two sources (D08, D19); parse it once per process and content hash.
+_OSM_CACHE: dict[str, OsmExtract] = {}
+BATCH = 2000
 
 
 class ImportBusyError(Exception):
@@ -122,7 +135,14 @@ def sync_sources(conn: Connection, registry: Registry) -> int:
     return count
 
 
-def _parse(spec: SourceSpec, content: bytes) -> ParseResult:
+def _parse(spec: SourceSpec, content: bytes, raw_path: Path, sha: str) -> ParseResult:
+    if spec.kind in _OSM_KINDS:
+        if sha not in _OSM_CACHE:
+            _OSM_CACHE.clear()
+            _OSM_CACHE[sha] = extract_osm(raw_path)
+        return as_parse_result(_OSM_CACHE[sha], spec.kind)
+    if spec.kind == "coordinates_csv":
+        return parse_coordinates_csv(content, spec)
     if spec.kind == "spaces_csv":
         return parse_spaces_csv(content, spec)
     if spec.kind == "geojson_points":
@@ -370,7 +390,11 @@ class Importer:
                 return outcome
 
         raw_key = self._write_raw(spec, content_sha, dl.content)
-        parsed = _parse(spec, dl.content)
+        parsed = _parse(spec, dl.content, self.raw_dir / raw_key, content_sha)
+        if spec.kind in _OSM_KINDS and content_sha in _OSM_CACHE:
+            stamp = extract_timestamp(_OSM_CACHE[content_sha])
+            if stamp is not None:
+                dl = Download(**{**dl.__dict__, "source_modified_at": stamp})
         if parsed.blocking:
             with self.engine.begin() as conn:
                 self._store_issues(conn, job_id, parsed.issues)
@@ -509,6 +533,14 @@ class Importer:
     def _insert_records(
         self, conn: Connection, spec: SourceSpec, version_id: str, parsed: ParseResult
     ) -> None:
+        if spec.kind in _OSM_KINDS:
+            # Tens of thousands of rows: batched, and provenance is the version + raw PBF hash
+            # (no per-object source_record copy of the tags).
+            self._insert_osm(conn, spec.kind, version_id, parsed.records)
+            return
+        if spec.kind == "coordinates_csv":
+            self._insert_coordinates(conn, version_id, parsed.records)
+            return
         for rec in parsed.records:
             natural_key = rec.get("space_id") or rec.get("feature_key") or rec.get("district_id")
             record_id = conn.execute(
@@ -606,3 +638,101 @@ class Importer:
                 "wkt": rec["geom_wkt"],
             },
         )
+
+    @staticmethod
+    def _insert_osm(
+        conn: Connection, kind: str, version_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        if kind == "osm_addresses":
+            from app.gis.addresses import parse_house_number, street_key
+
+            rows = []
+            for r in records:
+                house = parse_house_number(r["housenumber"])
+                if house is None:
+                    continue
+                rows.append(
+                    {
+                        "v": version_id,
+                        "t": r["osm_type"],
+                        "id": r["osm_id"],
+                        "street": r["street"],
+                        "hn": r["housenumber"],
+                        "key": street_key(r["street"]),
+                        "num": house.number,
+                        "letter": house.letter,
+                        "lon": r["lon"],
+                        "lat": r["lat"],
+                    }
+                )
+            sql = text(
+                """
+                INSERT INTO prostoriq.osm_address (source_version_id, osm_type, osm_id, street,
+                    housenumber, street_key, number, letter, geom)
+                VALUES (CAST(:v AS uuid), :t, :id, :street, :hn, :key, :num, :letter,
+                    ST_SetSRID(ST_MakePoint(:lon, :lat), 4326))
+                """
+            )
+        else:
+            rows = [
+                {
+                    "v": version_id,
+                    "t": r["osm_type"],
+                    "id": r["osm_id"],
+                    "cat": r["category"],
+                    "name": r["name"],
+                    "nname": r["normalized_name"],
+                    "addr": r["address"],
+                    "naddr": r["normalized_address"],
+                    "lon": r["lon"],
+                    "lat": r["lat"],
+                    "life": r["lifecycle_status"],
+                    "tags": _canonical(r["tags"]),
+                    "ts": r["osm_timestamp"],
+                }
+                for r in records
+            ]
+            sql = text(
+                """
+                INSERT INTO prostoriq.competitor (source_version_id, osm_type, osm_id, category,
+                    name, normalized_name, address, normalized_address, geom, lifecycle_status,
+                    tags, osm_timestamp)
+                VALUES (CAST(:v AS uuid), :t, :id, :cat, :name, :nname, :addr, :naddr,
+                    ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :life, CAST(:tags AS jsonb),
+                    CAST(:ts AS timestamptz))
+                """
+            )
+        for start in range(0, len(rows), BATCH):
+            conn.execute(sql, rows[start : start + BATCH])
+
+    @staticmethod
+    def _insert_coordinates(
+        conn: Connection, version_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        for r in records:
+            conn.execute(
+                text("INSERT INTO prostoriq.space (space_id) VALUES (:id) ON CONFLICT DO NOTHING"),
+                {"id": r["space_id"]},
+            )
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO prostoriq.geo_evidence (space_id, source_version_id, geom,
+                        precision_status, evidence_url, evidence_note, checked_at, license_id)
+                    VALUES (:id, CAST(:v AS uuid),
+                        CASE WHEN CAST(:lon AS double precision) IS NULL THEN NULL
+                             ELSE ST_SetSRID(ST_MakePoint(:lon, :lat), 4326) END,
+                        :p, :url, :note, :at, 'per_record_provenance')
+                    """
+                ),
+                {
+                    "id": r["space_id"],
+                    "v": version_id,
+                    "lon": r["lon"],
+                    "lat": r["lat"],
+                    "p": r["precision_status"],
+                    "url": r["evidence_url"],
+                    "note": r["evidence_note"],
+                    "at": r["checked_at"],
+                },
+            )

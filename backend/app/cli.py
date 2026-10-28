@@ -10,6 +10,13 @@ Commands
   import CODE [--file F]  import one source (network, or a manually downloaded file)
   import-all              import D01-D07 and the team additions that have a resource
   sources-status          latest version, record count and last job per source
+  osm-import --file F     D08 competitors + D19 address points from one Geofabrik PBF
+  import-coordinates --file F   D11 team-checked coordinates (CSV)
+  geocode                 match D01/D02 addresses to D19 address points
+  geocode-review          D11 template (CSV on stdout) for spaces that need a manual check
+  bundle-build            build and validate a dataset bundle with spatial metrics
+  bundle-activate [--id]  make a valid bundle the active one (default: newest valid)
+  bundles                 list bundles and the active one
 """
 
 import argparse
@@ -27,6 +34,8 @@ from app.adapters.ckan import fetch_package
 from app.adapters.http import FetchError, SafeFetcher
 from app.adapters.registry import Registry, load_registry
 from app.core.config import get_settings
+from app.pipeline.bundle import BundleError, activate_bundle, build_bundle
+from app.pipeline.geocode import geocode_spaces, review_csv
 from app.pipeline.importer import ImportBusyError, Importer, ImportOutcome, sync_sources
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -182,6 +191,117 @@ def cmd_import_all(_: argparse.Namespace) -> int:
     return 0 if failures == 0 else 1
 
 
+def _local_import(code: str, file_arg: str, key: str | None) -> ImportOutcome | None:
+    settings = get_settings()
+    registry = _registry()
+    engine = _pipeline_engine()
+    with engine.begin() as conn:
+        sync_sources(conn, registry)
+    file = Path(file_arg)
+    if not file.is_file():
+        sys.exit(f"Datoteka ne postoji: {file}")
+    importer = Importer(engine, registry, settings.raw_storage_dir)
+    with SafeFetcher(registry.allowed_hosts) as fetcher:
+        return _run_import(importer, fetcher, code, file, key or f"cli-{uuid.uuid4()}")
+
+
+def cmd_osm_import(args: argparse.Namespace) -> int:
+    print("Čitam OSM PBF (Hrvatska, može potrajati 1-3 minute)...")
+    failures = 0
+    for code in ("D19", "D08"):
+        outcome = _local_import(code, args.file, None)
+        if outcome is None:
+            failures += 1
+            continue
+        _print_outcome(outcome)
+        failures += outcome.status == "failed"
+    return 0 if failures == 0 else 1
+
+
+def cmd_import_coordinates(args: argparse.Namespace) -> int:
+    outcome = _local_import("D11", args.file, args.key)
+    if outcome is None:
+        return 1
+    _print_outcome(outcome)
+    return 0 if outcome.status in {"succeeded", "awaiting_review"} else 1
+
+
+def cmd_geocode(_: argparse.Namespace) -> int:
+    try:
+        report = geocode_spaces(_pipeline_engine())
+    except RuntimeError as exc:
+        print(str(exc))
+        return 1
+    print(f"Adresnih točaka u D19: {report.address_points}")
+    print(f"Obrađeno prostora: {report.processed} (već obrađeno ranije: {report.skipped_existing})")
+    labels = {
+        "building_approximate": "približno (zgrada)",
+        "needs_review": "za ručnu provjeru",
+        "missing": "nije pronađeno",
+    }
+    for key, label in labels.items():
+        print(f"  {label:<22} {report.by_precision.get(key, 0)}")
+    if report.by_method:
+        print("Način: " + ", ".join(f"{k}={v}" for k, v in sorted(report.by_method.items())))
+    return 0
+
+
+def cmd_geocode_review(_: argparse.Namespace) -> int:
+    sys.stdout.write(review_csv(_pipeline_engine()))
+    return 0
+
+
+def cmd_bundle_build(args: argparse.Namespace) -> int:
+    try:
+        result = build_bundle(_pipeline_engine(), args.label)
+    except BundleError as exc:
+        print(str(exc))
+        return 1
+    state = "novi paket" if result.created else "isti paket već postoji"
+    print(f"Paket {result.bundle_id}: {result.status} ({state})")
+    r = result.report
+    if "error" in r:
+        print(f"  greška: {r['error']} {r.get('space_ids', '')}")
+        return 1
+    loc = r["location"]
+    print(f"  prostora: {r['spaces']['total']} {r['spaces']['by_inventory']}")
+    print(f"  lokacija upotrebljiva: {loc['usable']} ({loc['usable_pct']} %) {loc['by_precision']}")
+    print(f"  četvrti: {r['district_assignment']}")
+    for criterion, counts in r["metrics_with_value_r500"].items():
+        print(f"  metrika {criterion:<13} s vrijednošću {counts['with_value']}/{counts['total']}")
+    print("Aktiviraj: python -m app.cli bundle-activate")
+    return 0
+
+
+def cmd_bundle_activate(args: argparse.Namespace) -> int:
+    try:
+        bundle_id = activate_bundle(_pipeline_engine(), args.id)
+    except BundleError as exc:
+        print(str(exc))
+        return 1
+    print(f"Aktivni paket: {bundle_id}")
+    return 0
+
+
+def cmd_bundles(_: argparse.Namespace) -> int:
+    with _pipeline_engine().connect() as conn:
+        active = conn.execute(
+            text("SELECT dataset_bundle_id::text FROM prostoriq.active_dataset")
+        ).scalar_one_or_none()
+        rows = conn.execute(
+            text(
+                "SELECT dataset_bundle_id::text, status, created_at, label "
+                "FROM prostoriq.dataset_bundle ORDER BY created_at DESC LIMIT 20"
+            )
+        ).all()
+    for r in rows:
+        marker = "  <- aktivan" if r[0] == active else ""
+        print(f"{r[0]}  {r[1]:<10} {r[2]:%Y-%m-%d %H:%M}  {r[3]}{marker}")
+    if not rows:
+        print("Nema paketa.")
+    return 0
+
+
 def cmd_sources_status(_: argparse.Namespace) -> int:
     with _pipeline_engine().connect() as conn:
         rows = conn.execute(
@@ -233,6 +353,24 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("sources-status", help="Stanje izvora i zadnjih uvoza").set_defaults(
         func=cmd_sources_status
     )
+    osm = sub.add_parser("osm-import", help="Uvezi D08 i D19 iz Geofabrik PBF-a")
+    osm.add_argument("--file", required=True)
+    osm.set_defaults(func=cmd_osm_import)
+    coords = sub.add_parser("import-coordinates", help="Uvezi D11 provjerene koordinate")
+    coords.add_argument("--file", required=True)
+    coords.add_argument("--key")
+    coords.set_defaults(func=cmd_import_coordinates)
+    sub.add_parser("geocode", help="Geokodiraj prostore na D19").set_defaults(func=cmd_geocode)
+    sub.add_parser("geocode-review", help="D11 predložak za ručnu provjeru").set_defaults(
+        func=cmd_geocode_review
+    )
+    build = sub.add_parser("bundle-build", help="Izgradi paket i metrike")
+    build.add_argument("--label")
+    build.set_defaults(func=cmd_bundle_build)
+    act = sub.add_parser("bundle-activate", help="Aktiviraj paket")
+    act.add_argument("--id")
+    act.set_defaults(func=cmd_bundle_activate)
+    sub.add_parser("bundles", help="Popis paketa").set_defaults(func=cmd_bundles)
     args = parser.parse_args(argv)
     try:
         result: int = args.func(args)

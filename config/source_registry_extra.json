@@ -59,6 +59,24 @@
       },
       "refresh": "weekly",
       "limitations": "Evidentirane lokacije škola; nije broj učenika."
+    },
+    {
+      "source_code": "D19",
+      "name": "Adresne točke iz OpenStreetMapa",
+      "publisher": "OpenStreetMap contributors; Geofabrik distributor",
+      "catalog_url": "https://download.geofabrik.de/europe/croatia.html",
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [
+        "https://download.geofabrik.de/europe/croatia-latest.osm.pbf"
+      ],
+      "license_id": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors; ODbL",
+      "format": "OSM PBF",
+      "encoding": "binarni PBF s UTF-8 oznakama",
+      "refresh": "weekly",
+      "limitations": "Adresa zgrade iz OSM-a (addr:street + addr:housenumber); nije potvrđen ulaz u poslovni prostor. Isti PBF kao D08.",
+      "note": "Imported together with D08 by 'osm-import --file'. DGU INSPIRE addresses (Otvorena dozvola) remain a pilot option: GML via WFS/Atom for all of Croatia."
     }
   ],
   "allowed_hosts": [

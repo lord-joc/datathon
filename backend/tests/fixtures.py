@@ -186,3 +186,101 @@ def point_shapefile_zip(epsg: int | None = 3765, with_prj: bool = True) -> bytes
     if with_prj and epsg:
         members["vrtici.prj"] = CRS.from_epsg(epsg).to_wkt(WktVersion.WKT1_ESRI).encode()
     return zip_of(members)
+
+
+# --- OSM PBF fixture (D08 competitors, D19 addresses) -----------------------------------
+
+# Synthetic coordinates inside the two test districts of districts_zip():
+#   01 Donji grad: 15.96-15.98 E, 45.80-45.82 N; 02 Gornji grad - Medveščak: 15.98-16.00 E, 45.82-45.84 N
+TRG_STARCEVICA_7 = (15.9775, 45.8045)
+VLASKA_96 = (15.9850, 45.8250)
+
+
+def osm_pbf(path: Path) -> Path:
+    """Write a tiny PBF: address points, competitors with lifecycle tags, one far-away cafe."""
+    import osmium
+    from osmium.osm.mutable import Node, Way
+
+    stamp = "2026-10-01T00:00:00Z"
+    lon, lat = VLASKA_96
+    square = [
+        (lon - 0.0001, lat - 0.0001),
+        (lon + 0.0001, lat - 0.0001),
+        (lon + 0.0001, lat + 0.0001),
+        (lon - 0.0001, lat + 0.0001),
+    ]
+    writer = osmium.SimpleWriter(str(path))
+    try:
+        writer.add_node(
+            Node(
+                id=1,
+                location=TRG_STARCEVICA_7,
+                version=1,
+                timestamp=stamp,
+                tags={"addr:street": "Trg Ante Starčevića", "addr:housenumber": "7"},
+            )
+        )
+        writer.add_node(
+            Node(
+                id=2,
+                location=(15.8700, 45.7700),
+                version=1,
+                timestamp=stamp,
+                tags={"addr:street": "Strmečka cesta", "addr:housenumber": "57A"},
+            )
+        )
+        for i, (x, y) in enumerate(square, start=10):
+            writer.add_node(Node(id=i, location=(x, y), version=1, timestamp=stamp))
+        writer.add_node(
+            Node(
+                id=20,
+                location=(15.9778, 45.8047),
+                version=1,
+                timestamp=stamp,
+                tags={"amenity": "cafe", "name": "Kavana Trg"},
+            )
+        )
+        writer.add_node(
+            Node(
+                id=21,
+                location=(15.9790, 45.8050),
+                version=1,
+                timestamp=stamp,
+                tags={"disused:amenity": "bar", "name": "Stari bar"},
+            )
+        )
+        writer.add_node(
+            Node(
+                id=22,
+                location=(15.9770, 45.8040),
+                version=1,
+                timestamp=stamp,
+                tags={
+                    "shop": "bakery",
+                    "name": "Pekara",
+                    "addr:street": "Trg Ante Starčevića",
+                    "addr:housenumber": "7",
+                },
+            )
+        )
+        writer.add_node(
+            Node(
+                id=23,
+                location=(16.4400, 43.5100),
+                version=1,
+                timestamp=stamp,
+                tags={"amenity": "cafe", "name": "Split"},
+            )
+        )
+        writer.add_way(
+            Way(
+                id=100,
+                nodes=[10, 11, 12, 13, 10],
+                version=1,
+                timestamp=stamp,
+                tags={"building": "yes", "addr:street": "Vlaška ulica", "addr:housenumber": "96"},
+            )
+        )
+    finally:
+        writer.close()
+    return path

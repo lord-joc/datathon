@@ -98,6 +98,48 @@ docker compose run --rm cli python -m app.cli import D01 --file /app/manual/praz
 
 **Host nije dopušten:** dohvat smije ići samo na hostove iz `allowed_hosts` u `config/source_registry_extra.json`. Ako preuzimanje javi `host_not_allowed` za neki ArcGIS ili gradski host, provjeri gdje pokazuje i tek ga onda dodaj.
 
+## Lokacije, metrike i paket podataka
+
+Zagrebački popis prostora ima samo adresu, bez koordinata. Lokaciju dobivamo u tri razine (ADR18):
+
+| Razina | Izvor | Ulazi u metrike |
+|---|---|---|
+| `entrance_confirmed` | D11, tim provjerio ulaz | da |
+| `building_approximate` | D19, OSM adresa zgrade | da |
+| `needs_review` / `missing` | nesiguran ili nepostojeći pogodak | ne, vrijednost ostaje „nepoznato” |
+
+**1. OSM (jednom, ~200 MB):**
+
+```cmd
+curl -L -o data\manual\croatia-latest.osm.pbf https://download.geofabrik.de/europe/croatia-latest.osm.pbf
+docker compose run --rm cli python -m app.cli osm-import --file /app/manual/croatia-latest.osm.pbf
+```
+
+Iz iste datoteke nastaju D19 (adrese) i D08 (kafići, barovi, pekare, frizeri…). Datoteka se čita samo u obuhvatu Zagreba.
+
+**2. Geokodiranje i popis za ručnu provjeru:**
+
+```cmd
+docker compose run --rm cli python -m app.cli geocode
+docker compose run --rm -T cli python -m app.cli geocode-review > data\manual\d11.csv
+```
+
+`-T` je obavezan da izlaz ne dobije terminalne znakove. U `d11.csv` su prostori koje nismo sigurno smjestili. Za svaki provjereni prostor upiši `lon`, `lat`, `precision_status` (`entrance_confirmed` ili `building_approximate`), dokaz (`evidence_url` ili `evidence_note`) i `checked_at` (npr. `2026-10-27`). Neispunjeni redci se preskaču. Excel s hrvatskim postavkama (`;`, decimalni zarez, datum `27.10.2026.`) je podržan.
+
+```cmd
+docker compose run --rm cli python -m app.cli import-coordinates --file /app/manual/d11.csv
+```
+
+**3. Paket i aktivacija:**
+
+```cmd
+docker compose run --rm cli python -m app.cli bundle-build
+docker compose run --rm cli python -m app.cli bundle-activate
+docker compose run --rm cli python -m app.cli bundles
+```
+
+`bundle-build` uzima zadnju valjanu verziju svakog izvora, dodjeljuje gradsku četvrt (točka u poligonu, inače naziv iz popisa) i računa sirove metrike za radijuse 500 i 1000 m: udaljenost do stanice i parkinga, broj fakulteta, kulture i škola u 600 m, površinu i položaj. Udaljenosti su zračne. Konkurencija se broji, ali ne boduje dok pokrivenost OSM-a nije pregledana. Trošak je „nije dostupno”, nikad 0 EUR. Isti skup verzija ne stvara novi paket. Aktivacija je atomska i bilježi se u `audit_event`; nakon nje `/api/v1/status` javlja `dataset_ready: true`.
+
 ## Razvoj frontenda s automatskim osvježavanjem
 
 Docker drži bazu i API, a Vite poslužuje frontend:

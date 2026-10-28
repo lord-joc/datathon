@@ -10,7 +10,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-Kind = Literal["spaces_csv", "geojson_points", "districts_shp", "unsupported"]
+Kind = Literal[
+    "spaces_csv",
+    "geojson_points",
+    "districts_shp",
+    "osm_competitors",
+    "osm_addresses",
+    "coordinates_csv",
+    "unsupported",
+]
 
 # Which adapter handles which source, and how features are categorised.
 _KIND: dict[str, Kind] = {
@@ -21,9 +29,12 @@ _KIND: dict[str, Kind] = {
     "D05": "geojson_points",
     "D06": "geojson_points",
     "D07": "districts_shp",
+    "D08": "osm_competitors",
+    "D11": "coordinates_csv",
     "D14": "geojson_points",
     "D17": "geojson_points",
     "D18": "geojson_points",
+    "D19": "osm_addresses",
 }
 _CATEGORY: dict[str, str] = {
     "D03": "transit",

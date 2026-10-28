@@ -12,7 +12,9 @@
 	encode zstd gzip
 
 	header {
-		# Master prompt §8. MapLibre needs blob: workers; tiles are served from this origin.
+		# Master prompt §8. MapLibre needs blob: workers and data:/blob: images (sprites, icons);
+		# tiles are served from this origin. Our own assets are never inlined (assetsInlineLimit: 0).
+		# 'unsafe-inline' styles are needed for React style props and MapLibre; scripts stay strict.
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"

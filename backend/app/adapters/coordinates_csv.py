@@ -1,11 +1,14 @@
 """D11: team-controlled coordinate table (CSV).
 
-Accepts the file as written by 'geocode-review' (UTF-8, ',') and as saved again by Excel
-with Croatian regional settings (';', decimal comma, Windows-1250, dates as 27.10.2026.).
+Accepts the file as written by 'geocode-review' (UTF-8 with BOM, ';'), plain UTF-8 with ','
+and as saved again by Excel with Croatian regional settings (';', decimal comma,
+Windows-1250, dates as 27.10.2026.).
 
 Columns: space_id, lon, lat, precision_status, evidence_url, evidence_note, checked_at
+(extra columns such as the template's auto_note are ignored)
 - precision_status: entrance_confirmed | building_approximate | needs_review | missing
 - confirmed/approximate rows need lon/lat inside Zagreb and evidence (URL or note)
+- needs_review/missing rows must not carry coordinates (status left unchanged by mistake)
 - checked_at: ISO date or datetime; never in the future (FZ31)
 """
 
@@ -87,6 +90,16 @@ def parse_coordinates_csv(content: bytes, spec: SourceSpec) -> ParseResult:
             continue
         if precision not in PRECISIONS:
             result.block("field_invalid", f"Redak {line_no}: nepoznat precision_status.", space_id)
+            continue
+        if precision in {"needs_review", "missing"} and (row["lon"] or row["lat"]):
+            # Coordinates were checked but the status was left as in the template; dropping
+            # them silently would lose the team's work.
+            result.block(
+                "field_invalid",
+                f"Redak {line_no}: upisane su koordinate, a precision_status je {precision}. "
+                "Upiši entrance_confirmed ili building_approximate.",
+                space_id,
+            )
             continue
         try:
             checked_at = _parse_checked_at(row["checked_at"])

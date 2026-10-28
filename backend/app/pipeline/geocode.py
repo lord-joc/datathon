@@ -1,7 +1,9 @@
 """Geocode city premises against OSM address points (D19) and write geo_evidence.
 
-Idempotent: a space that already has evidence from the same D19 version is skipped.
-Manual D11 evidence is never overwritten; the bundle step prefers it anyway.
+Idempotent and append-only. A space that already has building-level evidence from the same
+D19 version is skipped. Spaces still 'needs_review'/'missing' are matched again, so an
+improved matcher can place them; a new row is written only when the result changes, and
+the bundle step picks the best evidence per space. Manual D11 evidence is never touched.
 """
 
 import csv
@@ -14,6 +16,7 @@ from sqlalchemy import Connection, Engine, text
 from app.gis.addresses import AddressIndex, AddressPoint, GeocodeResult
 
 OSM_LICENSE = "ODbL-1.0"
+_PLACED = {"entrance_confirmed", "building_approximate"}
 
 
 @dataclass
@@ -78,12 +81,14 @@ def geocode_spaces(engine: Engine) -> GeocodeReport:
             raise RuntimeError("Nema valjane verzije D19. Prvo pokreni 'osm-import --file …'.")
         index = _load_index(conn, version)
         spaces = _spaces(conn)
+        # Latest evidence per space for this D19 version: (precision, note).
         existing = {
-            str(r[0])
+            str(r[0]): (str(r[1]), str(r[2] or ""))
             for r in conn.execute(
                 text(
-                    "SELECT space_id FROM prostoriq.geo_evidence "
-                    "WHERE source_version_id = CAST(:v AS uuid)"
+                    "SELECT DISTINCT ON (space_id) space_id, precision_status, evidence_note "
+                    "FROM prostoriq.geo_evidence WHERE source_version_id = CAST(:v AS uuid) "
+                    "ORDER BY space_id, checked_at DESC"
                 ),
                 {"v": version},
             )
@@ -92,10 +97,15 @@ def geocode_spaces(engine: Engine) -> GeocodeReport:
     now = datetime.now(UTC)
     rows = []
     for space_id, address in spaces:
-        if space_id in existing:
+        previous = existing.get(space_id)
+        if previous and previous[0] in _PLACED:
             report.skipped_existing += 1
             continue
         result: GeocodeResult = index.geocode(address)
+        note = f"{result.note} | adresa u popisu: {address}"
+        if previous == (result.precision, note):
+            report.skipped_existing += 1
+            continue
         report.processed += 1
         report.by_precision[result.precision] = report.by_precision.get(result.precision, 0) + 1
         method = result.method.split(":")[0]
@@ -108,7 +118,7 @@ def geocode_spaces(engine: Engine) -> GeocodeReport:
                 "lat": result.lat,
                 "p": result.precision,
                 "url": result.evidence_url,
-                "note": f"{result.note} | adresa u popisu: {address}",
+                "note": note,
                 "at": now,
                 "lic": OSM_LICENSE,
             }
@@ -139,6 +149,8 @@ REVIEW_HEADER = [
     "evidence_url",
     "evidence_note",
     "checked_at",
+    # Read-only hint (address and why automatic matching failed). Never counts as evidence.
+    "auto_note",
 ]
 
 
@@ -147,6 +159,8 @@ def review_csv(engine: Engine) -> str:
 
     The output is a ready-to-fill D11 file. Rows stay 'needs_review'/'missing' until a team
     member checks the entrance and fills lon, lat, precision, evidence and checked_at.
+    ';' as delimiter so Excel with Croatian regional settings opens it in columns; the CLI
+    adds a UTF-8 BOM so Excel reads the diacritics correctly.
     """
     with engine.connect() as conn:
         version = latest_valid_version(conn, "D19")
@@ -155,8 +169,17 @@ def review_csv(engine: Engine) -> str:
                 """
                 SELECT r.space_id, r.address, g.precision_status, g.evidence_note
                 FROM prostoriq.space_revision r
-                LEFT JOIN prostoriq.geo_evidence g
-                  ON g.space_id = r.space_id AND g.source_version_id = CAST(:v AS uuid)
+                LEFT JOIN (
+                    -- Best, then newest evidence per space (the table is append-only).
+                    SELECT DISTINCT ON (space_id) space_id, precision_status, evidence_note
+                    FROM prostoriq.geo_evidence
+                    WHERE source_version_id = CAST(:v AS uuid)
+                    ORDER BY space_id,
+                        CASE precision_status WHEN 'entrance_confirmed' THEN 0
+                            WHEN 'building_approximate' THEN 1 WHEN 'needs_review' THEN 2
+                            ELSE 3 END,
+                        checked_at DESC
+                ) g ON g.space_id = r.space_id
                 WHERE r.source_version_id IN (
                     SELECT DISTINCT ON (source_code) source_version_id
                     FROM prostoriq.source_version
@@ -169,9 +192,10 @@ def review_csv(engine: Engine) -> str:
             {"v": version},
         ).all()
     out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\n")
+    writer = csv.writer(out, delimiter=";", lineterminator="\n")
     writer.writerow(REVIEW_HEADER)
     for space_id, address, precision, note in rows:
         reason = (note or "").split(" | ")[0]
-        writer.writerow([space_id, "", "", precision or "missing", "", f"{address}: {reason}", ""])
+        hint = f"{address}: {reason}" if reason else str(address)
+        writer.writerow([space_id, "", "", precision or "missing", "", "", "", hint])
     return out.getvalue()

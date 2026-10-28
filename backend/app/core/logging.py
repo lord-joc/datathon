@@ -41,7 +41,8 @@ class JsonFormatter(logging.Formatter):
 
 
 def configure_logging(level: str) -> None:
-    handler = logging.StreamHandler(sys.stdout)
+    # stderr: CLI commands write data to stdout ('geocode-review > d11.csv'); logs must not mix in.
+    handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(JsonFormatter())
     root = logging.getLogger()
     root.handlers[:] = [handler]

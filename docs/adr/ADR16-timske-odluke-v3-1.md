@@ -1,7 +1,7 @@
 # ADR16 Timske odluke nakon dokumentacije v3
 
 Datum: 28. 10. 2026.
-Status: prihvaćeno
+Status: prihvaćeno; točku 4 zamjenjuje [ADR18](ADR18-geokodiranje-osm.md)
 
 ## Kontekst
 
@@ -12,7 +12,7 @@ Dokumentacija v3 (27. 10. 2026.) definira profile kafić i ured, kriterij „Tra
 1. **Sedam profila djelatnosti**: `cafe`, `office`, `retail`, `food_takeaway`, `personal_care`, `education`, `workshop`. Profili su konfiguracija (`config/profiles.json`), a ne kod. Migracija `0003_more_profiles` proširuje CHECK ograničenja.
 2. **„Javni prijevoz” umjesto „Tramvajsko stajalište”**: najbliže stajalište tramvaja ili autobusa ZET. Formula i prag od 800 m ostaju isti.
 3. **Novi kriterij „Škole i vrtići u 600 m”**: `min(count/6, 1)`. Prag je početna pretpostavka.
-4. **Geokodiranje svih prostora** DGU adresnim točkama (`building_approximate`), uz ručnu potvrdu ulaza za demo prostore.
+4. ~~**Geokodiranje svih prostora** DGU adresnim točkama (`building_approximate`), uz ručnu potvrdu ulaza za demo prostore.~~ **Zamijenjeno [ADR18](ADR18-geokodiranje-osm.md):** DGU adrese traže WFS authKey i nemaju navedenu licencu, pa su odgođene za pilot. Svi prostori geokodiraju se OSM adresama (D19, `building_approximate`), a ulaz potvrđuje tim (D11, `entrance_confirmed`). Cilj ostaje isti.
 5. **AI** se dodatno koristi za oznake iz polja „Opis strukture” i za prijedlog profila (FZ25 postaje M). Nijedna AI oznaka ne mijenja bodove.
 6. **MapLibre GL + PMTiles** s istog originala umjesto Leafleta i vanjskih rasterskih pločica.
 7. **Tamna tema** sa svijetloplavim naglaskom.

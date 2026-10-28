@@ -1,6 +1,6 @@
-"""ProstorIQ command line. Run inside the api container:
+"""ProstorIQ command line. Run in the cli container (the only one with owner/pipeline roles):
 
-    docker compose run --rm api python -m app.cli <command>
+    docker compose run --rm cli python -m app.cli <command>
 
 Commands
   migrate                 apply database migrations (owner role)
@@ -13,8 +13,8 @@ Commands
   osm-import --file F     D08 competitors + D19 address points from one Geofabrik PBF
   import-coordinates --file F   D11 team-checked coordinates (CSV)
   geocode                 match D01/D02 addresses to D19 address points
-  geocode-review          D11 template (CSV on stdout) for spaces that need a manual check
-  bundle-build            build and validate a dataset bundle with spatial metrics
+  geocode-review          D11 template (';' CSV with BOM on stdout) for a manual check
+  bundle-build [--label]  build and validate a dataset bundle with spatial metrics
   bundle-activate [--id]  make a valid bundle the active one (default: newest valid)
   bundles                 list bundles and the active one
 """
@@ -247,7 +247,8 @@ def cmd_geocode(_: argparse.Namespace) -> int:
 
 
 def cmd_geocode_review(_: argparse.Namespace) -> int:
-    sys.stdout.write(review_csv(_pipeline_engine()))
+    # BOM: Excel otherwise reads UTF-8 as Windows-1250 and breaks Č/Ć/Š/Ž in addresses.
+    sys.stdout.write("\ufeff" + review_csv(_pipeline_engine()))
     return 0
 
 

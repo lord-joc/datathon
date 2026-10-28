@@ -147,9 +147,11 @@ def test_geocode_is_idempotent_and_review_lists_the_rest(imported: Engine) -> No
     assert (again.processed, again.skipped_existing) == (0, 4)
 
     review = review_csv(imported).splitlines()
-    assert review[0] == HEADER_LINE
-    ids = [line.split(",")[0] for line in review[1:]]
-    assert ids == ["5357", "10422"]
+    assert review[0] == HEADER_LINE.replace(",", ";") + ";auto_note"
+    rows = [line.split(";") for line in review[1:]]
+    assert [r[0] for r in rows] == ["5357", "10422"]
+    # The automatic hint never pre-fills the evidence columns.
+    assert all(r[4] == "" and r[5] == "" and r[7] for r in rows)
 
 
 def test_bundle_metrics_districts_and_activation(imported: Engine, tmp_path: Path) -> None:
@@ -227,6 +229,30 @@ def test_d11_entrance_overrides_osm_and_creates_new_bundle(
     assert second.created and second.bundle_id != first
     assert _bundle_space(imported, second.bundle_id, "10422")[2] == "entrance_confirmed"
     assert second.report["location"]["usable"] == 3
+
+
+def test_new_d19_evidence_creates_new_bundle(imported: Engine) -> None:
+    geocode_spaces(imported)
+    first = build_bundle(imported).bundle_id
+    # An improved matcher appends better evidence for the same D19 version.
+    with imported.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO prostoriq.geo_evidence (space_id, source_version_id, geom,
+                    precision_status, evidence_note, checked_at, license_id)
+                SELECT '10422', source_version_id, ST_SetSRID(ST_MakePoint(15.87, 45.77), 4326),
+                    'building_approximate', 'test: improved match', now(), 'ODbL-1.0'
+                FROM prostoriq.source_version WHERE source_code = 'D19'
+                ORDER BY fetched_at DESC LIMIT 1
+                """
+            )
+        )
+    second = build_bundle(imported)
+    assert second.created and second.bundle_id != first
+    assert _bundle_space(imported, second.bundle_id, "10422")[2] == "building_approximate"
+    again = build_bundle(imported)
+    assert (again.bundle_id, again.created) == (second.bundle_id, False)
 
 
 def test_overlapping_d01_d02_is_rejected(pipeline: Engine, tmp_path: Path) -> None:

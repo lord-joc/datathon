@@ -9,6 +9,7 @@ from app.gis.addresses import (
     AddressPoint,
     parse_city_address,
     parse_house_number,
+    possessive_aliases,
     street_key,
 )
 from tests import fixtures as fx
@@ -44,8 +45,16 @@ def test_street_key_ignores_case_accents_and_abbreviations() -> None:
         == street_key("Trg Ante Starčevića")
         == "trg ante starcevica"
     )
-    assert street_key("Vlaška ul.") == street_key("VLAŠKA ULICA")
-    assert street_key("Ulica Đure Salaja") == "ulica dure salaja"
+    assert street_key("Vlaška ul.") == street_key("VLAŠKA ULICA") == street_key("VLAŠKA")
+    assert street_key("Ulica Đure Salaja") == "dure salaja"
+
+
+def test_possessive_aliases_only_for_ulica_given_name_surname() -> None:
+    assert possessive_aliases("Ulica Vjekoslava Heinzela") == {"heinzelova", "heinzeleva"}
+    assert "harambasiceva" in possessive_aliases("Ulica Augusta Harambašića")
+    assert possessive_aliases("Vlaška ulica") == set()
+    assert possessive_aliases("Ulica grada") == set()
+    assert possessive_aliases("Ulica Ivane Brlić-Mažuranić") == set()
 
 
 @pytest.mark.parametrize(
@@ -68,6 +77,10 @@ def _index() -> AddressIndex:
             AddressPoint("node", 6, "Ilica", "10", 15.99, 45.81),
             AddressPoint("node", 7, "Savska cesta", "41", 15.96, 45.80),
             AddressPoint("node", 8, "Savska cesta", "41", 15.961, 45.80),
+            AddressPoint("way", 30, "Ulica Vjekoslava Heinzela", "66", 16.00, 45.81),
+            # Two different people with the same surname: the alias is ambiguous.
+            AddressPoint("way", 31, "Ulica Ivana Horvata", "5", 15.95, 45.79),
+            AddressPoint("way", 32, "Ulica Josipa Horvata", "5", 16.05, 45.83),
         ]
     )
 
@@ -88,9 +101,29 @@ def test_two_nodes_of_same_building_are_averaged() -> None:
 def test_fuzzy_street_name_is_accepted_when_unique() -> None:
     result = _index().geocode("VLASKA ULICA 0096")
     assert result.precision == "building_approximate"
-    result = _index().geocode("VLAŠKE ULICA 0096")
+    result = _index().geocode("SAVSKE CESTA 0041")
     assert result.precision == "building_approximate"
     assert result.method.startswith("fuzzy")
+
+
+def test_city_name_without_ulica_matches_osm_ulica() -> None:
+    result = _index().geocode("VLAŠKA 0096")
+    assert result.precision == "building_approximate"
+    assert result.method == "exact"
+
+
+def test_possessive_city_name_matches_official_osm_name() -> None:
+    result = _index().geocode("HEINZELOVA 0066")
+    assert result.precision == "building_approximate"
+    assert result.method == "alias"
+    assert result.evidence_url == "https://www.openstreetmap.org/way/30"
+
+
+def test_ambiguous_possessive_alias_needs_review() -> None:
+    result = _index().geocode("HORVATOVA 0005")
+    assert result.precision == "needs_review"
+    assert result.method == "alias_ambiguous"
+    assert result.lon is None
 
 
 def test_letter_mismatch_needs_review() -> None:
@@ -162,6 +195,7 @@ def test_d11_unfilled_template_rows_are_skipped() -> None:
         ("4763,15.97761,45.80455,entrance_confirmed,,ok,2099-01-01", "field_invalid"),
         ("4763,16.44,43.51,building_approximate,,ok,2026-10-27", "field_invalid"),
         ("A1,15.97,45.80,entrance_confirmed,,ok,2026-10-27", "field_invalid"),
+        ("4763,15.97761,45.80455,needs_review,,ok,2026-10-27", "field_invalid"),
     ],
 )
 def test_d11_rejects_bad_rows(row: str, code: str) -> None:
@@ -179,3 +213,18 @@ def test_d11_excel_croatian_export_is_accepted() -> None:
     record = result.records[0]
     assert (record["lon"], record["lat"]) == (15.97761, 45.80455)
     assert record["checked_at"].date().isoformat() == "2026-10-27"
+
+
+def test_d11_review_template_round_trip_needs_real_evidence() -> None:
+    # As written by 'geocode-review': BOM, ';', the hint only in auto_note.
+    header = "space_id;lon;lat;precision_status;evidence_url;evidence_note;checked_at;auto_note"
+    filled = "4763;15,97761;45,80455;entrance_confirmed;;;2026-10-27;ILICA 0001: nema"
+    result = parse_coordinates_csv(f"\ufeff{header}\n{filled}\n".encode(), fx.registry().get("D11"))
+    assert result.first_blocking_code == "field_invalid"
+
+    with_evidence = filled.replace(";;;2026", ";;Obilazak tima;2026")
+    result = parse_coordinates_csv(
+        f"\ufeff{header}\n{with_evidence}\n".encode(), fx.registry().get("D11")
+    )
+    assert result.blocking == []
+    assert result.records[0]["evidence_note"] == "Obilazak tima"

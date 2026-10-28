@@ -4,6 +4,13 @@ City list addresses look like "STRMEČKA CESTA 0057", "TRG ANTE STARČEVIĆA 000
 "ILICA 0001/1" or "SAVSKA CESTA 0041A". OSM uses "Strmečka cesta" + "57".
 Matching is deterministic and explainable; anything uncertain is sent to review rather
 than placed somewhere plausible.
+
+Two naming habits differ between the city list and OSM (ADR18):
+- the generic word "ulica" is often left out ("VLAŠKA" vs "Vlaška ulica"), so it never
+  takes part in the street key;
+- the list uses the possessive form of a person's name ("HEINZELOVA") where OSM uses the
+  official "Ulica Vjekoslava Heinzela". Such OSM streets also get possessive aliases, used
+  only when there is no exact match and only when the alias names exactly one OSM street.
 """
 
 import difflib
@@ -28,6 +35,7 @@ _CITY_ADDRESS = re.compile(
     r"^(?P<street>.*?[^\d\s].*?)\s+(?P<house>0*\d{1,5}\s*[a-zčćđšž]?)(?:\s*[/\-,].*)?\s*$",
     re.IGNORECASE,
 )
+_GENERIC_STREET = "ulica"
 FUZZY_CUTOFF = 0.88
 FUZZY_MARGIN = 0.04
 SAME_BUILDING_M = 80.0
@@ -39,13 +47,36 @@ def strip_accents(value: str) -> str:
     return "".join(c for c in decomposed if not unicodedata.combining(c))
 
 
-def street_key(street: str) -> str:
-    """'TRG KRALJA P. KREŠIMIRA IV' -> 'trg kralja p kresimira iv'; abbreviations expanded."""
+def _street_words(street: str) -> list[str]:
     text = strip_accents(street).casefold()
     text = re.sub(r"[.,;:()\"']", " ", text)
-    words = [w for w in text.split() if w]
-    expanded = [_ABBREVIATIONS.get(w, w) for w in words]
-    return " ".join(w for w in expanded if w)
+    expanded = [_ABBREVIATIONS.get(w, w) for w in text.split() if w]
+    return [w for w in expanded if w]
+
+
+def street_key(street: str) -> str:
+    """'TRG KRALJA P. KREŠIMIRA IV' -> 'trg kralja p kresimira iv'; 'Vlaška ulica' -> 'vlaska'.
+
+    Abbreviations are expanded and the generic word 'ulica' is dropped.
+    """
+    words = [w for w in _street_words(street) if w != _GENERIC_STREET]
+    return " ".join(words)
+
+
+def possessive_aliases(street: str) -> set[str]:
+    """'Ulica Vjekoslava Heinzela' -> {'heinzelova', 'heinzeleva'}.
+
+    Only for OSM names of the form 'Ulica <given name> <surname in genitive>'. Both suffixes
+    are generated because accents are stripped (š/s, ž/z); the city key picks the right one.
+    """
+    words = _street_words(street)
+    if len(words) < 3 or words[0] != _GENERIC_STREET:
+        return set()
+    surname = words[-1]
+    if len(surname) < 4 or not surname.endswith("a") or "-" in surname:
+        return set()
+    stem = surname[:-1]
+    return {stem + "ova", stem + "eva"}
 
 
 @dataclass(frozen=True)
@@ -128,6 +159,8 @@ class AddressIndex:
     def __init__(self, points: list[AddressPoint]) -> None:
         self._by_key: dict[tuple[str, int], list[tuple[str, AddressPoint]]] = defaultdict(list)
         self._streets_by_number: dict[int, set[str]] = defaultdict(set)
+        # alias -> street keys it may stand for; more than one means ambiguous.
+        self._aliases: dict[str, set[str]] = defaultdict(set)
         for point in points:
             house = parse_house_number(point.housenumber)
             if house is None:
@@ -135,6 +168,8 @@ class AddressIndex:
             key = street_key(point.street)
             self._by_key[(key, house.number)].append((house.letter, point))
             self._streets_by_number[house.number].add(key)
+            for alias in possessive_aliases(point.street):
+                self._aliases[alias].add(key)
 
     def __len__(self) -> int:
         return sum(len(v) for v in self._by_key.values())
@@ -145,6 +180,19 @@ class AddressIndex:
             return GeocodeResult("missing", None, None, "unparsed", "Adresa nema kućni broj.", None)
         candidates = self._by_key.get((parsed.street_key, parsed.house.number))
         method = "exact"
+        if not candidates and parsed.street_key in self._aliases:
+            streets = sorted(self._aliases[parsed.street_key])
+            if len(streets) > 1:
+                return GeocodeResult(
+                    "needs_review",
+                    None,
+                    None,
+                    "alias_ambiguous",
+                    f"Naziv odgovara više OSM ulica: {', '.join(streets)}.",
+                    None,
+                )
+            candidates = self._by_key.get((streets[0], parsed.house.number))
+            method = "alias"
         if not candidates:
             streets = list(self._streets_by_number.get(parsed.house.number, ()))
             scored = sorted(

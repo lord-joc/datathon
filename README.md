@@ -2,7 +2,13 @@
 
 Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u Zagrebu na temelju otvorenih podataka (data.gov.hr, Geoportal Grada Zagreba, OpenStreetMap). Datathon Portala otvorenih podataka 2026, izazov C.
 
-**Stanje:** isječak 2. Uz Docker okruženje, bazu, API skelet i prvi korak Vodiča (isječak 1) postoji uvoz otvorenih podataka: D01/D02 preko CKAN API-ja data.gov.hr, prostorni slojevi D03–D07 te autobusna stajališta, vrtići i škole (D14, D17, D18). Geokodiranje i metrike dolaze u isječku 3.
+**Stanje:** isječak 3.
+
+- **Isječak 1:** Docker okruženje, baza, API skelet i prvi korak Vodiča.
+- **Isječak 2:** uvoz otvorenih podataka. D01/D02 dolaze preko CKAN API-ja data.gov.hr, uz prostorne slojeve D03–D07 te autobusna stajališta, vrtiće i škole (D14, D17, D18).
+- **Isječak 3:** geokodiranje prostora (OSM adrese D19, timska provjera D11), konkurencija (D08), sirove prostorne metrike i paket podataka.
+
+Bodovanje i rangiranje dolaze u isječku 4. Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
 
@@ -16,7 +22,7 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 ## Pokretanje (Windows CMD)
 
-Potrebno: Docker Desktop (pokrenut), Git, Python 3.12, Node 24, uv.
+Potrebno: Docker Desktop (pokrenut) i Git. Za lokalni razvoj i provjere još i Python 3.12, uv i Node 24 (CI koristi Node 24; najmanje podržana verzija je 20.19).
 
 **1. Tajne.** Kopiraj predložak:
 
@@ -38,7 +44,7 @@ Otvori `.env` u VS Codeu (`code .env`) i zamijeni svaku vrijednost `promijeni_me
 docker compose up -d --build
 ```
 
-**3. Migracije baze** (stvara 31 tablicu, uloge i ovlasti):
+**3. Migracije baze** (stvara 32 tablice u shemi `prostoriq`, uloge i ovlasti):
 
 ```cmd
 docker compose run --rm cli python -m app.cli migrate
@@ -82,13 +88,13 @@ docker compose run --rm cli python -m app.cli import D01
 - Promjena broja zapisa veća od 20 % ili neprepoznata licenca stavlja verziju u status **ČEKA PREGLED**.
 - Izvorne datoteke čuvaju se po SHA-256 u volumenu `raw_data`.
 
-**Novi izvori (D14 autobusi, D17 vrtići, D18 škole):** njihov `resource_id` još nije potvrđen. Prvo pogledaj resurse:
+**Novi izvori (D14 autobusi, D17 vrtići, D18 škole):** `resource_id` je potvrđen 28. 10. 2026. i upisan u `config/source_registry_extra.json`. D14 i D18 su GeoJSON. Za D17 koristimo SHP (ZIP), jer resurs označen kao GeoJSON zapravo vraća Esri File Geodatabase. Ako portal promijeni resurse, uvoz javlja `resource_missing`. Tada pogledaj resurse i upiši novi `resource_id`:
 
 ```cmd
 docker compose run --rm cli python -m app.cli source-resources D14
 ```
 
-Ako paket ima točno jedan GeoJSON resurs, uvoz ga sam odabere. Ako ih ima više, upiši odabrani `resource_id` u `config/source_registry_extra.json`.
+Registar se u bazu učitava sam pri svakom uvozu. Ručno ga možeš učitati s `sources-load`.
 
 **Ručno preuzeta datoteka** (ako portal ne radi ili blokira automatski dohvat): spremi datoteku u `data\manual\` i pokreni:
 
@@ -96,7 +102,7 @@ Ako paket ima točno jedan GeoJSON resurs, uvoz ga sam odabere. Ako ih ima više
 docker compose run --rm cli python -m app.cli import D01 --file /app/manual/prazni-poslovni-prostori-2024.csv
 ```
 
-**Host nije dopušten:** dohvat smije ići samo na hostove iz `allowed_hosts` u `config/source_registry_extra.json`. Ako preuzimanje javi `host_not_allowed` za neki ArcGIS ili gradski host, provjeri gdje pokazuje i tek ga onda dodaj.
+**Host nije dopušten:** dohvat smije ići samo na hostove iz `allowed_hosts` u `config/source_registry_extra.json`: `data.gov.hr`, `data.zagreb.hr` i `opendata.arcgis.com`. Ako preuzimanje javi `host_not_allowed`, provjeri gdje URL pokazuje i dodaj **točno taj host**. Nemoj dodavati cijelu domenu `.arcgis.com`, jer na njezinim poddomenama svatko može objaviti sadržaj.
 
 ## Lokacije, metrike i paket podataka
 
@@ -124,7 +130,17 @@ docker compose run --rm cli python -m app.cli geocode
 docker compose run --rm -T cli python -m app.cli geocode-review > data\manual\d11.csv
 ```
 
-`-T` je obavezan da izlaz ne dobije terminalne znakove. U `d11.csv` su prostori koje nismo sigurno smjestili. Za svaki provjereni prostor upiši `lon`, `lat`, `precision_status` (`entrance_confirmed` ili `building_approximate`), dokaz (`evidence_url` ili `evidence_note`) i `checked_at` (npr. `2026-10-27`). Neispunjeni redci se preskaču. Excel s hrvatskim postavkama (`;`, decimalni zarez, datum `27.10.2026.`) je podržan.
+`-T` je obavezan da izlaz ne dobije terminalne znakove. Logovi idu na stderr, pa ne završavaju u datoteci.
+
+`d11.csv` sadrži prostore koje nismo sigurno smjestili. Datoteka ima razdjelnik `;` i UTF-8 BOM, pa se u Excelu s hrvatskim postavkama otvara dvoklikom, u stupcima i s ispravnim dijakriticima.
+
+Za svaki provjereni prostor upiši:
+- `lon` i `lat` (decimalni zarez je u redu),
+- `precision_status`: `entrance_confirmed` ili `building_approximate`,
+- dokaz u `evidence_url` ili `evidence_note`, npr. „Obilazak tima, ulaz iz dvorišta”,
+- `checked_at`, npr. `27.10.2026.` ili `2026-10-27`.
+
+Stupac `auto_note` samo je pomoć (adresa i razlog zašto automatsko uparivanje nije uspjelo). Ne računa se kao dokaz, pa redak bez vlastitog dokaza bude odbijen. Odbijen je i redak s upisanim koordinatama ako je `precision_status` ostao `needs_review` ili `missing`. Neispunjeni redci se preskaču. Spremi kao „CSV (razdvojeno točkom sa zarezom)”.
 
 ```cmd
 docker compose run --rm cli python -m app.cli import-coordinates --file /app/manual/d11.csv
@@ -138,7 +154,7 @@ docker compose run --rm cli python -m app.cli bundle-activate
 docker compose run --rm cli python -m app.cli bundles
 ```
 
-`bundle-build` uzima zadnju valjanu verziju svakog izvora, dodjeljuje gradsku četvrt (točka u poligonu, inače naziv iz popisa) i računa sirove metrike za radijuse 500 i 1000 m: udaljenost do stanice i parkinga, broj fakulteta, kulture i škola u 600 m, površinu i položaj. Udaljenosti su zračne. Konkurencija se broji, ali ne boduje dok pokrivenost OSM-a nije pregledana. Trošak je „nije dostupno”, nikad 0 EUR. Isti skup verzija ne stvara novi paket. Aktivacija je atomska i bilježi se u `audit_event`; nakon nje `/api/v1/status` javlja `dataset_ready: true`.
+`bundle-build` (opcionalno `--label "opis"`) uzima zadnju valjanu verziju svakog izvora. Dodjeljuje gradsku četvrt: točkom u poligonu, a inače po nazivu iz popisa. Zatim računa sirove metrike za radijuse 500 i 1000 m: udaljenost do stajališta javnog prijevoza (tramvaj D03 i autobus D14) i do parkinga, broj fakulteta, kulturnih ustanova te škola i vrtića (D17 + D18) u 600 m, površinu i položaj. Udaljenosti su zračne. Konkurencija se broji, ali ne boduje dok pokrivenost OSM-a nije pregledana. Trošak je „nije dostupno”, nikad 0 EUR. Isti skup verzija izvora i odabranih dokaza o lokaciji ne stvara novi paket. Novo geokodiranje ili D11 stvaraju novi paket. `bundle-activate` aktivira najnoviji valjani paket, a `--id <uuid>` određeni paket. Aktivacija je atomska i bilježi se u `audit_event`. Nakon nje `/api/v1/status` javlja `dataset_ready: true`.
 
 ## Razvoj frontenda s automatskim osvježavanjem
 
@@ -194,7 +210,8 @@ Iste provjere, uz stvarne migracije na PostGIS-u, pokreće GitHub Actions na sva
 - Dohvat izvora: samo HTTPS, popis dopuštenih hostova, provjera svakog preusmjeravanja i odbijanje privatnih adresa (zaštita od SSRF-a), ograničenje veličine i vremena, ponavljanje samo za 408/429/5xx. ZIP se raspakirava u memoriji, bez `..`, apsolutnih putanja i symlinkova.
 - API se na bazu spaja kao `prostoriq_api`. Ta uloga ima samo `SELECT` i `INSERT` na snapshote rangiranja, ne vidi admin tablice i ne može mijenjati povijesne zapise.
 - Caddy postavlja CSP, HSTS (na HTTPS-u), `X-Frame-Options`, `Permissions-Policy` i ostala zaglavlja. Frontend i API su na istom originu, bez CORS-a u produkciji.
-- Fontovi se poslužuju lokalno, bez trećih strana. Vite ne ugrađuje resurse kao `data:` URI-je, pa CSP ostaje strog.
+- CSP dopušta skripte samo s vlastitog originala. Slike su dopuštene s vlastitog originala te kao `data:` i `blob:`, jer ih MapLibre koristi za sprite i ikone. Vlastiti resursi nikad se ne ugrađuju kao `data:` URI-ji (Vite `assetsInlineLimit: 0`). Stilovi dopuštaju `'unsafe-inline'`, jer ga trebaju React `style` atributi i MapLibre.
+- Fontovi (`@fontsource`) se poslužuju lokalno, bez trećih strana.
 - Greške se vraćaju kao RFC 9457 `problem+json`, bez stack traceova. Logovi su JSON, bez lozinki, tokena i IP adresa.
 - `.env` se nikad ne commita.
 
@@ -207,6 +224,8 @@ config/     registar izvora, profili djelatnosti, AI i ranking konfiguracija
 db/init/    jednokratna skripta za korisnike baze
 docs/       ugovori (OpenAPI, sheme, sljedivost) i ADR-ovi
 ```
+
+`docs/contracts/` je **ciljni** ugovor za MVP (v3). `openapi.yaml` opisuje sve planirane rute, a zasad su implementirane `/api/v1/health` i `/api/v1/status`. Ostale dolaze s isječcima koji ih uvode.
 
 ## Licenca
 

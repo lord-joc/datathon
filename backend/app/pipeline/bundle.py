@@ -59,10 +59,37 @@ def _versions(conn: Connection) -> dict[str, str]:
     return versions
 
 
+# Best location evidence per space: D11 entrance > building-level > review > missing, D11 first
+# on ties, then newest. geo_evidence is append-only, so re-geocoding adds rows instead of
+# replacing them; this pick is what the bundle uses and what its identity covers.
+_BEST_EVIDENCE = """
+    SELECT DISTINCT ON (g.space_id) g.space_id, g.geo_evidence_id, g.geom, g.precision_status
+    FROM prostoriq.geo_evidence g
+    WHERE g.source_version_id IN (CAST(:d11 AS uuid), CAST(:d19 AS uuid))
+    ORDER BY g.space_id,
+        CASE g.precision_status WHEN 'entrance_confirmed' THEN 0
+            WHEN 'building_approximate' THEN 1 WHEN 'needs_review' THEN 2 ELSE 3 END,
+        (g.source_version_id = CAST(:d11 AS uuid)) DESC NULLS LAST,
+        g.checked_at DESC
+"""
+
+
+def _evidence_digest(conn: Connection, versions: dict[str, str]) -> str:
+    """Hash of the chosen evidence ids: new geocoding or D11 rows change the bundle."""
+    ids = conn.execute(
+        text(
+            f"SELECT array_agg(ev.geo_evidence_id::text ORDER BY ev.space_id) FROM ({_BEST_EVIDENCE}) ev"
+        ),
+        {"d11": versions.get("D11"), "d19": versions.get("D19")},
+    ).scalar_one()
+    return hashlib.sha256(_canonical(ids or []).encode()).hexdigest()
+
+
 def build_bundle(engine: Engine, label: str | None = None) -> BundleReport:
     with engine.begin() as conn:
         versions = _versions(conn)
-        manifest_sha = hashlib.sha256(_canonical(versions).encode()).hexdigest()
+        manifest = {"sources": versions, "location_evidence": _evidence_digest(conn, versions)}
+        manifest_sha = hashlib.sha256(_canonical(manifest).encode()).hexdigest()
         existing = conn.execute(
             text(
                 "SELECT dataset_bundle_id::text, status, validation_report "
@@ -147,23 +174,13 @@ def _finish(conn: Connection, bundle_id: str, status: str, report: dict[str, Any
 def _insert_bundle_spaces(conn: Connection, p: dict[str, Any]) -> None:
     conn.execute(
         text(
-            """
+            f"""
             WITH revs AS (
                 SELECT r.space_id, r.space_revision_id, r.district_name_source
                 FROM prostoriq.space_revision r
                 WHERE r.source_version_id IN (CAST(:d01 AS uuid), CAST(:d02 AS uuid))
             ),
-            ev AS (
-                SELECT DISTINCT ON (g.space_id) g.space_id, g.geo_evidence_id, g.geom,
-                       g.precision_status
-                FROM prostoriq.geo_evidence g
-                WHERE g.source_version_id IN (CAST(:d11 AS uuid), CAST(:d19 AS uuid))
-                ORDER BY g.space_id,
-                    CASE g.precision_status WHEN 'entrance_confirmed' THEN 0
-                        WHEN 'building_approximate' THEN 1 WHEN 'needs_review' THEN 2 ELSE 3 END,
-                    (g.source_version_id = CAST(:d11 AS uuid)) DESC NULLS LAST,
-                    g.checked_at DESC
-            )
+            ev AS ({_BEST_EVIDENCE})
             INSERT INTO prostoriq.bundle_space (dataset_bundle_id, space_id, space_revision_id,
                 geo_evidence_id, district_id, district_assignment)
             SELECT CAST(:b AS uuid), revs.space_id, revs.space_revision_id, ev.geo_evidence_id,

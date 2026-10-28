@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/prostoriq/ai-input.schema.json",
+  "title": "ProstorIQ internal AI input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "notice_revision_id",
+    "source_code",
+    "canonical_url",
+    "title",
+    "clean_text",
+    "content_sha256",
+    "reuse_policy_sha256",
+    "published_date",
+    "published_at",
+    "config_version"
+  ],
+  "properties": {
+    "notice_revision_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "source_code": {
+      "enum": [
+        "D09",
+        "D10"
+      ]
+    },
+    "canonical_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "clean_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100000
+    },
+    "content_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reuse_policy_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "published_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "published_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "config_version": {
+      "const": "ai-3.0.0"
+    }
+  }
+}

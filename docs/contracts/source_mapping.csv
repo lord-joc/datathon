@@ -1,0 +1,77 @@
+﻿source_code,source_field,target_field,transform
+D01,ID,space.space_id,digits_string
+D01,GRADSKA ČETVRT,space_revision.district_name_source,normalize_whitespace
+D01,ADRESA,space_revision.address,strip_only_preserve_original
+D01,Površina u m2,space_revision.area_m2,decimal_comma_to_numeric
+D01,POLOŽAJ,space_revision.position_code,ULIČNI=street; other nonempty=other; empty=null
+D01,Opis strukture,space_revision.structure_description,plain_text
+D01,Status korištenja,space_revision.usage_code_source,source_code_only_no_inference
+D02,ID,space.space_id,digits_string
+D02,GRADSKA ČETVRT,space_revision.district_name_source,normalize_whitespace
+D02,ADRESA,space_revision.address,strip_only_preserve_original
+D02,Površina m2,space_revision.area_m2,decimal_comma_to_numeric
+D02,POLOŽAJ,space_revision.position_code,ULIČNI=street; other nonempty=other; empty=null
+D02,Opis strukture,space_revision.structure_description,plain_text
+D02,constant unfit,space_revision.inventory_kind,technical_suitable=no
+D03,properties.OBJECTID,spatial_feature.feature_key,string_within_source_version
+D03,properties.Naziv_stajališta,spatial_feature.name,plain_text
+D03,properties.Linije,spatial_feature.properties.lines,plain_text_not_frequency
+D03,geometry,spatial_feature.geom,GeoJSON lon_lat SRID4326
+D04,properties.OBJECTID,spatial_feature.feature_key,string_within_source_version
+D04,properties.naziv,spatial_feature.name,plain_text
+D04,properties.adresa,spatial_feature.address,plain_text
+D04,properties.vrsta,spatial_feature.properties.type,plain_text
+D04,properties.kampus,spatial_feature.properties.campus,plain_text
+D04,properties.sjediste,spatial_feature.properties.headquarters,plain_text
+D04,geometry,spatial_feature.geom,GeoJSON lon_lat SRID4326
+D05,properties.OBJECTID,spatial_feature.feature_key,string_within_source_version
+D05,properties.naziv,spatial_feature.name,plain_text
+D05,properties.adresa,spatial_feature.address,plain_text
+D05,properties.ustanove,spatial_feature.properties.institutions,plain_text
+D05,properties.radno_vrijeme,spatial_feature.properties.opening_hours,optional_text
+D05,geometry,spatial_feature.geom,GeoJSON lon_lat SRID4326
+D06,properties.OBJECTID,spatial_feature.feature_key,string_within_source_version
+D06,properties.naziv,spatial_feature.name,plain_text
+D06,properties.adresa,spatial_feature.address,plain_text
+D06,properties.kapacitet,spatial_feature.properties.capacity,optional_number_not_live_availability
+D06,properties.invalidska_mj,spatial_feature.properties.accessible_spaces,optional_number
+D06,geometry,spatial_feature.geom,GeoJSON lon_lat SRID4326
+D07,JMS_MB,district.district_id,string_preserve_leading_zero
+D07,JMS_IME,district.name,plain_text
+D07,shape,district.geom,read_PRJ transform_3765_to_4326 multi_polygon
+D07,datum_a,source_record.raw_values.reference_date,date
+D07,Shape_Area,source_record.raw_values.source_area_m2,reference_only
+D08,type/id,competitor.osm_type/osm_id,composite_identity
+D08,tags.amenity,competitor.category,cafe|bar|pub
+D08,tags.name,competitor.name,plain_text
+D08,tags.addr:street + addr:housenumber,competitor.address,nullable_complete_address
+D08,geometry,competitor.original_geom,assemble_full_geometry_if_available
+D08,representative point,competitor.geom,node_or_PointOnSurface
+D08,lifecycle tags,competitor.lifecycle_status,explicit_closed_disused_construction_filter
+D08,timestamp,competitor.osm_timestamp,nullable_no_invented_date
+D09,list .listaitem h4 a,notice.canonical_url,urljoin_then_allowlist
+D09,list .datum,notice_revision.published_date,date_only_if_no_time
+D09,#clanak_container > h1,notice_revision.title,plain_text
+D09,#clanak_container #opis,notice_revision.clean_text,UTF8 inner_text including br; remove script style iframe form img svg and third_party_material
+D09,content SHA256,notice_revision.content_sha256,UTF8_canonical_text
+D10,item.guid or item.link,notice.canonical_url,canonical_link_key
+D10,item.title,notice_revision.title,metadata_only_if_permitted
+D10,item.pubDate,notice_revision.published_at,RFC822_to_UTC
+D10,item.description,notice_revision.clean_text,disabled_until_reuse_approval
+D11,space_id,geo_evidence.space_id,exact_official_id
+D11,lon/lat,geo_evidence.geom,WGS84_lon_lat
+D11,precision_status,geo_evidence.precision_status,entrance_confirmed|building_approximate|needs_review|missing
+D11,source_version_id,geo_evidence.source_version_id,provenance_version
+D11,checked_at,geo_evidence.checked_at,UTC
+D11,evidence_url/evidence_note,geo_evidence.evidence_url/evidence_note,reviewed_proof
+D12,space_id,status_assessment.space_id,exact_id_or_manual_resolution
+D12,profile,status_assessment.profile_code,cafe|office
+D12,document URL,status_assessment.evidence_url,approved_official_source
+D12,conditions,status_assessment.*,yes|no|unknown_no_inference_from_inventory
+D12,monthly_total_eur,status_assessment.monthly_total_eur,nullable_comparable_definition_only
+D12,checked_at,status_assessment.checked_at,UTC
+M01,model ID/revision,ai_result.model_id/model_revision,pinned_model_revision
+M01,topic/config hash,ai_result.config_sha256,canonical_JSON_SHA256
+M01,cosine scores,ai_result.topic_scores,float_not_probability
+M01,evidence spans,ai_result.evidence_spans,character_offsets_of_clean_text
+M01,topic label + split,evaluation_manifest,12_development_28_held_out

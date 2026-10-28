@@ -1,0 +1,71 @@
+{
+  "$comment": "Team additions after documentation v3 (ADR16). Dataset pages confirmed by catalogue search on 2026-10-27. resource_id is null until the first 'python -m app.cli source-resources <code>' confirms it; the importer then picks the single resource with resource_format, or stops and asks.",
+  "version": "2026-10-28.1",
+  "sources": [
+    {
+      "source_code": "D14",
+      "name": "Autobusna stajališta ZET",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-autobusna-stajalista-zet",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-autobusna-stajalista-zet",
+      "resource_id": null,
+      "resource_format": "GeoJSON",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "category": "transit",
+      "feature_properties": {
+        "mode": "bus"
+      },
+      "refresh": "weekly",
+      "limitations": "Udaljenost do najbližeg evidentiranog stajališta; nije broj putnika."
+    },
+    {
+      "source_code": "D17",
+      "name": "Dječji vrtići",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-djecji-vrtici",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-djecji-vrtici",
+      "resource_id": "d97b1a67-7259-4cee-8306-1bc01e933934",
+      "resource_format": "SHP",
+      "resource_note": "Confirmed 2026-10-28 with source-resources: the resource labelled GeoJSON (cae120e7) returns format=fgdb (Esri File Geodatabase). The SHP resource (spatialRefId=4326) is a zipped point Shapefile in WGS84.",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "category": "school",
+      "feature_properties": {
+        "kind": "kindergarten"
+      },
+      "refresh": "weekly",
+      "limitations": "Evidentirane lokacije vrtića; nije broj upisane djece."
+    },
+    {
+      "source_code": "D18",
+      "name": "Osnovne škole",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-osnovne-skole",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-osnovne-skole",
+      "resource_id": null,
+      "resource_format": "GeoJSON",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "category": "school",
+      "feature_properties": {
+        "kind": "primary_school"
+      },
+      "refresh": "weekly",
+      "limitations": "Evidentirane lokacije škola; nije broj učenika."
+    }
+  ],
+  "allowed_hosts": [
+    "data.gov.hr",
+    "data.zagreb.hr",
+    "opendata.arcgis.com",
+    ".arcgis.com"
+  ],
+  "$comment_hosts": "Exact host names, or a leading dot for a domain and its subdomains. Every redirect is re-checked; add a host only after reviewing where it points."
+}

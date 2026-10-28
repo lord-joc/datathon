@@ -1,0 +1,50 @@
+﻿business_need,requirement_id,screen_or_component,sources,entities,api_operations,tests,backlog,phase
+P01 Odabir lokacije,FZ01,Javni tijek,D01 D02 D07,criteria_profile dataset_bundle,listProfiles listDistricts listSpaces rankSpaces,TF01,B26 B27 B30 B31 B36,MVP
+P04 Pouzdanost i podrijetlo,FZ02,/admin,D01 D02,source source_version source_record space_revision import_job,createImportJob getImportJob getImportErrors,TF02 TI01,B09,MVP
+P01 Odabir lokacije,FZ03,Javni tijek,D11,space geo_evidence bundle_space,getSpace createCoordinateEvidence,TF03 TG01 TG02 TG03,B07 B10,MVP
+P01 Odabir lokacije,FZ04,Javni tijek,D01 D02 D12,space_revision status_assessment bundle_space,listSpaces getSpace rankSpaces createStatusAssessment,TF04,B02 B22,MVP
+P01 Odabir lokacije,FZ05,Javni tijek,D01 D02 D07 D11,bundle_space space_revision geo_evidence,listSpaces getSystemStatus,TF05,B06 B13 B27 B31 B32 B48,MVP
+P01 Odabir lokacije,FZ06,Javni tijek,D01 D03 D04 D05 D06 D08 D11 D12,space_revision geo_evidence status_assessment spatial_metric,getSpace listCompetitors listContext,TF06,B23 B28 B33 B36,MVP
+P01 Odabir lokacije,FZ07,Javni tijek,D01 D03 D04 D05 D06 D08 D11 D12,criteria_profile ranking_run ranking_item,rankSpaces getRanking,TF07 TR01 TR02 TR03 TR04,B21 B22 B24,MVP
+P01 Odabir lokacije,FZ08,Javni tijek,D01 D03 D04 D05 D06 D08 D11 D12,ranking_run spatial_metric,rankSpaces,TF08 TR01 TR02 TR03,B21 B22 B24 B26 B35,MVP
+P01 Odabir lokacije,FZ09,Javni tijek,D01 D03 D04 D05 D06 D08 D11 D12,ranking_run ranking_item,rankSpaces getRanking,TF09,B25 B36,MVP
+P02 Konkurencija,FZ10,/admin,D08,source_version competitor coverage_review,createImportJob listCompetitors,TF10,B11,MVP
+P02 Konkurencija,FZ11,/admin,D08,competitor competitor_resolution,createImportJob listCompetitors,TF11 TG04,B08 B11,MVP
+P02 Konkurencija,FZ12,Javni tijek,D08 D11,coverage_review spatial_metric ranking_item,listCompetitors rankSpaces,TF12 TG04,B08 B33,MVP
+P03 AI kontekst,FZ13,worker,D09 D10,source notice notice_revision source_record,createImportJob getImportErrors,TF13,B17,MVP
+P03 AI kontekst,FZ14,worker,D09 M01,ai_result notice_revision context_card,createImportJob getImportJob listAdminContext,TF14 TA01,B14 B16,MVP
+P03 AI kontekst,FZ15,worker,D07 D09 D11 M01,ai_result context_card district geo_evidence,listAdminContext reviewContext,TF15 TG03 TA02 TA03,B15 B38,MVP
+P03 AI kontekst,FZ16,Javni tijek,D09 M01,context_card notice_revision,listContext,TF16,B15 B33,MVP
+P03 AI kontekst,FZ17,/admin,D09 M01,context_card audit_event ai_result,listAdminContext reviewContext,TF17 TA02 TA03,B20 B38,MVP
+P04 Pouzdanost i podrijetlo,FZ18,/admin,D01 D02 D03 D04 D05 D06 D07 D08 D11 D12,source_version dataset_bundle bundle_source import_job,createImportJob validateBundle activateBundle rollbackBundle,TF18 TI01 TI02 TI03,B09 B12 B37,MVP
+P04 Pouzdanost i podrijetlo,FZ19,Javni tijek,D01 D02 D03 D04 D05 D06 D07 D08 D09 D10 D11 D12 M01,source source_version ranking_run ranking_item,listSources getRanking getSourceVersion,TF19,B04 B22,MVP
+P04 Pouzdanost i podrijetlo,FZ20,Javni tijek,D01 D08 D09,ranking_run ranking_item,getRankingExport,TF20,P01,Pilot dodatak
+P04 Pouzdanost i podrijetlo,FZ21,Javni tijek,D01 D08,error_report,createErrorReport,TF21,P02,Pilot dodatak
+P04 Pouzdanost i podrijetlo,FZ22,/admin,D01 D02 D03 D04 D05 D06 D07 D08 D09 D11 D12 M01,import_job import_error source,listAdminSources listImportJobs getImportJob getImportErrors createImportJob updateAdminSource reviewImportJob cancelImportJob,TF22 TI03,B18 B23 B34,MVP
+P04 Pouzdanost i podrijetlo,FZ23,Javni tijek,D01 D02 D03 D04 D05 D06 D07 D08 D09 D10 D11 D12 M01,source source_version,listSources,TF23,B01 B32 B43,MVP
+P04 Pouzdanost i podrijetlo,FZ24,Javni tijek,D01 D08 D09,dataset_bundle source_version,getSystemStatus listSpaces rankSpaces listCompetitors listContext,TF24,B02 B28 B32 B35,MVP
+P03 AI kontekst,FZ25,Javni tijek,M01,criteria_profile ai_result,createProfileSuggestion,TF25,P03,Pilot dodatak
+P04 Pouzdanost i podrijetlo,FZ26,Javni tijek,D01 D02 D03 D04 D05 D06 D07 D08 D09 D11 M01,dataset_bundle ai_result ranking_run,createImportJob getImportJob rankSpaces,TF26,B03 B16 B43 B44 B45 B46 B47,MVP
+P04 Pouzdanost i podrijetlo,FZ27,/admin,,admin_user admin_session audit_event,loginAdmin getAdminSession logoutAdmin,TF27,B05 B34,MVP
+P04 Pouzdanost i podrijetlo,FZ28,/admin,D01 D02 D03 D04 D05 D06 D07 D08 D11 D12,dataset_bundle bundle_source bundle_space active_dataset audit_event,createBundle getBundle listBundles validateBundle activateBundle rollbackBundle,TF28 TI02,B12 B34,MVP
+P01 Odabir lokacije,FZ29,Javni tijek,,ranking_run ranking_item,getRanking,TF29,B23 B24,MVP
+P01 Odabir lokacije,FZ30,/admin,,criteria_profile audit_event,listProfileVersions createProfileVersion listProfiles,TF30,B23,MVP
+P01 Odabir lokacije,FZ31,/admin,D11 D12,geo_evidence status_assessment audit_event,createCoordinateEvidence createStatusAssessment,TF31,B07 B23,MVP
+P05 Kvaliteta i održivost,NF01,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN01,B04 B30 B39,MVP
+P05 Kvaliteta i održivost,NF02,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN02,B05 B42,MVP
+P05 Kvaliteta i održivost,NF03,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN03,B42,MVP
+P05 Kvaliteta i održivost,NF04,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN04 TS01 TS02,B17,MVP
+P05 Kvaliteta i održivost,NF05,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN05,B23,MVP
+P05 Kvaliteta i održivost,NF06,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN06,B40,MVP
+P05 Kvaliteta i održivost,NF07,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN07,B16,MVP
+P05 Kvaliteta i održivost,NF08,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN08,B35 B37,MVP
+P05 Kvaliteta i održivost,NF09,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN09,B37,MVP
+P05 Kvaliteta i održivost,NF10,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN10,B09 B23,MVP
+P05 Kvaliteta i održivost,NF11,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN11 TG01 TG02,B10,MVP
+P05 Kvaliteta i održivost,NF12,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN12,B06 B29,MVP
+P05 Kvaliteta i održivost,NF13,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN13,B41,MVP
+P05 Kvaliteta i održivost,NF14,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN14 TA01,B14 B19 B38,MVP
+P05 Kvaliteta i održivost,NF15,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN15,B01,MVP
+P05 Kvaliteta i održivost,NF16,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN16,B01,MVP
+P05 Kvaliteta i održivost,NF17,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN17,B18,MVP
+P05 Kvaliteta i održivost,NF18,Svi moduli,Prema funkciji,Prema funkciji,Svi relevantni ugovori,TN18,B40,MVP

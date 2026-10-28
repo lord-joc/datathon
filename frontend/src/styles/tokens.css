@@ -1,0 +1,34 @@
+/*
+ * ProstorIQ design tokens (master prompt §7.2).
+ * Dark is the default theme. Colours are stored as "R G B" so Tailwind can apply alpha.
+ * Light blue is the only accent; status colours are muted and always paired with text + icon.
+ */
+:root {
+  --bg: 11 13 16; /* #0B0D10 */
+  --surface: 18 21 26; /* #12151A */
+  --surface-2: 25 29 36; /* #191D24 */
+  --border: 38 44 53; /* #262C35 */
+  --text: 231 234 238; /* #E7EAEE */
+  --text-muted: 154 164 178; /* #9AA4B2 */
+  --text-subtle: 107 117 132; /* #6B7584 */
+  --accent: 124 196 250; /* #7CC4FA */
+  --accent-strong: 58 160 240; /* #3AA0F0 */
+  --warn: 227 179 65; /* #E3B341 */
+  --danger: 240 113 103; /* #F07167 */
+  --ok: 108 203 143; /* #6CCB8F */
+
+  /* Contribution bar: one shade per criterion, blue to grey, never a rainbow. */
+  --crit-transit: #7cc4fa;
+  --crit-area: #58a9e8;
+  --crit-street: #3d8fd1;
+  --crit-universities: #a9d6f7;
+  --crit-culture: #8aa6c1;
+  --crit-schools: #6f8aa6;
+  --crit-parking: #56708c;
+  --crit-competition: #3f5670;
+  --crit-cost: #2c3846;
+
+  --radius-card: 12px;
+  --focus-ring: 0 0 0 2px rgb(var(--bg)), 0 0 0 4px rgb(var(--accent));
+  color-scheme: dark;
+}

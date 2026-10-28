@@ -1,0 +1,16 @@
+{
+  "job_id": "00000000-0000-4000-8000-000000000600",
+  "source_code": "D01",
+  "kind": "source_import",
+  "status": "failed",
+  "requested_at": "2026-10-27T11:00:00Z",
+  "started_at": "2026-10-27T11:00:01Z",
+  "finished_at": "2026-10-27T11:00:02Z",
+  "accepted_count": 0,
+  "rejected_count": 0,
+  "source_version_id": null,
+  "error_code": "schema_changed",
+  "report": {
+    "active_bundle_unchanged": true
+  }
+}

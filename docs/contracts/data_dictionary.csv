@@ -1,0 +1,297 @@
+﻿table,column,type,nullable,definition,meaning
+admin_user,admin_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Unutarnji UUID administratorskog računa.
+admin_user,username,text,no,text NOT NULL UNIQUE CHECK (length(username) BETWEEN 3 AND 100),Jedinstveno korisničko ime administratora; nije javni korisnički profil.
+admin_user,password_hash,text,no,text NOT NULL,"Argon2id PHC zapis sa solju i parametrima, nikad čista lozinka."
+admin_user,enabled,boolean,no,boolean NOT NULL DEFAULT true,Dopušta novo korištenje izvora ili računa; isključivanje ne prepisuje prethodnu povijest.
+admin_user,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+admin_session,session_hash,char(64),no,char(64) PRIMARY KEY CHECK (session_hash ~ '^[0-9a-f]{64}$'),SHA256 nepredvidljivog session tokena.
+admin_session,admin_id,uuid,no,uuid NOT NULL REFERENCES admin_user ON DELETE CASCADE,Unutarnji UUID administratorskog računa.
+admin_session,csrf_hash,char(64),no,char(64) NOT NULL,Hash CSRF tokena; uspoređivati u konstantnom vremenu.
+admin_session,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+admin_session,last_seen_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Posljednja dopuštena aktivnost sesije; koristi se za rok neaktivnosti od 30 minuta.
+admin_session,expires_at,timestamptz,no,timestamptz NOT NULL,Rok sesije ili spremljene usporedbe; konkretno trajanje određuje politika dotičnog entiteta.
+admin_session,revoked_at,timestamptz,yes,timestamptz,Vrijeme opoziva sesije; ne-NULL sesija više ne daje ovlast.
+source,source_code,text,no,text PRIMARY KEY CHECK (source_code ~ '^(D[0-9]{2}|M01)$'),Stabilna projektna oznaka D01 do D12 ili M01.
+source,name,text,no,text NOT NULL,"Naziv izvora, ustanove ili objekta; dopušten je NULL gdje izvor nema ime."
+source,publisher,text,no,text NOT NULL,"Izdavatelj izvora, a ne poslužitelj na kojem je distribucijska kopija tehnički pohranjena."
+source,catalog_url,text,yes,text,Javna adresa kataloškog zapisa ili službene početne stranice; NULL za vlastiti lokalni izvor.
+source,adapter_code,text,no,text NOT NULL,Naziv odobrenog adaptera u kodu; nije proizvoljan modul koji se preuzima iz izvora.
+source,policy,jsonb,no,jsonb NOT NULL CHECK (jsonb_typeof(policy)='object'),"Odobrene domene, putanje, prava, limiti i raspored izvora."
+source,policy_sha256,char(64),no,char(64) NOT NULL,Hash provjerenih uvjeta uporabe i dohvaćanja.
+source,license_id,text,no,text NOT NULL,"Stabilna oznaka dokumentiranog prava uporabe, odvojena od licence aplikacijskog koda."
+source,attribution,text,no,text NOT NULL,Tekst navođenja izdavatelja i licence koji se prikazuje uz podatak.
+source,enabled,boolean,no,boolean NOT NULL DEFAULT true,Dopušta novo korištenje izvora ili računa; isključivanje ne prepisuje prethodnu povijest.
+source,version,integer,no,integer NOT NULL DEFAULT 1 CHECK (version > 0),Optimistička kontrola paralelnih izmjena; vrijednost raste pri promjeni.
+source,updated_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme posljednje dopuštene promjene mutable konfiguracije izvora.
+import_job,job_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),UUID jednog pokušaja organizirane pozadinske obrade s idempotentnim zahtjevom.
+import_job,source_code,text,no,text NOT NULL REFERENCES source,Stabilna projektna oznaka D01 do D12 ili M01.
+import_job,kind,text,no,"text NOT NULL CHECK (kind IN ('source_import','ai_process','demo_check'))","Vrsta pozadinskog posla source_import ai_process ili demo_check, odnosno tip lokacije prema zasebnoj shemi."
+import_job,status,text,no,"text NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','running','validating','awaiting_review','succeeded','failed','cancelled'))",Kontrolirano stanje prema CHECK ograničenju i propisanim prijelazima.
+import_job,idempotency_key,text,no,text NOT NULL,Ključ administratorova zahtjeva za isti izvor; jednako tijelo ponovno vraća isti posao.
+import_job,request_sha256,char(64),no,char(64) NOT NULL,Hash kanonskog ulaza za idempotenciju i provjeru konteksta.
+import_job,request_json,jsonb,no,jsonb NOT NULL,Kanonski validirani ulaz bez lozinki i pristupnih tokena.
+import_job,requested_by,uuid,yes,uuid REFERENCES admin_user,Administrator koji je pokrenuo posao; NULL samo za dokumentirani sistemski raspored.
+import_job,requested_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme kada je odobreni korisnik stavio posao u red.
+import_job,started_at,timestamptz,yes,timestamptz,Vrijeme stvarnog početka rada worker-a; može biti kasnije od requested_at.
+import_job,finished_at,timestamptz,yes,timestamptz,UTC vrijeme konačnog završetka ili otkazivanja posla; NULL dok obrada traje.
+import_job,lease_owner,text,yes,text,Identitet worker instance koja smije dovršiti posao.
+import_job,lease_until,timestamptz,yes,timestamptz,Rok vlasništva posla; obnavlja se heartbeatom.
+import_job,heartbeat_at,timestamptz,yes,timestamptz,Vrijeme posljednje potvrde da vlasnik posla još radi; očekivani razmak je 15 sekundi.
+import_job,fencing_token,bigint,no,bigint NOT NULL DEFAULT 0,Monotoni broj claim-a koji sprječava stari worker da potvrdi rezultat.
+import_job,attempt,integer,no,integer NOT NULL DEFAULT 0 CHECK (attempt >= 0),Broj pokušaja preuzimanja posla od worker-a; najveći dopušten broj je tri.
+import_job,accepted_count,integer,no,integer NOT NULL DEFAULT 0 CHECK (accepted_count >= 0),Broj redaka koje je posao prihvatio nakon validacije; nije broj trenutačno ponuđenih prostora.
+import_job,rejected_count,integer,no,integer NOT NULL DEFAULT 0 CHECK (rejected_count >= 0),Broj redaka odbijenih pri validaciji; neprihvaćeni redak mora imati import_error dokaz.
+import_job,error_code,text,yes,text,Glavni stabilni kod neuspjelog posla; NULL ako nema glavne pogreške.
+import_job,report,jsonb,no,jsonb NOT NULL DEFAULT '{}'::jsonb,Dodatni izvještaj posla; zajednički statusi i brojevi ostaju zasebna strogo tipizirana polja.
+import_error,error_id,bigint GENERATED ALWAYS AS IDENTITY,no,bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,Generirani identifikator jednog detalja pogreške uvoza.
+import_error,job_id,uuid,no,uuid NOT NULL REFERENCES import_job,UUID jednog pokušaja organizirane pozadinske obrade s idempotentnim zahtjevom.
+import_error,source_record_key,text,yes,text,Izvorni ključ retka na kojem je validacija pronašla problem.
+import_error,code,text,no,text NOT NULL,"Stabilni strojni kod validacijske pogreške, primjerice schema_changed ili duplicate_id."
+import_error,field_name,text,yes,text,Izvorno ili interno polje povezano s pogreškom; NULL ako pogreška vrijedi za cijeli paket.
+import_error,detail,text,no,text NOT NULL,"Ljudski čitljivo objašnjenje tehničke pogreške bez tajni, tokena i cijelog stack tracea."
+import_error,severity,text,no,"text NOT NULL CHECK (severity IN ('warning','blocking'))","warning traži pregled, blocking sprječava prihvat; nepoznata licenca ne može postati obično upozorenje."
+import_error,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+source_version,source_version_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Nepromjenjiva verzija izvora; strani ključ na source_version.
+source_version,source_code,text,no,text NOT NULL REFERENCES source,Stabilna projektna oznaka D01 do D12 ili M01.
+source_version,job_id,uuid,yes,uuid REFERENCES import_job,UUID jednog pokušaja organizirane pozadinske obrade s idempotentnim zahtjevom.
+source_version,resource_id,text,yes,text,Točan ID odabranog CKAN resursa; nije naslov datoteke niti pretpostavljeni URL.
+source_version,download_url,text,no,text NOT NULL,Adresa stvarno korištenog resursa iz odobrenih metapodataka; kontrolirani lokalni ključevi nisu javne poveznice.
+source_version,sha256,char(64),no,char(64) NOT NULL CHECK (sha256 ~ '^[0-9a-f]{64}$'),"SHA256 izvornih bajtova, mala heksadekadska slova."
+source_version,metadata_sha256,char(64),no,char(64) NOT NULL CHECK (metadata_sha256 ~ '^[0-9a-f]{64}$'),"Hash metapodataka i relevantne licence, uz zaseban hash sadržaja."
+source_version,license_id,text,no,text NOT NULL,"Stabilna oznaka dokumentiranog prava uporabe, odvojena od licence aplikacijskog koda."
+source_version,policy_sha256,char(64),no,char(64) NOT NULL,Hash provjerenih uvjeta uporabe i dohvaćanja.
+source_version,reference_period,text,yes,text,"Referentno razdoblje sadržaja, ne datum preuzimanja."
+source_version,source_modified_at,timestamptz,yes,timestamptz,Izvorna objavljena promjena resursa kad postoji; nije fetched_at ni provjera stvarne raspoloživosti.
+source_version,fetched_at,timestamptz,no,timestamptz NOT NULL,Vrijeme stvarnog preuzimanja izvornog paketa.
+source_version,last_checked_at,timestamptz,no,timestamptz NOT NULL,Vrijeme posljednje provjere dostupnosti ili promjene izvora.
+source_version,raw_storage_key,text,no,text NOT NULL,"Privatni ključ izvornika raw/source_code/sha256, nikad javna URL putanja."
+source_version,manifest,jsonb,no,jsonb NOT NULL,"JSON dokaz podrijetla, formata, brojeva i verzije adaptera."
+source_version,record_count,integer,no,integer NOT NULL CHECK (record_count >= 0),Broj valjanih zapisa jedne verzije prema izvještaju parsera; nije trajna konstanta aplikacije.
+source_version,quality_status,text,no,"text NOT NULL CHECK (quality_status IN ('staged','awaiting_review','valid','rejected'))",staged awaiting_review valid ili rejected; samo valid sadržaj smije u aktivirani paket.
+source_version,coverage_geom,"geometry(MultiPolygon,4326)",yes,"geometry(MultiPolygon,4326)",Geometrijski obuhvat izvorne verzije za provjeru da potrebni krug nije odrezan.
+source_record,source_record_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Veza normaliziranog zapisa s dopuštenim izvornim poljima.
+source_record,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+source_record,natural_key,text,no,text NOT NULL,Izvorni stabilni ključ unutar verzije; npr. gradski ID ili OBJECTID.
+source_record,record_sha256,char(64),no,char(64) NOT NULL,Hash kanonskog sadržaja dopuštenih polja jednog izvornog zapisa.
+source_record,raw_values,jsonb,no,jsonb NOT NULL CHECK (jsonb_typeof(raw_values)='object'),Samo dopuštena izvorna polja; ne svi kontakti i interne bilješke.
+space,space_id,text,no,text PRIMARY KEY CHECK (space_id ~ '^[0-9]+$'),Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+space,issuer_code,text,no,text NOT NULL DEFAULT 'CITY_ZAGREB',Prostorni imenski prostor izdavatelja; MVP koristi CITY_ZAGREB i službene ID-eve.
+space,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+space_revision,space_revision_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),UUID normaliziranog stanja jedinice u određenoj izvornoj verziji.
+space_revision,space_id,text,no,text NOT NULL REFERENCES space,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+space_revision,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+space_revision,source_record_id,uuid,no,uuid NOT NULL REFERENCES source_record,Veza normaliziranog zapisa s dopuštenim izvornim poljima.
+space_revision,inventory_kind,text,no,"text NOT NULL CHECK (inventory_kind IN ('regular','unfit'))",regular ili unfit; ne označuje aktivnost natječaja.
+space_revision,address,text,no,text NOT NULL CHECK (length(address)>0),"Izvorna adresa uz čišćenje rubnih razmaka, bez pogađanja kućnog broja."
+space_revision,district_name_source,text,yes,text,"Izvorni naziv četvrti iz CSV-a, odvojen od potvrđene geometrijske dodjele."
+space_revision,area_m2,"numeric(12,2)",yes,"numeric(12,2) CHECK (area_m2 > 0)",Pozitivna površina u m²; nepoznato ostaje NULL.
+space_revision,position_code,text,yes,"text CHECK (position_code IN ('street','other'))","street za ULIČNI, other za drugi poznati položaj, inače NULL."
+space_revision,position_source,text,yes,text,"Izvorni tekst položaja poput ULIČNI ili DVORIŠNI, zadržan uz normaliziranu vrijednost."
+space_revision,structure_description,text,yes,text,Dopušteni opis strukture prostora; ne potvrđuje tehničke uvjete ni dopuštenu djelatnost.
+space_revision,usage_code_source,text,yes,text,Neinterpretirana šifra korištenja iz izvora.
+geo_evidence,geo_evidence_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Točan dokaz položaja odabran za prostor; promjena zahtijeva novu referencu u bundleu.
+geo_evidence,space_id,text,no,text NOT NULL REFERENCES space,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+geo_evidence,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+geo_evidence,geom,"geometry(Point,4326)",yes,"geometry(Point,4326)","Geometrija s izričitim SRID-om; za Point redoslijed lon,lat."
+geo_evidence,precision_status,text,no,"text NOT NULL CHECK (precision_status IN ('entrance_confirmed','building_approximate','needs_review','missing'))","Razina pouzdanosti koordinate, odvojena od geometrije."
+geo_evidence,evidence_url,text,yes,text,Provjerena javna poveznica koja podupire konkretni dokaz.
+geo_evidence,evidence_note,text,yes,text,Opis vlastite provjere bez nepotrebnih osobnih podataka.
+geo_evidence,checked_at,timestamptz,no,timestamptz NOT NULL,"Vrijeme provjere dokaza, odvojeno od vremena preuzimanja."
+geo_evidence,checked_by,uuid,yes,uuid REFERENCES admin_user,"Administrator koji je provjerio položaj, status ili konkurentski uzorak."
+geo_evidence,license_id,text,no,text NOT NULL,"Stabilna oznaka dokumentiranog prava uporabe, odvojena od licence aplikacijskog koda."
+status_assessment,assessment_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Nepromjenjivi dokaz uvjeta za jedan prostor i jedan poslovni profil.
+status_assessment,space_id,text,no,text NOT NULL REFERENCES space,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+status_assessment,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+status_assessment,profile_code,text,no,"text NOT NULL CHECK (profile_code IN ('cafe','office'))",Poslovni profil cafe ili office; konkurencija se za office ne boduje.
+status_assessment,physical_vacancy,text,no,"text NOT NULL DEFAULT 'unknown' CHECK (physical_vacancy IN ('yes','no','unknown'))",Potvrda fizičke praznosti yes/no/unknown.
+status_assessment,tender_active,text,no,"text NOT NULL DEFAULT 'unknown' CHECK (tender_active IN ('yes','no','unknown'))",Potvrda aktivnog natječaja yes/no/unknown.
+status_assessment,activity_allowed,text,no,"text NOT NULL DEFAULT 'unknown' CHECK (activity_allowed IN ('yes','no','unknown'))",Potvrda dopuštene djelatnosti za profil yes/no/unknown.
+status_assessment,technical_suitable,text,no,"text NOT NULL DEFAULT 'unknown' CHECK (technical_suitable IN ('yes','no','unknown'))",Potvrda tehničke prikladnosti yes/no/unknown.
+status_assessment,tender_url,text,yes,text,Provjerena poveznica natječaja vezana uz točan ID jedinice; NULL bez takvog dokaza.
+status_assessment,evidence_url,text,no,text NOT NULL,Provjerena javna poveznica koja podupire konkretni dokaz.
+status_assessment,checked_at,timestamptz,no,timestamptz NOT NULL,"Vrijeme provjere dokaza, odvojeno od vremena preuzimanja."
+status_assessment,checked_by,uuid,yes,uuid REFERENCES admin_user,"Administrator koji je provjerio položaj, status ili konkurentski uzorak."
+status_assessment,monthly_total_eur,"numeric(12,2)",yes,"numeric(12,2) CHECK (monthly_total_eur >= 0)","Dokumentiran usporediv ukupni mjesečni trošak, inače NULL."
+status_assessment,valid_until,timestamptz,yes,timestamptz,"Isključivi rok valjanosti statusnog dokaza, najviše 168 sati od checked_at i raniji izričiti rok izvora."
+status_assessment,cost_definition_version,text,yes,text,Verzija dogovorenog sastava usporedivog troška.
+status_assessment,cost_evidence,jsonb,yes,jsonb,"Dokument, sastav i referentno razdoblje usporedivog mjesečnog troška; obvezno ako se iznos navodi."
+district,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+district,district_id,text,no,text NOT NULL,JMS_MB kao tekst s vodećim nulama; u bundleu vrijedi D07 verzija.
+district,name,text,no,text NOT NULL,"Naziv izvora, ustanove ili objekta; dopušten je NULL gdje izvor nema ime."
+district,geom,"geometry(MultiPolygon,4326)",no,"geometry(MultiPolygon,4326) NOT NULL","Geometrija s izričitim SRID-om; za Point redoslijed lon,lat."
+spatial_feature,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+spatial_feature,feature_key,text,no,text NOT NULL,OBJECTID unutar izvora i verzije; nije globalni ID ustanove.
+spatial_feature,category,text,no,"text NOT NULL CHECK (category IN ('transit','university','culture','parking'))",Kontrolirana kategorija sadržaja ili OSM amenity; prema CHECK ograničenju.
+spatial_feature,name,text,yes,text,"Naziv izvora, ustanove ili objekta; dopušten je NULL gdje izvor nema ime."
+spatial_feature,address,text,yes,text,"Izvorna adresa uz čišćenje rubnih razmaka, bez pogađanja kućnog broja."
+spatial_feature,geom,"geometry(Point,4326)",no,"geometry(Point,4326) NOT NULL","Geometrija s izričitim SRID-om; za Point redoslijed lon,lat."
+spatial_feature,properties,jsonb,no,jsonb NOT NULL DEFAULT '{}'::jsonb,"Samo potrebna dodatna svojstva prostornog sadržaja prema allowlisti mapiranja, bez institucionalnih kontakata."
+competitor,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+competitor,osm_type,text,no,"text NOT NULL CHECK (osm_type IN ('node','way','relation'))","node, way ili relation; dio identiteta objekta."
+competitor,osm_id,bigint,no,bigint NOT NULL CHECK (osm_id>0),Izvorni 64-bitni ID; jedinstven samo u paru s osm_type.
+competitor,category,text,no,"text NOT NULL CHECK (category IN ('cafe','bar','pub'))",Kontrolirana kategorija sadržaja ili OSM amenity; prema CHECK ograničenju.
+competitor,name,text,yes,text,"Naziv izvora, ustanove ili objekta; dopušten je NULL gdje izvor nema ime."
+competitor,normalized_name,text,yes,text,"Unicode NFKC casefold i sažeta bjelina naziva, bez automatskog spajanja poslovnica lanca."
+competitor,address,text,yes,text,"Izvorna adresa uz čišćenje rubnih razmaka, bez pogađanja kućnog broja."
+competitor,normalized_address,text,yes,text,Unicode NFKC casefold i sažeta bjelina potpune adrese za provjeru duplikata; kućni broj ostaje.
+competitor,geom,"geometry(Point,4326)",no,"geometry(Point,4326) NOT NULL","Geometrija s izričitim SRID-om; za Point redoslijed lon,lat."
+competitor,original_geom,"geometry(Geometry,4326)",yes,"geometry(Geometry,4326)","Sačuvana izvorna geometrija objekta za pregled, kad je dostupna."
+competitor,lifecycle_status,text,no,"text NOT NULL CHECK (lifecycle_status IN ('mapped_active','closed','disused','proposed','construction','unknown'))",Stanje evidentirano u OSM-u; mapped_active nije dokaz stvarnog poslovanja.
+competitor,tags,jsonb,no,jsonb NOT NULL,"Izvorne relevantne OSM oznake objekta, uz uklanjanje nepotrebnih korisničkih identiteta."
+competitor,osm_timestamp,timestamptz,yes,timestamptz,Izvorna OSM vremenska oznaka ako postoji; nije datum potvrde da lokal posluje.
+competitor_resolution,resolution_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),UUID jedne nepromjenjive odluke o duplikatu ili životnom ciklusu OSM objekta.
+competitor_resolution,source_version_id,uuid,no,uuid NOT NULL,Nepromjenjiva verzija izvora; strani ključ na source_version.
+competitor_resolution,osm_type,text,no,text NOT NULL,"node, way ili relation; dio identiteta objekta."
+competitor_resolution,osm_id,bigint,no,bigint NOT NULL,Izvorni 64-bitni ID; jedinstven samo u paru s osm_type.
+competitor_resolution,decision,text,no,"text NOT NULL CHECK (decision IN ('keep','duplicate','closed','needs_review'))",Provjerena odluka keep duplicate closed ili needs_review za konkretni OSM objekt i verziju.
+competitor_resolution,canonical_osm_type,text,yes,text,Tip OSM objekta koji ostaje predstavnik duplikata; mora imati odluku keep.
+competitor_resolution,canonical_osm_id,bigint,yes,bigint,"OSM ID odabranog predstavnika provjerenog duplikata, u paru s canonical_osm_type."
+competitor_resolution,reason,text,no,text NOT NULL,Obrazloženje promjene ili kontrolirani razlog nedostupnosti.
+competitor_resolution,checked_by,uuid,yes,uuid REFERENCES admin_user,"Administrator koji je provjerio položaj, status ili konkurentski uzorak."
+competitor_resolution,checked_at,timestamptz,no,timestamptz NOT NULL,"Vrijeme provjere dokaza, odvojeno od vremena preuzimanja."
+coverage_review,coverage_review_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),"UUID ručnog pregleda konkurentske zone za određeni prostor, koordinatu, radijus i izvadak."
+coverage_review,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+coverage_review,space_id,text,no,text NOT NULL REFERENCES space,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+coverage_review,geo_evidence_id,uuid,no,uuid NOT NULL,Točan dokaz položaja odabran za prostor; promjena zahtijeva novu referencu u bundleu.
+coverage_review,radius_m,integer,no,"integer NOT NULL CHECK (radius_m IN (500,1000))","Zajednički radijus konkurencije u metrima, 500 ili 1000; POI radijus ostaje zasebnih 600 m."
+coverage_review,complete_circle,boolean,no,boolean NOT NULL,"Potvrda da lokalni izvadak pokriva cijeli analizirani krug, uključujući susjedne četvrti."
+coverage_review,sample_size,integer,no,integer NOT NULL CHECK (sample_size >= 0),"Broj provjerenih jedinstvenih objekata u zoni; minimum je min(10,object_count) uz odobren cijeli krug."
+coverage_review,object_count,integer,no,integer NOT NULL CHECK (object_count >= 0),Broj jedinstvenih uvezenih objekata u zoni na koji se kontrola odnosi.
+coverage_review,unresolved_duplicate_count,integer,no,integer NOT NULL DEFAULT 0 CHECK (unresolved_duplicate_count>=0),Broj neriješenih mogućih dvojnih objekata u zoni; za odobreni konkurentski bod mora biti 0.
+coverage_review,status,text,no,"text NOT NULL CHECK (status IN ('unchecked','approved','rejected'))",Kontrolirano stanje prema CHECK ograničenju i propisanim prijelazima.
+coverage_review,checked_by,uuid,yes,uuid REFERENCES admin_user,"Administrator koji je provjerio položaj, status ili konkurentski uzorak."
+coverage_review,checked_at,timestamptz,yes,timestamptz,"Vrijeme provjere dokaza, odvojeno od vremena preuzimanja."
+coverage_review,note,text,yes,text,"Bilješka kontrolora o obuhvatu ili uzorku, bez tvrdnje o potpunom popisu svih lokala."
+dataset_bundle,dataset_bundle_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Konzistentni manifest verzija za jedan izračun.
+dataset_bundle,label,text,no,text NOT NULL,Ljudski čitljiva oznaka kandidatnog podatkovnog paketa; identitet ipak određuje UUID i hash.
+dataset_bundle,manifest_sha256,char(64),no,char(64) NOT NULL UNIQUE,Hash cijelog kanonskog popisa izvornih verzija i odabranih dokaza jednog bundlea.
+dataset_bundle,status,text,no,"text NOT NULL CHECK (status IN ('draft','validating','valid','rejected'))",Kontrolirano stanje prema CHECK ograničenju i propisanim prijelazima.
+dataset_bundle,version,integer,no,integer NOT NULL DEFAULT 1,Optimistička kontrola paralelnih izmjena; vrijednost raste pri promjeni.
+dataset_bundle,validation_sha256,char(64),yes,char(64),Hash izvještaja i provjerenog manifesta; aktivacija odbija hash koji ne pripada istoj verziji paketa.
+dataset_bundle,validation_report,jsonb,no,jsonb NOT NULL DEFAULT '{}'::jsonb,"Popis provjerenih veza, geometrija, licenci, metrika i blokera kandidatnog paketa."
+dataset_bundle,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+dataset_bundle,created_by,uuid,yes,uuid REFERENCES admin_user,Administrator koji je stvorio kandidatni paket ili novu konfiguraciju.
+bundle_source,dataset_bundle_id,uuid,no,uuid NOT NULL REFERENCES dataset_bundle,Konzistentni manifest verzija za jedan izračun.
+bundle_source,source_code,text,no,text NOT NULL REFERENCES source,Stabilna projektna oznaka D01 do D12 ili M01.
+bundle_source,source_version_id,uuid,no,uuid NOT NULL,Nepromjenjiva verzija izvora; strani ključ na source_version.
+bundle_space,dataset_bundle_id,uuid,no,uuid NOT NULL REFERENCES dataset_bundle,Konzistentni manifest verzija za jedan izračun.
+bundle_space,space_id,text,no,text NOT NULL REFERENCES space,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+bundle_space,space_revision_id,uuid,no,uuid NOT NULL,UUID normaliziranog stanja jedinice u određenoj izvornoj verziji.
+bundle_space,geo_evidence_id,uuid,yes,uuid,Točan dokaz položaja odabran za prostor; promjena zahtijeva novu referencu u bundleu.
+bundle_space,district_id,text,yes,text,JMS_MB kao tekst s vodećim nulama; u bundleu vrijedi D07 verzija.
+bundle_space,district_assignment,text,no,"text NOT NULL CHECK (district_assignment IN ('confirmed','source_name','boundary_review','missing'))","confirmed iz geometrije, source_name iz izvornog naziva, boundary_review ili missing."
+bundle_status,dataset_bundle_id,uuid,no,uuid NOT NULL,Konzistentni manifest verzija za jedan izračun.
+bundle_status,space_id,text,no,text NOT NULL,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+bundle_status,profile_code,text,no,"text NOT NULL CHECK (profile_code IN ('cafe','office'))",Poslovni profil cafe ili office; konkurencija se za office ne boduje.
+bundle_status,assessment_id,uuid,no,uuid NOT NULL,Nepromjenjivi dokaz uvjeta za jedan prostor i jedan poslovni profil.
+active_dataset,singleton,boolean,no,boolean PRIMARY KEY DEFAULT true CHECK (singleton),Jedini dopušteni redak aktivne podatkovne reference; vrijednost je uvijek true.
+active_dataset,dataset_bundle_id,uuid,no,uuid NOT NULL REFERENCES dataset_bundle,Konzistentni manifest verzija za jedan izračun.
+active_dataset,activated_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),UTC vrijeme atomske promjene aktivnog bundlea.
+active_dataset,activated_by,uuid,yes,uuid REFERENCES admin_user,Administrator koji je proveo aktivaciju ili povrat paketa.
+spatial_metric,dataset_bundle_id,uuid,no,uuid NOT NULL,Konzistentni manifest verzija za jedan izračun.
+spatial_metric,space_id,text,no,text NOT NULL,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+spatial_metric,radius_m,integer,no,"integer NOT NULL CHECK (radius_m IN (500,1000))","Zajednički radijus konkurencije u metrima, 500 ili 1000; POI radijus ostaje zasebnih 600 m."
+spatial_metric,criterion,text,no,"text NOT NULL CHECK (criterion IN ('transit','universities','culture','parking','area','street','competition','cost'))",Jedna od osam stabilnih oznaka transit universities culture parking area street competition cost.
+spatial_metric,value,numeric,yes,numeric,Vrijednost metrike; NULL zahtijeva reason.
+spatial_metric,unit,text,no,text NOT NULL,"Jedinica metrike; m, count, m2, objects_per_km2, eur_month ili utility."
+spatial_metric,reason,text,yes,text,Obrazloženje promjene ili kontrolirani razlog nedostupnosti.
+spatial_metric,evidence,jsonb,no,jsonb NOT NULL,"Verzionirani ulazni dokazi metrike, uključujući izvore, odabrane resolution_id i način izračuna."
+notice,notice_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),UUID identiteta kanonske obavijesti; različit sadržaj iste adrese stvara novu reviziju.
+notice,source_code,text,no,text NOT NULL REFERENCES source,Stabilna projektna oznaka D01 do D12 ili M01.
+notice,canonical_url,text,no,text NOT NULL UNIQUE,Provjerena kanonska javna adresa članka; ključ identiteta obavijesti prije tekstualnih revizija.
+notice,first_seen_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme kada je kanonska obavijest prvi put opažena; ne zamjenjuje datum objave.
+notice_revision,notice_revision_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Točna tekstualna verzija obavijesti koja je obrađena.
+notice_revision,notice_id,uuid,no,uuid NOT NULL REFERENCES notice,UUID identiteta kanonske obavijesti; različit sadržaj iste adrese stvara novu reviziju.
+notice_revision,source_version_id,uuid,no,uuid NOT NULL REFERENCES source_version,Nepromjenjiva verzija izvora; strani ključ na source_version.
+notice_revision,title,text,no,text NOT NULL,Izvorni naslov dopuštene obavijesti kao običan tekst.
+notice_revision,published_date,date,yes,date,Datum objave kada izvor ne navodi točan sat.
+notice_revision,published_at,timestamptz,yes,timestamptz,UTC vrijeme objave samo ako ga izvor stvarno navodi.
+notice_revision,clean_text,text,no,text NOT NULL CHECK (length(clean_text)>0),Dopušteni sadržaj obavijesti nakon uklanjanja navigacije i aktivnih elemenata; isti tekst određuje offsete dokaza.
+notice_revision,content_sha256,char(64),no,char(64) NOT NULL,"Hash normaliziranog UTF-8 teksta, uz pohranu verzije postupka čišćenja."
+notice_revision,extraction_evidence,jsonb,no,jsonb NOT NULL,"Dokaz selektora, tekstualnih pomaka i verzije čišćenja korišten pri izdvajanju članka."
+notice_revision,reuse_policy_sha256,char(64),no,char(64) NOT NULL,Hash uvjeta dopuštene tekstualne ponovne uporabe povezan s revizijom obavijesti.
+ai_result,ai_result_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Točan semantički rezultat nad jednom notice_revision i zaključanom konfiguracijom.
+ai_result,notice_revision_id,uuid,no,uuid NOT NULL REFERENCES notice_revision,Točna tekstualna verzija obavijesti koja je obrađena.
+ai_result,job_id,uuid,no,uuid NOT NULL REFERENCES import_job,UUID jednog pokušaja organizirane pozadinske obrade s idempotentnim zahtjevom.
+ai_result,model_id,text,no,text NOT NULL,Točan javni naziv modela; MVP koristi sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2.
+ai_result,model_revision,text,no,text NOT NULL,Zaključani HF commit modela.
+ai_result,config_sha256,char(64),no,char(64) NOT NULL,"SHA256 kanonske konfiguracije, uključujući relevantne pragove i njihove verzije."
+ai_result,pipeline_version,text,no,text NOT NULL,Verzija programske obrade AI-ja odvojena od revizije težina modela.
+ai_result,topic,text,yes,"text CHECK (topic IN ('traffic_works','public_projects_services','events','irrelevant'))",Kontrolirana tema traffic_works public_projects_services events ili irrelevant prema entitetu.
+ai_result,status,text,no,"text NOT NULL CHECK (status IN ('classified','uncertain','irrelevant'))",Kontrolirano stanje prema CHECK ograničenju i propisanim prijelazima.
+ai_result,topic_scores,jsonb,no,jsonb NOT NULL,"Kosinusne sličnosti četiriju tema, ne vjerojatnosti."
+ai_result,profile_scores,jsonb,no,jsonb NOT NULL,Semantičke sličnosti opisima cafe i office za pomoć pregledu.
+ai_result,evidence_spans,jsonb,no,jsonb NOT NULL,Izričiti tekstualni dijelovi i offseti mjesta/datuma.
+ai_result,processed_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme stvarne semantičke obrade konkretnog teksta; cache dohvat ga ne pretvara u novi inference.
+context_card,card_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Unutarnji UUID kartice s ljudskim pregledom i zasebnom optimističkom verzijom.
+context_card,ai_result_id,uuid,no,uuid NOT NULL REFERENCES ai_result,Točan semantički rezultat nad jednom notice_revision i zaključanom konfiguracijom.
+context_card,notice_revision_id,uuid,no,uuid NOT NULL REFERENCES notice_revision,Točna tekstualna verzija obavijesti koja je obrađena.
+context_card,status,text,no,"text NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review','approved','rejected','needs_review','expired','archived'))",Kontrolirano stanje prema CHECK ograničenju i propisanim prijelazima.
+context_card,version,integer,no,integer NOT NULL DEFAULT 1 CHECK (version>0),Optimistička kontrola paralelnih izmjena; vrijednost raste pri promjeni.
+context_card,topic,text,no,"text NOT NULL CHECK (topic IN ('traffic_works','public_projects_services','events'))",Kontrolirana tema traffic_works public_projects_services events ili irrelevant prema entitetu.
+context_card,profile_codes,jsonb,no,jsonb NOT NULL CHECK (jsonb_typeof(profile_codes)='array'),Dopušteni odobreni profili uz karticu; mora odgovarati dokazanoj relevantnosti sadržaja.
+context_card,summary,text,no,text NOT NULL,Činjenični opis kartice do 60 riječi iz potvrđenih polja i ljudskog pregleda; nije generativna tvrdnja modela.
+context_card,location_kind,text,yes,"text CHECK (location_kind IN ('district','street','stop','point','area'))",Razina lokacijskog konteksta district street stop point ili area.
+context_card,location_label,text,yes,text,"Potvrđeni čitljivi naziv ulice, četvrti ili druge lokacije događaja."
+context_card,location_geom,"geometry(Geometry,4326)",yes,"geometry(Geometry,4326)",Geometrija događaja ili zahvaćenog područja u WGS84; ne izmišlja se iz općeg naziva grada.
+context_card,district_ids,jsonb,no,jsonb NOT NULL DEFAULT '[]'::jsonb,Izričito potvrđene oznake četvrti uz lokacijski dokaz kartice; nisu izvedene samo iz riječi Zagreb.
+context_card,location_evidence,jsonb,no,jsonb NOT NULL DEFAULT '{}'::jsonb,"Potvrđeni tekstualni navod, offseti, alias i geometrijska veza koja opravdava mjesto kartice."
+context_card,valid_from,timestamptz,yes,timestamptz,"Uključivi početak događaja u UTC-u, ako je potvrđen."
+context_card,valid_to,timestamptz,yes,timestamptz,"Isključivi kraj događaja u UTC-u, ako je potvrđen."
+context_card,review_due_at,timestamptz,yes,timestamptz,Rok ponovne provjere; bez kraja događaja 30 dana od odobrenja.
+context_card,approved_at,timestamptz,yes,timestamptz,Vrijeme posljednje provjerene objave kartice.
+context_card,approved_by,uuid,yes,uuid REFERENCES admin_user,Administrator koji je provjerio izvornu tvrdnju i odobrio javnu karticu.
+context_card,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+criteria_profile,profile_version,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),Nepromjenjiva verzija težina i pravila.
+criteria_profile,profile_code,text,no,"text NOT NULL CHECK (profile_code IN ('cafe','office'))",Poslovni profil cafe ili office; konkurencija se za office ne boduje.
+criteria_profile,version_label,text,no,text NOT NULL,Čitljiva oznaka verzije profila ili konfiguracije; identitet i nepromjenjivost određuju UUID i hash.
+criteria_profile,config_sha256,char(64),no,char(64) NOT NULL UNIQUE,"SHA256 kanonske konfiguracije, uključujući relevantne pragove i njihove verzije."
+criteria_profile,weights,jsonb,no,jsonb NOT NULL,Osam kontroliranih pondera zbroja 100; office competition mora biti 0.
+criteria_profile,target_area_m2,numeric,no,numeric NOT NULL CHECK (target_area_m2>0),"Pozitivna ciljna površina profila ili korisnika; početno cafe 60, office 80 m²."
+criteria_profile,config,jsonb,no,jsonb NOT NULL,Strogo definirani parametri normalizacije i provjere profila prema RankingParameters shemi; bez dupliranja težina.
+criteria_profile,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+criteria_profile,created_by,uuid,yes,uuid REFERENCES admin_user,Administrator koji je stvorio kandidatni paket ili novu konfiguraciju.
+ranking_run,ranking_run_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),"UUID nepromjenjive usporedbe koja zadržava vlastite ulaze, verzije i pristupni token."
+ranking_run,dataset_bundle_id,uuid,no,uuid NOT NULL REFERENCES dataset_bundle,Konzistentni manifest verzija za jedan izračun.
+ranking_run,profile_version,uuid,no,uuid NOT NULL REFERENCES criteria_profile,Nepromjenjiva verzija težina i pravila.
+ranking_run,request_sha256,char(64),no,char(64) NOT NULL,Hash kanonskog ulaza za idempotenciju i provjeru konteksta.
+ranking_run,request_json,jsonb,no,jsonb NOT NULL,Kanonski validirani ulaz bez lozinki i pristupnih tokena.
+ranking_run,comparison_basis_id,char(64),no,char(64) NOT NULL,"Hash paketa, kandidata, kriterija, profila i numeričkih ulaza."
+ranking_run,criteria_used,jsonb,no,jsonb NOT NULL,Uređeni popis zajedničkih kriterija stvarno upotrijebljenih u bodovanju.
+ranking_run,excluded_criteria,jsonb,no,jsonb NOT NULL,Kriteriji izostavljeni iz bodovanja s točnim razlogom nedostupnosti ili korisničkog isključenja.
+ranking_run,coverage_active,"numeric(7,4)",no,"numeric(7,4) NOT NULL CHECK (coverage_active BETWEEN 0 AND 100)",Postotak odabranih aktivnih korisničkih težina pokriven zajedničkim kriterijima.
+ranking_run,coverage_default_profile,"numeric(7,4)",no,"numeric(7,4) NOT NULL CHECK (coverage_default_profile BETWEEN 0 AND 100)",Zbroj zadanih težina zajednički korištenih kriterija u postocima.
+ranking_run,config_snapshot,jsonb,no,jsonb NOT NULL,Nepromjenjiva kopija svih pravila i parametara upotrijebljenih pri spremljenom izračunu.
+ranking_run,source_versions,jsonb,no,jsonb NOT NULL,Nepromjenjivi popis točnih izvornih UUID-eva korištenih u izračunu.
+ranking_run,access_token_hash,char(64),no,char(64) NOT NULL,SHA256 nepredvidljivog pristupnog tokena; nema tokena u čistom tekstu.
+ranking_run,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+ranking_run,expires_at,timestamptz,no,timestamptz NOT NULL DEFAULT (now()+interval '90 days'),Rok sesije ili spremljene usporedbe; konkretno trajanje određuje politika dotičnog entiteta.
+ranking_item,ranking_run_id,uuid,no,uuid NOT NULL REFERENCES ranking_run ON DELETE CASCADE,"UUID nepromjenjive usporedbe koja zadržava vlastite ulaze, verzije i pristupni token."
+ranking_item,space_id,text,no,text NOT NULL REFERENCES space,Službeni gradski ID kao tekst; vodeće nule se ne uklanjaju.
+ranking_item,candidate_status,text,no,"text NOT NULL CHECK (candidate_status IN ('ready','conditional','excluded'))","ready ako su uvjeti potvrđeni, conditional ako postoje nepoznanice, excluded ako postoji poznati neispunjeni uvjet."
+ranking_item,rank,integer,yes,integer CHECK (rank>0),Redni broj u skupini spremnosti; NULL za excluded ili neizračunljiv rezultat.
+ranking_item,score,"numeric(12,8)",yes,"numeric(12,8) CHECK (score BETWEEN 0 AND 100)",Rezultat na osam decimala; NULL kada nema zajedničkih kriterija.
+ranking_item,reasons,jsonb,no,jsonb NOT NULL,"Popis razloga isključenja, uvjetnosti ili upozorenja uz kandidata; ne zamjenjuje strukturirane uvjete."
+ranking_item,raw_metrics,jsonb,no,jsonb NOT NULL,"Snapshot vrijednosti, jedinica i razloga nedostupnosti za rekonstrukciju."
+ranking_item,utilities,jsonb,no,jsonb NOT NULL,Snapshot normaliziranih korisnosti od 0 do 1.
+ranking_item,contributions,jsonb,no,jsonb NOT NULL,Snapshot bodovnih doprinosa prije prikaznog zaokruživanja.
+ranking_item,status_snapshot,jsonb,no,jsonb NOT NULL,"Efektivni yes/no/unknown uvjeti i evaluated_at iz vremena izračuna, odvojeni od novog statusnog pregleda."
+ranking_item,coordinate_snapshot,jsonb,no,jsonb NOT NULL,"Koordinata i razina njezine preciznosti u trenutku izračuna, ne aktualni naknadno promijenjeni dokaz."
+error_report,report_id,uuid,no,uuid PRIMARY KEY DEFAULT gen_random_uuid(),UUID opcionalne korisničke prijave moguće pogreške.
+error_report,target_type,text,no,"text NOT NULL CHECK (target_type IN ('space','competitor'))",Vrsta prijavljenog objekta space ili competitor.
+error_report,target_id,text,no,text NOT NULL,ID prostora ili OSM ključ na koji se prijava greške odnosi.
+error_report,description,text,no,text NOT NULL CHECK (length(description) BETWEEN 10 AND 2000),Opis prijavljene pogreške od 10 do 2000 znakova; ne mijenja javni izvor prije pregleda.
+error_report,contact_ciphertext,bytea,yes,bytea,Šifrirani neobvezni kontakt prijave pogreške; ključ je izvan baze i kontakt nije javno izložen.
+error_report,status,text,no,"text NOT NULL DEFAULT 'new' CHECK (status IN ('new','reviewed','resolved','rejected'))",Kontrolirano stanje prema CHECK ograničenju i propisanim prijelazima.
+error_report,created_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),Vrijeme nastanka zapisa u UTC-u.
+error_report,resolved_at,timestamptz,yes,timestamptz,Vrijeme rješavanja korisničke prijave; od njega se računa rok brisanja kontakta.
+audit_event,audit_id,bigint GENERATED ALWAYS AS IDENTITY,no,bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,Monotono generirani identifikator revizijskog događaja; aplikacija ga ne mijenja.
+audit_event,actor_admin_id,uuid,yes,uuid REFERENCES admin_user,Administrator koji je odgovoran za audit događaj; NULL za jasno označenu sistemsku radnju.
+audit_event,action,text,no,text NOT NULL,Kontrolirani naziv administratorske radnje ili odluke; dopuštene vrijednosti određuje konkretna API ruta.
+audit_event,entity_type,text,no,text NOT NULL,"Naziv vrste auditiranog objekta, npr. dataset_bundle context_card ili source."
+audit_event,entity_id,text,no,text NOT NULL,"Identifikator objekta na koji se audit događaj odnosi, kao tekst."
+audit_event,request_id,uuid,no,uuid NOT NULL,UUID tehničkog zahtjeva za povezivanje sigurne pogreške i audit događaja.
+audit_event,before_value,jsonb,yes,jsonb,Snapshot prije dopuštene administratorske promjene.
+audit_event,after_value,jsonb,no,jsonb NOT NULL,Snapshot poslije promjene bez tajni i nepotrebnih kontakata.
+audit_event,reason,text,no,text NOT NULL,Obrazloženje promjene ili kontrolirani razlog nedostupnosti.
+audit_event,occurred_at,timestamptz,no,timestamptz NOT NULL DEFAULT now(),UTC vrijeme revizijskog događaja; ne izmjenjuje se naknadno.

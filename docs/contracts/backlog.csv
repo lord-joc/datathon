@@ -1,0 +1,52 @@
+﻿task_id,epic,owner,hours,priority,phase,title,result,dependencies,requirements,definition_of_done,status
+B01,E01 Opseg,A,3,M,MVP,Potvrditi pravila i prava izvora,Registar uvjeta i rokova s provjerenim URL-ovima,,FZ23 NF15 NF16,Registar uvjeta i rokova s provjerenim URL-ovima,planned
+B02,E01 Opseg,A,3,M,MVP,Definirati statuse i upozorenja,Odobrene poruke za ready conditional excluded i povijesni popis,B01,FZ04 FZ24,Odobrene poruke za ready conditional excluded i povijesni popis,planned
+B03,E01 Opseg,A,2,M,MVP,Zaključati demonstracijski uzorak,Četiri ID-a s popisom dokaza koje još treba pribaviti,B02,FZ26,Četiri ID-a s popisom dokaza koje još treba pribaviti,planned
+B04,E01 Opseg,B,4,M,MVP,Postaviti bazu i migraciju,Prazna baza prihvaća schema.sql i rollback migracije,,NF01 FZ19,Prazna baza prihvaća schema.sql i rollback migracije,planned
+B05,E01 Opseg,B,2,M,MVP,Postaviti API ugovor i autentikaciju,Osnovni FastAPI moduli i session/CSRF provjere,B04,FZ27 NF02,Osnovni FastAPI moduli i session/CSRF provjere,planned
+B06,E01 Opseg,C,2,M,MVP,Postaviti navigaciju i osnovni frontend,React rute i API klijent s prikazom pogrešaka,,FZ05 NF12,React rute i API klijent s prikazom pogrešaka,planned
+B07,E02 Podaci,A,4,M,MVP,Provjeriti koordinate uzorka,Četiri dokumentirana D11 dokaza i razina preciznosti,B03,FZ03 FZ31,Četiri dokumentirana D11 dokaza i razina preciznosti,planned
+B08,E02 Podaci,A,4,M,MVP,Pregledati OSM zone i duplikate,Kontrola najmanje 10 objekata po zoni ili svih manjih skupova,B11,FZ11 FZ12,Kontrola najmanje 10 objekata po zoni ili svih manjih skupova,planned
+B09,E02 Podaci,B,5,M,MVP,Izraditi CSV adaptere,"D01 i D02 parser, manifest, hash i blokirajuće pogreške",B04,FZ02 FZ18 NF10,"D01 i D02 parser, manifest, hash i blokirajuće pogreške",planned
+B10,E02 Podaci,B,5,M,MVP,Uvesti prostorne slojeve,"D03-D07, transformacije, četvrti i indeksi",B04,FZ03 NF11,"D03-D07, transformacije, četvrti i indeksi",planned
+B11,E02 Podaci,B,5,M,MVP,Izdvojiti lokalnu konkurenciju,PBF uvoz i geometrije oko četiri zone,B10,FZ10 FZ11,PBF uvoz i geometrije oko četiri zone,planned
+B12,E02 Podaci,B,3,M,MVP,Povezati pakete i aktivaciju,"Staging, validacija i atomski active_dataset pointer",B09 B10,FZ18 FZ28,"Staging, validacija i atomski active_dataset pointer",planned
+B13,E02 Podaci,C,2,M,MVP,Povezati GeoJSON odgovor,Frontend prikazuje lokalne markere i zapise bez koordinata,B06 B10,FZ05,Frontend prikazuje lokalne markere i zapise bez koordinata,planned
+B14,E03 AI,A,4,M,MVP,Označiti razvojni i završni korpus,40 tekstova u 12/28 podjeli bez bliskih kopija između dijelova,B01,NF14 FZ14,40 tekstova u 12/28 podjeli bez bliskih kopija između dijelova,planned
+B15,E03 AI,A,2,M,MVP,Provjeriti predloške kartica,Činjenični opisi i lokacijski/vremenski dokazi na uzorku,B14,FZ15 FZ16,Činjenični opisi i lokacijski/vremenski dokazi na uzorku,planned
+B16,E03 AI,B,8,M,MVP,Implementirati semantičku obradu,"Lokalni MiniLM, blokovi, teme, pragovi i audit modela",B04 B14,FZ14 FZ26 NF07,"Lokalni MiniLM, blokovi, teme, pragovi i audit modela",planned
+B17,E03 AI,B,4,M,MVP,Implementirati gradski HTML adapter,"D09 ekstrakcija i allowlist, bez D10 punog teksta",B01,FZ13 NF04,"D09 ekstrakcija i allowlist, bez D10 punog teksta",planned
+B18,E03 AI,B,4,M,MVP,Implementirati poslove i lease,"DB claim, heartbeat, fencing i nastavak prekinutog posla",B05 B12,FZ22 NF17,"DB claim, heartbeat, fencing i nastavak prekinutog posla",planned
+B19,E03 AI,B,2,M,MVP,Pokrenuti odvojenu evaluaciju,Zaključani pragovi i izvještaj na 28 završnih tekstova,B16,NF14,Zaključani pragovi i izvještaj na 28 završnih tekstova,planned
+B20,E03 AI,C,4,M,MVP,Izraditi ekran provjere kartice,Izvor uz prijedlog i dopuštene review radnje,B06 B16 B17,FZ17,Izvor uz prijedlog i dopuštene review radnje,planned
+B21,E04 Rangiranje,A,2,M,MVP,Provjeriti referentne izračune,"Potvrđene formule, pokrivenosti i rubni primjeri",,FZ07 FZ08,"Potvrđene formule, pokrivenosti i rubni primjeri",planned
+B22,E04 Rangiranje,B,8,M,MVP,Implementirati ranking servis,"Normalizacija, hard uvjeti, zajednički kriteriji i snapshot",B12 B21,FZ04 FZ07 FZ08 FZ19,"Normalizacija, hard uvjeti, zajednički kriteriji i snapshot",planned
+B23,E04 Rangiranje,B,6,M,MVP,Implementirati javne i admin rute,MVP operacije iz OpenAPI-ja s provjerama i greškama,B05 B12 B22,FZ06 FZ22 FZ29 FZ30 FZ31 NF05 NF10,MVP operacije iz OpenAPI-ja s provjerama i greškama,planned
+B24,E04 Rangiranje,B,2,M,MVP,Dodati ugovorne fixture provjere,Testovi nedostajućih kriterija i nepromjenjivosti,B22,FZ07 FZ08 FZ29,Testovi nedostajućih kriterija i nepromjenjivosti,planned
+B25,E04 Rangiranje,C,4,M,MVP,Implementirati usporedbu,Do tri kandidata na istom ranking_run bez novog bodovanja,B23,FZ09,Do tri kandidata na istom ranking_run bez novog bodovanja,planned
+B26,E04 Rangiranje,C,2,M,MVP,Implementirati prioritete i potvrdu osnove,Ponderi i eksplicitna potvrda djelomičnih podataka,B23,FZ01 FZ08,Ponderi i eksplicitna potvrda djelomičnih podataka,planned
+B27,E05 Sučelje,A,3,M,MVP,Provjeriti tok filtra i praznih stanja,Prihvaćeni tekstovi i scenariji bez rezultata,B02,FZ01 FZ05,Prihvaćeni tekstovi i scenariji bez rezultata,planned
+B28,E05 Sučelje,A,2,M,MVP,Provjeriti oznake nepoznanica,"Sve cijene, koordinate i statusi imaju razumljivu oznaku",B02,FZ06 FZ24,"Sve cijene, koordinate i statusi imaju razumljivu oznaku",planned
+B29,E05 Sučelje,A,3,M,MVP,Provesti ručnu pristupačnost,Ključni tijek tipkovnicom i tekstualnim prikazom,B31 B32 B33,NF12,Ključni tijek tipkovnicom i tekstualnim prikazom,planned
+B30,E05 Sučelje,C,4,M,MVP,Povezati klijent i URL stanje,"Tipizirani API klijent, filtri i kontrolirani prekid starog zahtjeva",B06,NF01 FZ01,"Tipizirani API klijent, filtri i kontrolirani prekid starog zahtjeva",planned
+B31,E05 Sučelje,C,6,M,MVP,Izraditi filtre i popis,"Paginacija, statusi i prazni rezultati",B30 B23,FZ01 FZ05,"Paginacija, statusi i prazni rezultati",planned
+B32,E05 Sučelje,C,6,M,MVP,Izraditi kartu i rezervni prikaz,"Lokalne točke, atribucije i rad bez pločica",B13,FZ05 FZ23 FZ24,"Lokalne točke, atribucije i rad bez pločica",planned
+B33,E05 Sučelje,C,4,M,MVP,Izraditi detalj i kontekst,"Izvori, metrike, konkurencija i approved kartice",B23 B20,FZ06 FZ12 FZ16,"Izvori, metrike, konkurencija i approved kartice",planned
+B34,E05 Sučelje,C,6,M,MVP,Izraditi admin izvore i poslove,"Prijava, izvori, stanje uvoza i pregled validacije",B23,FZ22 FZ27 FZ28,"Prijava, izvori, stanje uvoza i pregled validacije",planned
+B35,E05 Sučelje,C,6,M,MVP,Povezati pogreške i djelomične podatke,"409 potvrda, 503 bez paketa i oznake zastarjelosti",B31 B33,FZ08 FZ24 NF08,"409 potvrda, 503 bez paketa i oznake zastarjelosti",planned
+B36,E06 Provjere,A,3,M,MVP,Provesti API prihvaćanje,Zapisani ishodi TF scenarija i tragovi ulaza,B23 B35,FZ01 FZ06 FZ09,Zapisani ishodi TF scenarija i tragovi ulaza,planned
+B37,E06 Provjere,A,2,M,MVP,Provjeriti neuspjeli uvoz i povrat,Prazan CSV ne mijenja aktivni paket; dokaz obnove kopije,B12 B18,FZ18 NF09 NF08,Prazan CSV ne mijenja aktivni paket; dokaz obnove kopije,planned
+B38,E06 Provjere,A,3,M,MVP,Pregledati AI pogreške i kartice,Matrica pogrešaka i provjera mjesta i datuma,B19 B20,FZ15 FZ17 NF14,Matrica pogrešaka i provjera mjesta i datuma,planned
+B39,E06 Provjere,B,2,M,MVP,Ispraviti integracijske blokere,Nema kritičnih otvorenih grešaka ključnog tijeka,B36 B37 B38,NF01,Nema kritičnih otvorenih grešaka ključnog tijeka,planned
+B40,E06 Provjere,C,5,M,MVP,Provesti E2E i odziv,Ključni tijek i mjerene latencije bez vanjskih dohvaćanja,B35,NF06 NF18,Ključni tijek i mjerene latencije bez vanjskih dohvaćanja,planned
+B41,E06 Provjere,C,3,M,MVP,Provjeriti preglednike,Zapis dostupnih aktualnih i prethodnih verzija,B40,NF13,Zapis dostupnih aktualnih i prethodnih verzija,planned
+B42,E06 Provjere,C,2,M,MVP,Provjeriti sigurnost sučelja,"XSS prikaz kao tekst, CSRF i istek sesije",B34,NF02 NF03,"XSS prikaz kao tekst, CSRF i istek sesije",planned
+B43,E07 Predaja,A,4,M,MVP,Uskladiti upute s implementacijom,"README, licence i matrica odražavaju stvarno stanje",B39,FZ23 FZ26,"README, licence i matrica odražavaju stvarno stanje",planned
+B44,E07 Predaja,A,6,M,MVP,Snimiti video i poruku rješenja,Video do 180 sekundi s novim stvarnim AI izračunom,B38 B40,FZ26,Video do 180 sekundi s novim stvarnim AI izračunom,planned
+B45,E07 Predaja,A,4,M,MVP,Provjeriti paket za dostavu,"Kod, dokumenti, demo, video i dostupne poveznice",B43 B44,FZ26,"Kod, dokumenti, demo, video i dostupne poveznice",planned
+B46,E07 Predaja,C,2,M,MVP,Pripremiti demo prikaz,Ponovljiva demonstracija i čitljivi ekrani za video,B40,FZ26,Ponovljiva demonstracija i čitljivi ekrani za video,planned
+B47,E08 Pričuva,A,6,M,MVP,Rezerva za podatke i dokazivanje,Vrijeme koristi samo za konkretno zabilježene blokere,B36,FZ26,Vrijeme koristi samo za konkretno zabilježene blokere,planned
+B48,E08 Pričuva,C,2,M,MVP,Rezerva za sučelje,Ispravci kritičnog korisničkog tijeka prije snimanja,B40,FZ05,Ispravci kritičnog korisničkog tijeka prije snimanja,planned
+P01,E09 Dodaci,C,6,P,Pilot dodatak,Izvesti HTML usporedbe,Izvoz s datumima upozorenjima i atribucijama,B45,FZ20,Izvoz s datumima upozorenjima i atribucijama,planned
+P02,E09 Dodaci,B,4,P,Pilot dodatak,Zaprimiti prijavu pogreške,Odvojeno spremanje kontakta i pregled bez promjene javnih podataka,B45,FZ21,Odvojeno spremanje kontakta i pregled bez promjene javnih podataka,planned
+P03,E09 Dodaci,B,6,P,Pilot dodatak,Predložiti profil iz slobodnog opisa,Korisnik potvrđuje podržani profil; unsupported ne dobiva cafe težine,B45,FZ25,Korisnik potvrđuje podržani profil; unsupported ne dobiva cafe težine,planned

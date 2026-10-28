@@ -1,0 +1,4687 @@
+openapi: 3.1.0
+info:
+  title: ProstorIQ vlastiti aplikacijski API
+  version: 3.0.0
+  description: Implementacijski ugovor. Rute nisu objavljena usluga. Primjeri u prilogu
+    su umjetni ugovorni podaci; izvorni zapisi nalaze se zasebno u registru.
+servers:
+- url: http://localhost:8000
+  description: Predloženi lokalni razvojni API nakon implementacije
+tags:
+- name: Public
+- name: Admin
+paths:
+  /api/v1/profiles:
+    get:
+      operationId: listProfiles
+      summary: Podržani zadani profili
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileList'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  /api/v1/districts:
+    get:
+      operationId: listDistricts
+      summary: Četvrti aktivnog ili odabranog paketa
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DistrictList'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: dataset_bundle_id
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+  /api/v1/status:
+    get:
+      operationId: getSystemStatus
+      summary: Spremnost i stanje lokalnog paketa
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  /api/v1/spaces:
+    get:
+      operationId: listSpaces
+      summary: Filtrirani popis prostora
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpaceList'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: dataset_bundle_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: profile
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - cafe
+          - office
+      - name: area_min_m2
+        in: query
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 100000
+      - name: area_max_m2
+        in: query
+        required: false
+        schema:
+          type: number
+          minimum: 0
+          maximum: 100000
+      - name: district_ids
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+          minItems: 0
+          maxItems: 17
+      - name: include_conditional
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: true
+      - name: include_excluded
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+      - &id001
+        name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - &id002
+        name: page_size
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+  /api/v1/spaces/{id}:
+    get:
+      operationId: getSpace
+      summary: Detalj prostora u datiranom paketu
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpaceDetail'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      - name: dataset_bundle_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: profile
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - cafe
+          - office
+  /api/v1/rankings:
+    post:
+      operationId: rankSpaces
+      summary: Stvori nepromjenjiv izračun
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '201':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RankingResponse'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RankingRequest'
+  /api/v1/rankings/{id}:
+    get:
+      operationId: getRanking
+      summary: Dohvati spremljeni izračun
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RankingResponse'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Resurs je istekao
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: X-Ranking-Token
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 32
+          maxLength: 100
+        description: Token vraćen samo pri stvaranju izračuna; ne zapisivati u logove.
+  /api/v1/spaces/{id}/competitors:
+    get:
+      operationId: listCompetitors
+      summary: Broj i popis lokalno evidentirane konkurencije
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompetitionResponse'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      - name: dataset_bundle_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: radius_m
+        in: query
+        required: false
+        schema:
+          type: integer
+          enum:
+          - 500
+          - 1000
+          default: 500
+      - *id001
+      - *id002
+  /api/v1/spaces/{id}/context:
+    get:
+      operationId: listContext
+      summary: Potvrđene lokacijske kartice
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextList'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      - name: dataset_bundle_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: profile
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - cafe
+          - office
+      - *id001
+      - *id002
+  /api/v1/sources:
+    get:
+      operationId: listSources
+      summary: Izvori licence i ograničenja
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceList'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+  /api/v1/sources/{source_code}/versions/{id}:
+    get:
+      operationId: getSourceVersion
+      summary: Podrijetlo točne povijesne verzije izvora
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceVersionPublic'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: source_code
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^(D[0-9]{2}|M01)$
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/admin/auth/login:
+    post:
+      operationId: loginAdmin
+      summary: Prijava administratora
+      tags:
+      - Public
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: prostor_iq_session=<opaque>; HttpOnly; Secure; SameSite=Strict;
+                Path=/; Max-Age=28800
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+  /api/v1/admin/auth/session:
+    get:
+      operationId: getAdminSession
+      summary: Provjeri administratorsku sesiju
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSession'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+  /api/v1/admin/auth/logout:
+    post:
+      operationId: logoutAdmin
+      summary: Opozovi sesiju
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '204':
+          description: Uspješno bez tijela
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+  /api/v1/admin/sources:
+    get:
+      operationId: listAdminSources
+      summary: Izvori i njihovo stanje
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourceList'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+  /api/v1/admin/sources/{source_code}:
+    patch:
+      operationId: updateAdminSource
+      summary: Omogući ili zaustavi odobren izvor
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SourcePublic'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: source_code
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^(D[0-9]{2}|M01)$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceUpdate'
+  /api/v1/admin/imports:
+    post:
+      operationId: createImportJob
+      summary: Pokreni uvoz ili AI posao
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '202':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 8
+          maxLength: 100
+        description: Jednak ključ i jednako tijelo vraćaju isti posao; jednak ključ
+          i drugo tijelo daju 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportRequest'
+    get:
+      operationId: listImportJobs
+      summary: Popis poslova
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+      parameters:
+      - name: source_code
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - queued
+          - running
+          - validating
+          - awaiting_review
+          - succeeded
+          - failed
+          - cancelled
+      - *id001
+      - *id002
+  /api/v1/admin/imports/{id}:
+    get:
+      operationId: getImportJob
+      summary: Stanje jednog posla
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/admin/imports/{id}/errors:
+    get:
+      operationId: getImportErrors
+      summary: Pogreške uvoza
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportErrorList'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - *id001
+      - *id002
+  /api/v1/admin/imports/{id}/review:
+    post:
+      operationId: reviewImportJob
+      summary: Prihvati ili odbij upozorenje uvoza
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobReview'
+  /api/v1/admin/imports/{id}/cancel:
+    post:
+      operationId: cancelImportJob
+      summary: Zaustavi čekajući posao
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelRequest'
+  /api/v1/admin/bundles:
+    get:
+      operationId: listBundles
+      summary: Popis datiranih paketa
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BundleList'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+      parameters:
+      - *id001
+      - *id002
+    post:
+      operationId: createBundle
+      summary: Sastavi kandidatni manifest
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '201':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BundleRequest'
+  /api/v1/admin/bundles/{id}:
+    get:
+      operationId: getBundle
+      summary: Manifest i validacija paketa
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/admin/bundles/{id}/validate:
+    post:
+      operationId: validateBundle
+      summary: Sinkrona validacija do 500 prostora
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+  /api/v1/admin/bundles/{id}/activate:
+    post:
+      operationId: activateBundle
+      summary: Atomski aktiviraj valjani paket
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+  /api/v1/admin/bundles/{id}/rollback:
+    post:
+      operationId: rollbackBundle
+      summary: Vrati prethodno provjeren paket
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bundle'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivationRequest'
+  /api/v1/admin/context:
+    get:
+      operationId: listAdminContext
+      summary: Kartice za pregled
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCardList'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - pending_review
+          - approved
+          - rejected
+          - needs_review
+          - expired
+          - archived
+      - *id001
+      - *id002
+  /api/v1/admin/context/{id}/review:
+    post:
+      operationId: reviewContext
+      summary: Provjeri i promijeni stanje kartice
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminCard'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewRequest'
+  /api/v1/admin/spaces/{id}/coordinates:
+    post:
+      operationId: createCoordinateEvidence
+      summary: Dodaj novi dokaz položaja
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '201':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceReceipt'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CoordinateRequest'
+  /api/v1/admin/spaces/{id}/assessments:
+    post:
+      operationId: createStatusAssessment
+      summary: Dodaj statusni dokaz za profil
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '201':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceReceipt'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusRequest'
+  /api/v1/admin/profiles:
+    get:
+      operationId: listProfileVersions
+      summary: Sve verzije profila
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileList'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+    post:
+      operationId: createProfileVersion
+      summary: Dodaj novu konfiguraciju profila
+      tags:
+      - Admin
+      x-phase: MVP
+      responses:
+        '201':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: Sesija nije valjana
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+      - AdminCookie: []
+        CsrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileVersionRequest'
+  /api/v1/rankings/{id}/export:
+    get:
+      operationId: getRankingExport
+      summary: HTML spremljene usporedbe
+      tags:
+      - Public
+      x-phase: Pilot dodatak
+      responses:
+        '200':
+          description: HTML prikladan za ispis
+          content:
+            text/html:
+              schema:
+                type: string
+        '403':
+          description: Pristup nije dopušten
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '410':
+          description: Resurs je istekao
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: X-Ranking-Token
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 32
+          maxLength: 100
+        description: Token vraćen samo pri stvaranju izračuna; ne zapisivati u logove.
+  /api/v1/error-reports:
+    post:
+      operationId: createErrorReport
+      summary: Predaj prijavu moguće pogreške
+      tags:
+      - Public
+      x-phase: Pilot dodatak
+      responses:
+        '202':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorReportRequest'
+  /api/v1/profile-suggestions:
+    post:
+      operationId: createProfileSuggestion
+      summary: Predloži podržani profil
+      tags:
+      - Public
+      x-phase: Pilot dodatak
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileSuggestion'
+        '404':
+          description: Resurs ne postoji ili dodatak nije uključen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Sukob verzije ili osnove usporedbe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Previše zahtjeva
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 1
+              description: Sekunde do ponovnog pokušaja
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileSuggestionRequest'
+components:
+  securitySchemes:
+    AdminCookie:
+      type: apiKey
+      in: cookie
+      name: prostor_iq_session
+    CsrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  schemas:
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+              properties: {}
+              required: []
+            request_id:
+              type: string
+              format: uuid
+          required:
+          - code
+          - message
+          - details
+          - request_id
+      required:
+      - error
+    Metric:
+      type: object
+      additionalProperties: false
+      properties:
+        value:
+          type:
+          - number
+          - 'null'
+        unit:
+          type: string
+          enum:
+          - m
+          - count
+          - m2
+          - objects_per_km2
+          - eur_month
+          - utility
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - missing_coordinate
+          - data_not_available
+          - source_unavailable
+          - coverage_unchecked
+          - partial_coverage
+          - cost_not_configured
+          - unknown_position
+          - no_common_criteria
+          - not_applicable
+          - null
+        source_version_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 0
+      required:
+      - value
+      - unit
+      - reason
+      - source_version_ids
+      allOf:
+      - if:
+          properties:
+            value:
+              type: 'null'
+          required:
+          - value
+        then:
+          properties:
+            reason:
+              type: string
+        else:
+          properties:
+            reason:
+              type: 'null'
+    Point:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          const: Point
+        coordinates:
+          type: array
+          prefixItems:
+          - type: number
+            minimum: -180
+            maximum: 180
+          - type: number
+            minimum: -90
+            maximum: 90
+          minItems: 2
+          maxItems: 2
+      required:
+      - type
+      - coordinates
+    Coordinate:
+      type: object
+      additionalProperties: false
+      properties:
+        geometry:
+          oneOf:
+          - $ref: '#/components/schemas/Point'
+          - type: 'null'
+        precision_status:
+          type: string
+          enum:
+          - entrance_confirmed
+          - building_approximate
+          - needs_review
+          - missing
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - missing_coordinate
+          - data_not_available
+          - source_unavailable
+          - coverage_unchecked
+          - partial_coverage
+          - cost_not_configured
+          - unknown_position
+          - no_common_criteria
+          - not_applicable
+          - null
+        geo_evidence_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        checked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - geometry
+      - precision_status
+      - reason
+      - geo_evidence_id
+      - checked_at
+    Status:
+      type: object
+      additionalProperties: false
+      properties:
+        inventory_kind:
+          type: string
+          enum:
+          - regular
+          - unfit
+        physical_vacancy:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        tender_active:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        activity_allowed:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        technical_suitable:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        candidate_status:
+          type: string
+          enum:
+          - ready
+          - conditional
+          - excluded
+        reasons:
+          type: array
+          items:
+            type: string
+          minItems: 0
+        checked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        evidence_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        tender_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        valid_until:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        evaluated_at:
+          type: string
+          format: date-time
+      required:
+      - inventory_kind
+      - physical_vacancy
+      - tender_active
+      - activity_allowed
+      - technical_suitable
+      - candidate_status
+      - reasons
+      - checked_at
+      - evidence_url
+      - tender_url
+      - valid_until
+      - evaluated_at
+    SpaceSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        space_id:
+          type: string
+          pattern: ^[0-9]+$
+        address:
+          type: string
+        area:
+          $ref: '#/components/schemas/Metric'
+        position_code:
+          type:
+          - string
+          - 'null'
+          enum:
+          - street
+          - other
+          - null
+        position_reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - missing_coordinate
+          - data_not_available
+          - source_unavailable
+          - coverage_unchecked
+          - partial_coverage
+          - cost_not_configured
+          - unknown_position
+          - no_common_criteria
+          - not_applicable
+          - null
+        district_id:
+          type:
+          - string
+          - 'null'
+        district_name:
+          type:
+          - string
+          - 'null'
+        district_assignment:
+          type: string
+          enum:
+          - confirmed
+          - source_name
+          - boundary_review
+          - missing
+        coordinate:
+          $ref: '#/components/schemas/Coordinate'
+        status:
+          $ref: '#/components/schemas/Status'
+        reference_period:
+          type:
+          - string
+          - 'null'
+        historical_inventory:
+          type: boolean
+      required:
+      - space_id
+      - address
+      - area
+      - position_code
+      - position_reason
+      - district_id
+      - district_name
+      - district_assignment
+      - coordinate
+      - status
+      - reference_period
+      - historical_inventory
+    SourceVersions:
+      type: object
+      additionalProperties:
+        type: string
+        format: uuid
+    SpaceList:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpaceSummary'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+        without_usable_coordinate:
+          type: integer
+          minimum: 0
+        warnings:
+          type: array
+          items:
+            type: string
+          minItems: 0
+      required:
+      - dataset_bundle_id
+      - profile
+      - items
+      - total
+      - page
+      - page_size
+      - without_usable_coordinate
+      - warnings
+    SpaceDetail:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        space:
+          $ref: '#/components/schemas/SpaceSummary'
+        metrics:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Metric'
+        source_versions:
+          $ref: '#/components/schemas/SourceVersions'
+        attribution:
+          type: array
+          items:
+            type: string
+          minItems: 0
+        context_count:
+          type: integer
+          minimum: 0
+      required:
+      - dataset_bundle_id
+      - space
+      - metrics
+      - source_versions
+      - attribution
+      - context_count
+    Weights:
+      type: object
+      additionalProperties: false
+      properties:
+        transit:
+          type: number
+          minimum: 0
+          maximum: 100
+        universities:
+          type: number
+          minimum: 0
+          maximum: 100
+        culture:
+          type: number
+          minimum: 0
+          maximum: 100
+        parking:
+          type: number
+          minimum: 0
+          maximum: 100
+        area:
+          type: number
+          minimum: 0
+          maximum: 100
+        street:
+          type: number
+          minimum: 0
+          maximum: 100
+        competition:
+          type: number
+          minimum: 0
+          maximum: 100
+        cost:
+          type: number
+          minimum: 0
+          maximum: 100
+      required:
+      - transit
+      - universities
+      - culture
+      - parking
+      - area
+      - street
+      - competition
+      - cost
+    Profile:
+      type: object
+      additionalProperties: false
+      properties:
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        profile_version:
+          type: string
+          format: uuid
+        version_label:
+          type: string
+        target_area_m2:
+          type: number
+          exclusiveMinimum: 0
+        weights:
+          $ref: '#/components/schemas/Weights'
+        config_version:
+          type: string
+        cost_enabled:
+          type: boolean
+      required:
+      - profile
+      - profile_version
+      - version_label
+      - target_area_m2
+      - weights
+      - config_version
+      - cost_enabled
+    ProfileList:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Profile'
+          minItems: 0
+      required:
+      - items
+    District:
+      type: object
+      additionalProperties: false
+      properties:
+        district_id:
+          type: string
+        name:
+          type: string
+      required:
+      - district_id
+      - name
+    DistrictList:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/District'
+          minItems: 0
+      required:
+      - dataset_bundle_id
+      - items
+    RankingRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        profile_version:
+          type: string
+          format: uuid
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        space_ids:
+          type: array
+          items:
+            type: string
+            pattern: ^[0-9]+$
+          minItems: 1
+          maxItems: 500
+        target_area_m2:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100000
+        radius_m:
+          type: integer
+          enum:
+          - 500
+          - 1000
+          default: 500
+        prefer_lower_competition:
+          type: boolean
+        include_conditional:
+          type: boolean
+        weights:
+          $ref: '#/components/schemas/Weights'
+        missing_policy:
+          type: string
+          enum:
+          - require_ack
+        comparison_basis_token:
+          type: string
+          minLength: 20
+          maxLength: 2048
+      required:
+      - profile
+      - profile_version
+      - dataset_bundle_id
+      - space_ids
+      - radius_m
+      - prefer_lower_competition
+      - include_conditional
+      - missing_policy
+    RankingItem:
+      type: object
+      additionalProperties: false
+      properties:
+        space_id:
+          type: string
+          pattern: ^[0-9]+$
+        candidate_status:
+          type: string
+          enum:
+          - ready
+          - conditional
+          - excluded
+        rank:
+          type:
+          - integer
+          - 'null'
+          minimum: 1
+        score:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+          maximum: 100
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - missing_coordinate
+          - data_not_available
+          - source_unavailable
+          - coverage_unchecked
+          - partial_coverage
+          - cost_not_configured
+          - unknown_position
+          - no_common_criteria
+          - not_applicable
+          - null
+        reasons:
+          type: array
+          items:
+            type: string
+          minItems: 0
+        raw_metrics:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Metric'
+        utilities:
+          type: object
+          additionalProperties:
+            type: number
+            minimum: 0
+            maximum: 1
+        contributions:
+          type: object
+          additionalProperties:
+            type: number
+            minimum: 0
+            maximum: 100
+        status_snapshot:
+          $ref: '#/components/schemas/Status'
+        coordinate_snapshot:
+          $ref: '#/components/schemas/Coordinate'
+      required:
+      - space_id
+      - candidate_status
+      - rank
+      - score
+      - reason
+      - reasons
+      - raw_metrics
+      - utilities
+      - contributions
+      - status_snapshot
+      - coordinate_snapshot
+    ExcludedCriterion:
+      type: object
+      additionalProperties: false
+      properties:
+        criterion:
+          type: string
+          enum:
+          - transit
+          - universities
+          - culture
+          - parking
+          - area
+          - street
+          - competition
+          - cost
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - missing_coordinate
+          - data_not_available
+          - source_unavailable
+          - coverage_unchecked
+          - partial_coverage
+          - cost_not_configured
+          - unknown_position
+          - no_common_criteria
+          - not_applicable
+          - null
+      required:
+      - criterion
+      - reason
+    RankingResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        ranking_run_id:
+          type: string
+          format: uuid
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        profile_version:
+          type: string
+          format: uuid
+        config_version:
+          type: string
+        source_versions:
+          $ref: '#/components/schemas/SourceVersions'
+        comparison_basis_id:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        criteria_used:
+          type: array
+          items:
+            type: string
+            enum:
+            - transit
+            - universities
+            - culture
+            - parking
+            - area
+            - street
+            - competition
+            - cost
+          minItems: 0
+        excluded_criteria:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExcludedCriterion'
+          minItems: 0
+        coverage_active:
+          type: number
+          minimum: 0
+          maximum: 100
+        coverage_default_profile:
+          type: number
+          minimum: 0
+          maximum: 100
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RankingItem'
+          minItems: 0
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        historical:
+          type: boolean
+        warnings:
+          type: array
+          items:
+            type: string
+          minItems: 0
+        access_token:
+          type: string
+          minLength: 32
+          maxLength: 100
+      required:
+      - ranking_run_id
+      - dataset_bundle_id
+      - profile
+      - profile_version
+      - config_version
+      - source_versions
+      - comparison_basis_id
+      - criteria_used
+      - excluded_criteria
+      - coverage_active
+      - coverage_default_profile
+      - items
+      - created_at
+      - expires_at
+      - historical
+      - warnings
+    Competitor:
+      type: object
+      additionalProperties: false
+      properties:
+        osm_type:
+          type: string
+          enum:
+          - node
+          - way
+          - relation
+        osm_id:
+          type: integer
+          minimum: 1
+        name:
+          type:
+          - string
+          - 'null'
+        category:
+          type: string
+          enum:
+          - cafe
+          - bar
+          - pub
+        coordinate:
+          $ref: '#/components/schemas/Point'
+        distance_m:
+          type: number
+          minimum: 0
+        lifecycle_status:
+          type: string
+          enum:
+          - mapped_active
+          - unknown
+      required:
+      - osm_type
+      - osm_id
+      - name
+      - category
+      - coordinate
+      - distance_m
+      - lifecycle_status
+    CompetitionResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        space_id:
+          type: string
+        source_version_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        radius_m:
+          type: integer
+          enum:
+          - 500
+          - 1000
+        count:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+        counts_by_category:
+          type: object
+          additionalProperties:
+            type:
+            - integer
+            - 'null'
+            minimum: 0
+        area_km2:
+          type: number
+          exclusiveMinimum: 0
+        density_per_km2:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+        coverage_status:
+          type: string
+          enum:
+          - unchecked
+          - approved
+          - partial
+          - unavailable
+        reason:
+          type:
+          - string
+          - 'null'
+          enum:
+          - missing_coordinate
+          - data_not_available
+          - source_unavailable
+          - coverage_unchecked
+          - partial_coverage
+          - cost_not_configured
+          - unknown_position
+          - no_common_criteria
+          - not_applicable
+          - null
+        checked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Competitor'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+        warnings:
+          type: array
+          items:
+            type: string
+          minItems: 0
+      required:
+      - dataset_bundle_id
+      - space_id
+      - source_version_id
+      - radius_m
+      - count
+      - counts_by_category
+      - area_km2
+      - density_per_km2
+      - coverage_status
+      - reason
+      - checked_at
+      - items
+      - total
+      - page
+      - page_size
+      - warnings
+    LocationEvidence:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+          - district
+          - street
+          - stop
+          - point
+          - area
+        label:
+          type: string
+          minLength: 1
+        district_ids:
+          type: array
+          items:
+            type: string
+          minItems: 0
+        geometry:
+          oneOf:
+          - $ref: '#/components/schemas/Point'
+          - type: object
+            additionalProperties: false
+            properties:
+              type:
+                type: string
+                enum:
+                - LineString
+                - Polygon
+                - MultiPolygon
+              coordinates:
+                type: array
+            required:
+            - type
+            - coordinates
+          - type: 'null'
+        evidence_quote:
+          type: string
+          minLength: 1
+          maxLength: 500
+        evidence_start:
+          type: integer
+          minimum: 0
+        evidence_end:
+          type: integer
+          minimum: 1
+      required:
+      - kind
+      - label
+      - district_ids
+      - geometry
+      - evidence_quote
+      - evidence_start
+      - evidence_end
+    ContextCard:
+      type: object
+      additionalProperties: false
+      properties:
+        card_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        status:
+          const: approved
+        topic:
+          type: string
+          enum:
+          - traffic_works
+          - public_projects_services
+          - events
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        profile_codes:
+          type: array
+          items:
+            type: string
+            enum:
+            - cafe
+            - office
+          minItems: 1
+          maxItems: 2
+        location:
+          $ref: '#/components/schemas/LocationEvidence'
+        source_url:
+          type: string
+          format: uri
+        publisher:
+          type: string
+        published_date:
+          type:
+          - string
+          - 'null'
+          format: date
+        published_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_from:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_to:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        review_due_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        temporal_label:
+          type: string
+          enum:
+          - announced
+          - current
+          - date_not_confirmed
+        approved_at:
+          type: string
+          format: date-time
+      required:
+      - card_id
+      - version
+      - status
+      - topic
+      - summary
+      - profile_codes
+      - location
+      - source_url
+      - publisher
+      - published_date
+      - published_at
+      - valid_from
+      - valid_to
+      - review_due_at
+      - temporal_label
+      - approved_at
+    ContextList:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        space_id:
+          type: string
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContextCard'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+        last_processed_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
+          minItems: 0
+      required:
+      - dataset_bundle_id
+      - space_id
+      - profile
+      - items
+      - total
+      - page
+      - page_size
+      - last_processed_at
+      - warnings
+    SourcePublic:
+      type: object
+      additionalProperties: false
+      properties:
+        source_code:
+          type: string
+        name:
+          type: string
+        publisher:
+          type: string
+        catalog_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        license_id:
+          type: string
+        attribution:
+          type: string
+        active_source_version_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        reference_period:
+          type:
+          - string
+          - 'null'
+        fetched_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        last_checked_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        availability:
+          type: string
+          enum:
+          - available
+          - stale
+          - unavailable
+          - disabled
+          - conditional
+        limitations:
+          type: array
+          items:
+            type: string
+          minItems: 0
+      required:
+      - source_code
+      - name
+      - publisher
+      - catalog_url
+      - license_id
+      - attribution
+      - active_source_version_id
+      - reference_period
+      - fetched_at
+      - last_checked_at
+      - availability
+      - limitations
+    SourceList:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourcePublic'
+          minItems: 0
+      required:
+      - items
+    SourceVersionPublic:
+      type: object
+      additionalProperties: false
+      properties:
+        source_code:
+          type: string
+        source_version_id:
+          type: string
+          format: uuid
+        publisher:
+          type: string
+        catalog_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        download_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        license_id:
+          type: string
+        attribution:
+          type: string
+        reference_period:
+          type:
+          - string
+          - 'null'
+        fetched_at:
+          type: string
+          format: date-time
+        source_modified_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        last_checked_at:
+          type: string
+          format: date-time
+        sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+      required:
+      - source_code
+      - source_version_id
+      - publisher
+      - catalog_url
+      - download_url
+      - license_id
+      - attribution
+      - reference_period
+      - fetched_at
+      - source_modified_at
+      - last_checked_at
+      - sha256
+    SystemStatus:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        data_state:
+          type: string
+          enum:
+          - ready
+          - degraded
+          - not_ready
+        last_successful_import_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        last_ai_processing_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        warnings:
+          type: array
+          items:
+            type: string
+          minItems: 0
+        server_time:
+          type: string
+          format: date-time
+      required:
+      - dataset_bundle_id
+      - data_state
+      - last_successful_import_at
+      - last_ai_processing_at
+      - warnings
+      - server_time
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+      required:
+      - username
+      - password
+    AdminSession:
+      type: object
+      additionalProperties: false
+      properties:
+        admin_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        csrf_token:
+          type: string
+          minLength: 32
+        expires_at:
+          type: string
+          format: date-time
+      required:
+      - admin_id
+      - username
+      - csrf_token
+      - expires_at
+    SourceUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        enabled:
+          type: boolean
+        expected_version:
+          type: integer
+          minimum: 1
+        approved_policy_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+      required:
+      - enabled
+      - expected_version
+      - approved_policy_sha256
+      - reason
+    ImportRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        source_code:
+          type: string
+          pattern: ^(D[0-9]{2}|M01)$
+        kind:
+          type: string
+          enum:
+          - source_import
+          - ai_process
+          - demo_check
+        input_source_version_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        local_artifact_key:
+          type:
+          - string
+          - 'null'
+          maxLength: 200
+      required:
+      - source_code
+      - kind
+    Job:
+      type: object
+      additionalProperties: false
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        source_code:
+          type: string
+        kind:
+          type: string
+          enum:
+          - source_import
+          - ai_process
+          - demo_check
+        status:
+          type: string
+          enum:
+          - queued
+          - running
+          - validating
+          - awaiting_review
+          - succeeded
+          - failed
+          - cancelled
+        requested_at:
+          type: string
+          format: date-time
+        started_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        finished_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        accepted_count:
+          type: integer
+          minimum: 0
+        rejected_count:
+          type: integer
+          minimum: 0
+        source_version_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        error_code:
+          type:
+          - string
+          - 'null'
+        report:
+          type: object
+          additionalProperties: true
+          properties: {}
+          required: []
+      required:
+      - job_id
+      - source_code
+      - kind
+      - status
+      - requested_at
+      - started_at
+      - finished_at
+      - accepted_count
+      - rejected_count
+      - source_version_id
+      - error_code
+      - report
+    JobList:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+      - items
+      - total
+      - page
+      - page_size
+    ImportError:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        severity:
+          type: string
+          enum:
+          - warning
+          - blocking
+        source_record_key:
+          type:
+          - string
+          - 'null'
+        field_name:
+          type:
+          - string
+          - 'null'
+        detail:
+          type: string
+      required:
+      - code
+      - severity
+      - source_record_key
+      - field_name
+      - detail
+    ImportErrorList:
+      type: object
+      additionalProperties: false
+      properties:
+        job_id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportError'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+      - job_id
+      - items
+      - total
+      - page
+      - page_size
+    JobReview:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum:
+          - approve
+          - reject
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+      required:
+      - action
+      - reason
+    CancelRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+      required:
+      - reason
+    BundleRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        label:
+          type: string
+          minLength: 3
+          maxLength: 100
+        source_versions:
+          $ref: '#/components/schemas/SourceVersions'
+        coordinate_evidence_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 0
+        status_assessment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 0
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+      required:
+      - label
+      - source_versions
+      - coordinate_evidence_ids
+      - status_assessment_ids
+      - reason
+    Bundle:
+      type: object
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        status:
+          type: string
+          enum:
+          - draft
+          - validating
+          - valid
+          - rejected
+        version:
+          type: integer
+          minimum: 1
+        source_versions:
+          $ref: '#/components/schemas/SourceVersions'
+        manifest_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        validation_sha256:
+          type:
+          - string
+          - 'null'
+          pattern: ^[0-9a-f]{64}$
+        validation_report:
+          type: object
+          additionalProperties: true
+          properties: {}
+          required: []
+        created_at:
+          type: string
+          format: date-time
+        active:
+          type: boolean
+      required:
+      - dataset_bundle_id
+      - label
+      - status
+      - version
+      - source_versions
+      - manifest_sha256
+      - validation_sha256
+      - validation_report
+      - created_at
+      - active
+    BundleList:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bundle'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+      - items
+      - total
+      - page
+      - page_size
+    ActivationRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        expected_active_bundle_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        expected_version:
+          type: integer
+          minimum: 1
+        validation_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+      required:
+      - expected_active_bundle_id
+      - expected_version
+      - validation_sha256
+      - reason
+    ReviewRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum:
+          - approve
+          - reject
+          - request_review
+          - archive
+          - resubmit
+        expected_version:
+          type: integer
+          minimum: 1
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        topic:
+          type: string
+          enum:
+          - traffic_works
+          - public_projects_services
+          - events
+        profile_codes:
+          type: array
+          items:
+            type: string
+            enum:
+            - cafe
+            - office
+          minItems: 1
+          maxItems: 2
+        location:
+          $ref: '#/components/schemas/LocationEvidence'
+        valid_from:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_to:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - action
+      - expected_version
+      - reason
+    AdminCard:
+      type: object
+      additionalProperties: false
+      properties:
+        card_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum:
+          - pending_review
+          - approved
+          - rejected
+          - needs_review
+          - expired
+          - archived
+        notice_revision_id:
+          type: string
+          format: uuid
+        ai_result_id:
+          type: string
+          format: uuid
+        source_url:
+          type: string
+          format: uri
+        source_text:
+          type: string
+        summary:
+          type: string
+        topic:
+          type: string
+          enum:
+          - traffic_works
+          - public_projects_services
+          - events
+        topic_scores:
+          type: object
+          additionalProperties:
+            type: number
+            minimum: -1
+            maximum: 1
+        location:
+          oneOf:
+          - $ref: '#/components/schemas/LocationEvidence'
+          - type: 'null'
+        valid_from:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        valid_to:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        review_due_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        model_revision:
+          type: string
+        config_version:
+          type: string
+      required:
+      - card_id
+      - version
+      - status
+      - notice_revision_id
+      - ai_result_id
+      - source_url
+      - source_text
+      - summary
+      - topic
+      - topic_scores
+      - location
+      - valid_from
+      - valid_to
+      - review_due_at
+      - model_revision
+      - config_version
+    AdminCardList:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminCard'
+          minItems: 0
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+      required:
+      - items
+      - total
+      - page
+      - page_size
+    CoordinateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        source_version_id:
+          type: string
+          format: uuid
+        geometry:
+          oneOf:
+          - $ref: '#/components/schemas/Point'
+          - type: 'null'
+        precision_status:
+          type: string
+          enum:
+          - entrance_confirmed
+          - building_approximate
+          - needs_review
+          - missing
+        evidence_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        evidence_note:
+          type:
+          - string
+          - 'null'
+          maxLength: 1000
+        checked_at:
+          type: string
+          format: date-time
+        license_id:
+          type: string
+          minLength: 1
+      required:
+      - source_version_id
+      - geometry
+      - precision_status
+      - evidence_url
+      - evidence_note
+      - checked_at
+      - license_id
+    StatusRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        source_version_id:
+          type: string
+          format: uuid
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        physical_vacancy:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        tender_active:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        activity_allowed:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        technical_suitable:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - unknown
+        evidence_url:
+          type: string
+          format: uri
+        tender_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        checked_at:
+          type: string
+          format: date-time
+        monthly_total_eur:
+          type:
+          - number
+          - 'null'
+          minimum: 0
+        cost_definition_version:
+          type:
+          - string
+          - 'null'
+        cost_evidence:
+          type:
+          - object
+          - 'null'
+        valid_until:
+          type:
+          - string
+          - 'null'
+          format: date-time
+      required:
+      - source_version_id
+      - profile
+      - physical_vacancy
+      - tender_active
+      - activity_allowed
+      - technical_suitable
+      - evidence_url
+      - tender_url
+      - checked_at
+      - monthly_total_eur
+      - cost_definition_version
+      - cost_evidence
+      - valid_until
+    EvidenceReceipt:
+      type: object
+      additionalProperties: false
+      properties:
+        evidence_id:
+          type: string
+          format: uuid
+        space_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        active:
+          const: false
+      required:
+      - evidence_id
+      - space_id
+      - created_at
+      - active
+    ProfileVersionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+        version_label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        weights:
+          $ref: '#/components/schemas/Weights'
+        target_area_m2:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100000
+        config:
+          $ref: '#/components/schemas/RankingParameters'
+        reason:
+          type: string
+          minLength: 5
+          maxLength: 1000
+      required:
+      - profile
+      - version_label
+      - weights
+      - target_area_m2
+      - config
+      - reason
+    RankingParameters:
+      type: object
+      additionalProperties: false
+      properties:
+        normalization_version:
+          const: 3.0.0
+        transit_zero_m:
+          type: number
+          exclusiveMinimum: 0
+        parking_zero_m:
+          type: number
+          exclusiveMinimum: 0
+        poi_radius_m:
+          type: number
+          exclusiveMinimum: 0
+        university_cap:
+          type: integer
+          minimum: 1
+        culture_cap:
+          type: integer
+          minimum: 1
+        other_position_utility:
+          type: number
+          minimum: 0
+          maximum: 1
+        competition_density_scale_km2:
+          type: number
+          exclusiveMinimum: 0
+        status_validity_hours:
+          type: integer
+          minimum: 1
+          maximum: 168
+        comparison_confirmation_ttl_s:
+          type: integer
+          minimum: 30
+          maximum: 600
+        cost_enabled:
+          const: false
+        cost_bounds_eur:
+          type: 'null'
+      required:
+      - normalization_version
+      - transit_zero_m
+      - parking_zero_m
+      - poi_radius_m
+      - university_cap
+      - culture_cap
+      - other_position_utility
+      - competition_density_scale_km2
+      - status_validity_hours
+      - comparison_confirmation_ttl_s
+      - cost_enabled
+      - cost_bounds_eur
+    ErrorReportRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        target_type:
+          type: string
+          enum:
+          - space
+          - competitor
+        target_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+        contact:
+          type:
+          - string
+          - 'null'
+          maxLength: 200
+      required:
+      - target_type
+      - target_id
+      - description
+    Receipt:
+      type: object
+      additionalProperties: false
+      properties:
+        receipt_id:
+          type: string
+          format: uuid
+        received_at:
+          type: string
+          format: date-time
+      required:
+      - receipt_id
+      - received_at
+    ProfileSuggestionRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        description:
+          type: string
+          minLength: 5
+          maxLength: 500
+      required:
+      - description
+    ProfileSuggestion:
+      type: object
+      additionalProperties: false
+      properties:
+        suggested_profile:
+          type:
+          - string
+          - 'null'
+          enum:
+          - cafe
+          - office
+          - null
+        status:
+          type: string
+          enum:
+          - suggested
+          - unsupported
+        requires_confirmation:
+          const: true
+      required:
+      - suggested_profile
+      - status
+      - requires_confirmation

@@ -1,0 +1,1288 @@
+{
+  "version": "3.0.0",
+  "functional": [
+    {
+      "id": "FZ01",
+      "name": "Poslovni profil i filtri",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listProfiles",
+        "listDistricts",
+        "listSpaces",
+        "rankSpaces"
+      ],
+      "entities": [
+        "criteria_profile",
+        "dataset_bundle"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D07"
+      ],
+      "behavior": "Korisnik odabire cafe ili office, uključivi raspon površine, četvrti i ciljnu površinu. Promjena filtra stvara nov skup kandidata, a potvrđeni izračun ostaje sačuvan.",
+      "inputs": "profile je obvezan; area_min_m2 i area_max_m2 su 0 do 100000; minimum ne smije biti veći od maksimuma. target_area_m2 mora biti veći od 0. radius_m je 500 ili 1000.",
+      "outputs": "Validirani filtri, broj rezultata i dataset_bundle_id. Početni cilj jest 60 m² za kafić, 80 m² za ured.",
+      "rules": "Za office prefer_lower_competition mora biti false. Identifikatori četvrti dolaze iz listDistricts.",
+      "errors": "Nepodržan profil, nepoznata četvrt ili neispravan raspon vraća 422; prazni rezultat je 200.",
+      "given": "Prostor ima 50 m².",
+      "when": "Primijene se granice 40 i 70 m².",
+      "then": "Prostor prolazi filtar; raspon 70 do 40 odbija se prije izračuna.",
+      "tests": [
+        "TF01"
+      ]
+    },
+    {
+      "id": "FZ02",
+      "name": "Uvoz podataka s nacionalnog Portala",
+      "role": "Administrator i worker",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "getImportJob",
+        "getImportErrors"
+      ],
+      "entities": [
+        "source",
+        "source_version",
+        "source_record",
+        "space_revision",
+        "import_job"
+      ],
+      "sources": [
+        "D01",
+        "D02"
+      ],
+      "behavior": "Dohvaća se nacionalni package_show, pohranjuje cijeli odgovor i bira odobren resource_id. Izvorni CSV preuzima se samo s URL-a iz metapodataka. D01 i D02 imaju odvojene verzije.",
+      "inputs": "source_code i Idempotency-Key; posao ne prima proizvoljan URL. Provjeravaju se success, izdavatelj, licenca, format, hash i očekivano zaglavlje.",
+      "outputs": "202 s job_id; završni izvještaj s brojem prihvaćenih i odbijenih zapisa, hashom, putanjom izvornika i source_version_id.",
+      "rules": "Ponovljeni isti ključ i tijelo vraćaju isti posao. Isti sadržaj i metapodaci ne stvaraju novu verziju.",
+      "errors": "Prazan odgovor, promijenjena licenca, dvostruki ID i nepoznata shema zaustavljaju aktivaciju. Aktivni paket ostaje isti.",
+      "given": "Dostupne su kontrolne datoteke D01 i D02 iz ove provjere.",
+      "when": "Izvede se uvoz i ponovi isti zahtjev.",
+      "then": "Potvrđuju se kontrolni brojevi i hashovi iz registra; ponavljanje vraća isti posao bez dvostrukih redaka.",
+      "tests": [
+        "TF02"
+      ]
+    },
+    {
+      "id": "FZ03",
+      "name": "Koordinate i njihova kvaliteta",
+      "role": "Javni korisnik i administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "getSpace",
+        "createCoordinateEvidence"
+      ],
+      "entities": [
+        "space",
+        "geo_evidence",
+        "bundle_space"
+      ],
+      "sources": [
+        "D11"
+      ],
+      "behavior": "Koordinata se veže uz space_id i verzionirani dokaz. Prikaz razlikuje entrance_confirmed, building_approximate, needs_review i missing.",
+      "inputs": "lon od -180 do 180, lat od -90 do 90, source_version_id, evidence_url ili opis vlastitog opažanja, checked_at i precision_status.",
+      "outputs": "geometry ili null; precision_status i reason; dostupnost prostornih pokazatelja.",
+      "rules": "Više prostora smije imati istu točku. needs_review i missing ne ulaze u prostorni izračun. Nova koordinata djeluje tek kroz novi paket.",
+      "errors": "Izvan obuhvata Zagreba traži pregled; neispravan CRS ili zamijenjene osi blokiraju prihvat.",
+      "given": "Kandidat nema provjerenu koordinatu.",
+      "when": "Otvori se karta i popis.",
+      "then": "Kandidat ostaje na popisu, nema markera ni izmišljenih udaljenosti; približna zgrada ima vidljivu oznaku.",
+      "tests": [
+        "TF03"
+      ]
+    },
+    {
+      "id": "FZ04",
+      "name": "Status i obvezni uvjeti",
+      "role": "Javni korisnik i administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listSpaces",
+        "getSpace",
+        "rankSpaces",
+        "createStatusAssessment"
+      ],
+      "entities": [
+        "space_revision",
+        "status_assessment",
+        "bundle_space"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D12"
+      ],
+      "behavior": "Vode se odvojeno evidentiranost, fizička praznost, natječaj, dopuštena djelatnost i tehnička prikladnost. yes, no i unknown ne izvode se iz samog naziva popisa.",
+      "inputs": "space_id, profile, datirani dokaz i pojedinačni uvjeti. D02 nosi poznatu tehničku neprikladnost.",
+      "outputs": "candidate_status je ready, conditional ili excluded, s pojedinačnim razlozima.",
+      "rules": "Jedan no u obveznom uvjetu isključuje iz rangiranja; barem jedan unknown znači conditional. include_conditional=false uklanja takve kandidate. Nova tehnička razrada određuje rok dokaza najviše sedam dana; istekom yes postaje unknown za novi izračun. evaluated_at se sprema u snapshot.",
+      "errors": "Bez potvrđenih aktualnih ponuda prikazuje se povijesni pregled s upozorenjem, bez oznake dostupno za zakup.",
+      "given": "Povijesni prostor nema dokaz aktivnog natječaja.",
+      "when": "Traži se detalj i rangiranje uz include_conditional=true.",
+      "then": "Prikazuje se conditional i unknown za natječaj; D02 je excluded neovisno o lokacijskim bodovima.",
+      "tests": [
+        "TF04"
+      ]
+    },
+    {
+      "id": "FZ05",
+      "name": "Popis i karta",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listSpaces",
+        "getSystemStatus"
+      ],
+      "entities": [
+        "bundle_space",
+        "space_revision",
+        "geo_evidence"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D07",
+        "D11"
+      ],
+      "behavior": "Isti filtri upravljaju popisom i markerima. Popis prikazuje i zapise bez upotrebljive geometrije; svi rezultati imaju datum izvornog skupa i status.",
+      "inputs": "Paginacija 1 do 100 po stranici, sortiranje official_id asc; za skup markera koristi se isti paket i skup filtara.",
+      "outputs": "items, total, page, page_size i broj zapisa bez markera; GeoJSON točke u WGS84.",
+      "rules": "Karta ima tekstualni pandan. Promjena stranice ne mijenja ukupan broj rezultata; rangiranje ne koristi samo trenutačnu stranicu.",
+      "errors": "Za nula rezultata predlaže se promjena filtra; nedostupna podloga ostavlja lokalne točke i popis.",
+      "given": "Isti filtar vraća pet kandidata, jedan bez koordinate.",
+      "when": "Pregledaju se sve stranice i karta.",
+      "then": "Popis sadrži pet ID-eva, a karta četiri ista prostorno upotrebljiva ID-a.",
+      "tests": [
+        "TF05"
+      ]
+    },
+    {
+      "id": "FZ06",
+      "name": "Detalj prostora",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "getSpace",
+        "listCompetitors",
+        "listContext"
+      ],
+      "entities": [
+        "space_revision",
+        "geo_evidence",
+        "status_assessment",
+        "spatial_metric"
+      ],
+      "sources": [
+        "D01",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D08",
+        "D11",
+        "D12"
+      ],
+      "behavior": "Detalj prikazuje identitet jedinice, izvorna i izvedena polja, statusnu provjeru te zasebne blokove konkurencije i potvrđenog konteksta.",
+      "inputs": "Postojeći space_id i dataset_bundle_id; profile prema aktivnom izboru.",
+      "outputs": "SpaceDetail s dokazima, metrima i brojevima, null i reason gdje nedostaje podatak.",
+      "rules": "Udaljenost je zračna, a ne vrijeme hoda. Link natječaja mora potjecati iz status_assessment.",
+      "errors": "Nepoznat ID vraća 404, nesklad paketa 409, kvar konteksta ne uklanja osnovni detalj.",
+      "given": "Cijena i natječaj nisu potvrđeni.",
+      "when": "Otvori se detalj.",
+      "then": "Cijena je null s razlogom, natječaj unknown; nema tvrdnje o besplatnom ili dostupnom prostoru.",
+      "tests": [
+        "TF06"
+      ]
+    },
+    {
+      "id": "FZ07",
+      "name": "Objašnjivo bodovanje",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "rankSpaces",
+        "getRanking"
+      ],
+      "entities": [
+        "criteria_profile",
+        "ranking_run",
+        "ranking_item"
+      ],
+      "sources": [
+        "D01",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D08",
+        "D11",
+        "D12"
+      ],
+      "behavior": "Primjenjuju se formule i zajednički kriteriji dokumenta A. Vraćaju se neokrugljeni interni rezultat, doprinosi i dvije pokrivenosti.",
+      "inputs": "Najviše 500 različitih space_ids, profil, paket i svih osam težina ako se mijenjaju. Težine su 0 do 100 i zbroj 100.",
+      "outputs": "Rezultat 0 do 100 ili null; kriteriji, doprinosi, config_version i comparison_basis_id.",
+      "rules": "Jednakost se uspoređuje nakon ROUND_HALF_UP na osam decimala; zatim rastući numerički službeni ID. Prikaz je na dvije decimale.",
+      "errors": "Nula aktivnih težina vraća 422; nijedan dostupni kriterij daje score=null, reason=no_common_criteria.",
+      "given": "Dva umjetna kriterija imaju težine 60 i 40, korisnosti 0.5 i 1.",
+      "when": "Izračuna se ponderirani prosjek.",
+      "then": "Rezultat je 70; zbroj prikazanih doprinosa odstupa najviše 0.01 boda.",
+      "tests": [
+        "TF07"
+      ]
+    },
+    {
+      "id": "FZ08",
+      "name": "Nedostajući i neusporedivi podaci",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "rankSpaces"
+      ],
+      "entities": [
+        "ranking_run",
+        "spatial_metric"
+      ],
+      "sources": [
+        "D01",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D08",
+        "D11",
+        "D12"
+      ],
+      "behavior": "Kriterij dostupan samo dijelu kandidata ne uklanja se tiho. API traži potvrdu zajedničkog podskupa ili uklanjanje nepotpunih kandidata.",
+      "inputs": "missing_policy=require_ack; comparison_basis_token samo za isti zahtjev, paket, metrike i važeći rok.",
+      "outputs": "409 COMPARISON_BASIS_CHANGED s nedostacima i tokenom; nakon potvrde 201 s zajedničkim kriterijima.",
+      "rules": "Kriterij koji nedostaje svima izostavlja se uz razlog. Odgovor i spremljeni izračun zadržavaju izvorni kontekst.",
+      "errors": "Promjena kandidata ili težina poništava token. Prazan zajednički skup ne proizvodi nulu.",
+      "given": "Jednom kandidatu ukloni se nepovoljan podatak.",
+      "when": "Ponovi se raniji zahtjev.",
+      "then": "Nema tihog poboljšanja: traži se potvrda nove osnove; stari ranking_run ostaje nepromijenjen.",
+      "tests": [
+        "TF08"
+      ]
+    },
+    {
+      "id": "FZ09",
+      "name": "Usporedba kandidata",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "rankSpaces",
+        "getRanking"
+      ],
+      "entities": [
+        "ranking_run",
+        "ranking_item"
+      ],
+      "sources": [
+        "D01",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D08",
+        "D11",
+        "D12"
+      ],
+      "behavior": "Usporedba prikazuje dva ili tri odabrana prostora na istoj osnovi, s objašnjenjima i odvojenim AI kontekstom.",
+      "inputs": "Najviše tri kandidata u ekranu usporedbe; isti profil, radijus, paket i kriteriji.",
+      "outputs": "Usporedne vrijednosti, statusi, bodovi i izvori.",
+      "rules": "Frontend može uspoređivati podskup spremljenog izračuna bez ponovnog normaliziranja. Novo rangiranje označuje se novim ID-em.",
+      "errors": "Četvrti izbor onemogućen je jasnom porukom; kandidati iz različitih izračuna zahtijevaju novi zajednički izračun.",
+      "given": "Tri kandidata postoje u spremljenom izračunu.",
+      "when": "Otvore se usporedno i poslije promjene aktivnog paketa.",
+      "then": "Prikazuje se isti spremljeni rezultat i oznaka povijesne verzije.",
+      "tests": [
+        "TF09"
+      ]
+    },
+    {
+      "id": "FZ10",
+      "name": "Uvoz evidentiranih konkurenata",
+      "role": "Administrator i worker",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "listCompetitors"
+      ],
+      "entities": [
+        "source_version",
+        "competitor",
+        "coverage_review"
+      ],
+      "sources": [
+        "D08"
+      ],
+      "behavior": "Lokalno se priprema regionalni Geofabrik PBF i izdvajaju cafe, bar i pub s punim krugovima oko kandidata. U bazi ostaje datirani lokalni izvadak.",
+      "inputs": "Odobren lokalni artefakt, hash, referentni datum, prostorni obuhvat i osm_type/osm_id.",
+      "outputs": "Verzionirani konkurenti i pokrivenost izvora; API ne dohvaća javni Overpass.",
+      "rules": "PBF se ne parsira pri korisničkom zahtjevu. Identitet objekta čini par tip i ID.",
+      "errors": "Pogrešan PBF ili nepotpun obuhvat zaustavlja novu verziju; prethodni izvadak ostaje.",
+      "given": "Baza sadrži pripremljen lokalni izvadak.",
+      "when": "Isključi se vanjska mreža pri pretrazi.",
+      "then": "Popis konkurencije radi iz baze, s datumom i ograničenjima izvora.",
+      "tests": [
+        "TF10"
+      ]
+    },
+    {
+      "id": "FZ11",
+      "name": "Duplikati i zatvoreni objekti",
+      "role": "Administrator i worker",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "listCompetitors"
+      ],
+      "entities": [
+        "competitor",
+        "competitor_resolution"
+      ],
+      "sources": [
+        "D08"
+      ],
+      "behavior": "Uklanja se ponovljeni isti OSM ključ; kandidati node i way s istim imenom i adresom unutar 20 m označuju se za ručnu provjeru.",
+      "inputs": "Normalizirano ime i potpuna adresa, geometrija, lifecycle oznake i verzija.",
+      "outputs": "Jedinstveni objekti, pending parovi i zapis odluke s canonical_osm_key.",
+      "rules": "Bez pune adrese nema automatskog spajanja. Zatvoreni i potvrđeni duplikati ne ulaze u broj; neriješeni par blokira bodovanje te zone.",
+      "errors": "Dva lokala istog lanca na drugim adresama ostaju odvojena. Povijest ne briše izvorne redove.",
+      "given": "Isti lokal ima node i way te dvije druge poslovnice lanca.",
+      "when": "Potvrdi se samo prvi dvojni prikaz.",
+      "then": "Prvi lokal broji se jednom, druge dvije poslovnice zasebno; disused objekt je izdvojen.",
+      "tests": [
+        "TF11"
+      ]
+    },
+    {
+      "id": "FZ12",
+      "name": "Broj gustoća i preferencija konkurencije",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listCompetitors",
+        "rankSpaces"
+      ],
+      "entities": [
+        "coverage_review",
+        "spatial_metric",
+        "ranking_item"
+      ],
+      "sources": [
+        "D08",
+        "D11"
+      ],
+      "behavior": "Za cafe prikazuju se kategorije, zbroj i gustoća u cijelom krugu 500 ili 1000 m. Bodovanje je početno isključeno dok ga korisnik ne uključi i izvor ne prođe kontrolu.",
+      "inputs": "Isti radijus, kategorije, snapshot i obuhvat za sve kandidate. Kontrola najmanje 10 objekata po zoni ili svih ako ih je manje.",
+      "outputs": "count, density_per_km2, area_km2, coverage_status i provjera; utility samo kad su uvjeti ispunjeni.",
+      "rules": "Broji se točka reprezentacije, ST_DWithin uključuje granicu. Površina je pi*(r/1000)^2, bez rezanja po četvrti.",
+      "errors": "Neuspjelo preuzimanje ili djelomičan krug vraća null, a ne 0. Provjeren prazan izvadak s potpunim krugom može dati 0.",
+      "given": "Deset umjetnih točaka nalazi se unutar 500 m.",
+      "when": "Izračuna se broj i gustoća.",
+      "then": "Broj je 10, površina 0.785398 km², gustoća približno 12.732395; office nema konkurentski bod.",
+      "tests": [
+        "TF12"
+      ]
+    },
+    {
+      "id": "FZ13",
+      "name": "Prikupljanje službenih novosti",
+      "role": "Worker i administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "getImportErrors"
+      ],
+      "entities": [
+        "source",
+        "notice",
+        "notice_revision",
+        "source_record"
+      ],
+      "sources": [
+        "D09",
+        "D10"
+      ],
+      "behavior": "Adapter dohvaća samo dopuštene gradske liste i odobrene poveznice na članke. Tekst, datum i naslov odvajaju se od navigacije. D10 je isključen za širi tekst do potvrde prava.",
+      "inputs": "Allowlist URL i putanje, provjera izvornog autorstva i licence, najviše 100 tekstova po poslu.",
+      "outputs": "Pohranjena notice_revision, content_sha256 i ekstrakcijski dokaz.",
+      "rules": "Preuzimanje nije AI. Fotografije, logotipi i preuzeti tuđi članci ne ulaze u korpus.",
+      "errors": "Preusmjeravanje izvan popisa, privatna IP adresa ili promijenjen selektor odbija se uz izvor pogreške.",
+      "given": "Lista vodi na odobren članak, tuđi članak i vanjsku adresu.",
+      "when": "Izvede se uvoz.",
+      "then": "Prihvaća se samo odobren izvorni tekst, bez skripti i fotografija.",
+      "tests": [
+        "TF13"
+      ]
+    },
+    {
+      "id": "FZ14",
+      "name": "AI tematsko razvrstavanje",
+      "role": "Worker i administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "getImportJob",
+        "listAdminContext"
+      ],
+      "entities": [
+        "ai_result",
+        "notice_revision",
+        "context_card"
+      ],
+      "sources": [
+        "D09",
+        "M01"
+      ],
+      "behavior": "Stvarni lokalni MiniLM izračunava embeddinge blokova i opisa tema. Po temi se uzima najveća kosinusna sličnost, a predložena tema prolazi prag i razliku do druge teme.",
+      "inputs": "Dopušten tekst, revizija modela, konfiguracija i tokenizirani blokovi do 96 sadržajnih tokena s preklapanjem 16.",
+      "outputs": "Tema, sličnosti, margin, status classified/uncertain/irrelevant i hashovi; 384-dimenzionalni vektori mogu ostati samo u obradi.",
+      "rules": "Početni pragovi 0.45 i 0.05 kalibriraju se na 12 razvojnih tekstova. trust_remote_code=false.",
+      "errors": "Slab ili izjednačen izlaz ide na pregled; model nije generativan i ne potvrđuje činjenice.",
+      "given": "Izračun daje najbolje sličnosti 0.70 i 0.68.",
+      "when": "Primijene se pragovi.",
+      "then": "Rezultat je uncertain zbog razlike 0.02, uz spremljenu reviziju modela i konfiguracije.",
+      "tests": [
+        "TF14"
+      ]
+    },
+    {
+      "id": "FZ15",
+      "name": "Lokacijsko i vremensko povezivanje",
+      "role": "Worker i administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listAdminContext",
+        "reviewContext"
+      ],
+      "entities": [
+        "ai_result",
+        "context_card",
+        "district",
+        "geo_evidence"
+      ],
+      "sources": [
+        "D07",
+        "D09",
+        "D11",
+        "M01"
+      ],
+      "behavior": "Mjesta i datumi izdvajaju se iz izričitih dijelova teksta i rječnika; administrator potvrđuje geometriju i razdoblje.",
+      "inputs": "Kontrolirani naziv ulice, stajališta ili četvrti, offset izvornog teksta, published_date, valid_from i valid_to.",
+      "outputs": "LocationEvidence, preciznost lokacije, zaseban datum objave i događaja te review_due_at.",
+      "rules": "Samo naziv Zagreb ne veže objavu uz sve četvrti. valid_to je isključiva gornja granica. Bez završetka pregled nakon 30 dana.",
+      "errors": "Dvosmislena ulica i nepoznata godina ostaju neriješene; ne odobrava se proizvoljna lokacija.",
+      "given": "Objava spominje samo Zagreb, bez ulice i četvrti.",
+      "when": "Pokuša se objaviti kartica uz kandidatov kvart.",
+      "then": "Odobrenje se odbija dok ne postoji izričit provjeren lokacijski dokaz.",
+      "tests": [
+        "TF15"
+      ]
+    },
+    {
+      "id": "FZ16",
+      "name": "Prikaz AI konteksta",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listContext"
+      ],
+      "entities": [
+        "context_card",
+        "notice_revision"
+      ],
+      "sources": [
+        "D09",
+        "M01"
+      ],
+      "behavior": "Javno se prikazuju samo approved kartice čiji rok nije istekao i nije potrebna nova provjera. Sažetak do 60 riječi nastaje iz potvrđenih polja prema predlošku.",
+      "inputs": "space_id, profil, paket i vrijeme poslužitelja; veza s kvartom ili provjerenom geometrijom.",
+      "outputs": "Tema, činjenični opis, poveznica, izdavatelj, datum objave, vrijeme događaja i oznaka najavljeno ili aktualno.",
+      "rules": "Kartice ne mijenjaju score. Semantička sličnost ne prikazuje se kao vjerojatnost istinitosti.",
+      "errors": "Bez potvrđenih kartica prikazuje se da obavijesti nisu potvrđene; time se ne tvrdi da promjena nema.",
+      "given": "Postoji potvrđena kartica i deterministički izračun.",
+      "when": "Kartica se ukloni iz javnog prikaza.",
+      "then": "Bodovi i doprinosi ostaju jednaki.",
+      "tests": [
+        "TF16"
+      ]
+    },
+    {
+      "id": "FZ17",
+      "name": "Pregled i objava kontekstnih kartica",
+      "role": "Administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listAdminContext",
+        "reviewContext"
+      ],
+      "entities": [
+        "context_card",
+        "audit_event",
+        "ai_result"
+      ],
+      "sources": [
+        "D09",
+        "M01"
+      ],
+      "behavior": "Administrator uz izvorni tekst ispravlja polja te potvrđuje, odbija ili vraća karticu na pregled prema dopuštenim prijelazima.",
+      "inputs": "card_id, expected_version, action, razlog i provjerena polja. Obvezni su izvor, mjesto i činjenični opis.",
+      "outputs": "Nova verzija kartice i audit zapis; javni prikaz tek nakon odobrenja.",
+      "rules": "approved sadržaj ne uređuje se tiho: uređivanje ga vraća u needs_review. archived je završno stanje.",
+      "errors": "Sukob expected_version vraća 409; nevažeći prijelaz 422; neovlašten zahtjev 401/403.",
+      "given": "Dva administratora otvore istu verziju kartice.",
+      "when": "Prvi odobri, drugi pošalje zastarjelu izmjenu.",
+      "then": "Drugi dobiva 409 bez gubitka prve odluke; svaka odluka ima autora i datum.",
+      "tests": [
+        "TF17"
+      ]
+    },
+    {
+      "id": "FZ18",
+      "name": "Osvježavanje i posljednja valjana verzija",
+      "role": "Administrator i worker",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "validateBundle",
+        "activateBundle",
+        "rollbackBundle"
+      ],
+      "entities": [
+        "source_version",
+        "dataset_bundle",
+        "bundle_source",
+        "import_job"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D11",
+        "D12"
+      ],
+      "behavior": "Novi izvori ulaze u staging i u kandidatni bundle. Validacija prethodi atomskom prebacivanju jedne aktivne reference.",
+      "inputs": "Odobrene source_version_id vrijednosti i očekivani aktivni bundle.",
+      "outputs": "Valjani bundle i izvještaj, ili odbijanje s razlozima; posljednja aktivna verzija ostaje čitljiva.",
+      "rules": "Ponovljeni uvoz je idempotentan. Promjena broja >20% ide na ručni pregled. Nestanak ID-a nije dokaz zakupa.",
+      "errors": "Timeout ili prazan CSV ne briše redove aktivnog paketa; povrat bira raniji valjani bundle.",
+      "given": "Novi CSV ima pogrešno zaglavlje i aktivan je paket B1.",
+      "when": "Završi neuspjeli uvoz.",
+      "then": "Aktivni paket ostaje B1, posao failed s kodom schema_changed.",
+      "tests": [
+        "TF18"
+      ]
+    },
+    {
+      "id": "FZ19",
+      "name": "Registar izvora i povijest izračuna",
+      "role": "Javni korisnik i administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listSources",
+        "getRanking",
+        "getSourceVersion"
+      ],
+      "entities": [
+        "source",
+        "source_version",
+        "ranking_run",
+        "ranking_item"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D11",
+        "D12",
+        "M01"
+      ],
+      "behavior": "Izvori imaju izdavatelja, prava i datume, a svaki izračun čuva paket, profil, korisničke težine, sirove metrike i normalizirane doprinose.",
+      "inputs": "Identifikatori verzija, hashovi, request_hash i snapshot pravila.",
+      "outputs": "Dokazivo podrijetlo i rezultat koji se može rekonstruirati bez novih vanjskih dohvaćanja.",
+      "rules": "Spremljeni izračuni su nepromjenjivi. API prema javnosti ne otkriva interne putanje datoteka.",
+      "errors": "Ako je potrebni izvornik uklonjen zbog prava, usporedba to navodi; čuva se dopušten numerički trag.",
+      "given": "Nakon izračuna aktivira se novi izvor i novi profil.",
+      "when": "Dohvati se stari ranking_run.",
+      "then": "Vraća se izvorni rezultat s izvornim verzijama, bez ponovnog računanja.",
+      "tests": [
+        "TF19"
+      ]
+    },
+    {
+      "id": "FZ20",
+      "name": "Izvoz usporedbe",
+      "role": "Javni korisnik",
+      "priority": "P",
+      "phase": "Pilot dodatak",
+      "change": "Dopunjen",
+      "operations": [
+        "getRankingExport"
+      ],
+      "entities": [
+        "ranking_run",
+        "ranking_item"
+      ],
+      "sources": [
+        "D01",
+        "D08",
+        "D09"
+      ],
+      "behavior": "Izvoz koristi spremljeni izračun i proizvodi HTML za ispis, s istim upozorenjima i izvorima.",
+      "inputs": "ranking_run_id; pristupni token pohranjen samo lokalno; format html.",
+      "outputs": "Dokument za ispis bez kontakata i administratorskih bilježaka.",
+      "rules": "Izvoz je dodatak nakon završetka MVP-a; ne stvara nove ocjene.",
+      "errors": "Isključen dodatak vraća 404 feature_disabled; nevaljan token 403; istekao izračun 410.",
+      "given": "Spremljeni kandidat ima nepotvrđen natječaj.",
+      "when": "Izvede se izvoz.",
+      "then": "Upozorenje, datumi i atribucije ostaju vidljivi.",
+      "tests": [
+        "TF20"
+      ]
+    },
+    {
+      "id": "FZ21",
+      "name": "Prijava moguće pogreške",
+      "role": "Javni korisnik i administrator",
+      "priority": "P",
+      "phase": "Pilot dodatak",
+      "change": "Dopunjen",
+      "operations": [
+        "createErrorReport"
+      ],
+      "entities": [
+        "error_report"
+      ],
+      "sources": [
+        "D01",
+        "D08"
+      ],
+      "behavior": "Prijava se veže uz prostor ili OSM ključ i čeka provjeru. Ne mijenja produkcijske podatke.",
+      "inputs": "target_type, target_id, opis 10 do 2000 znakova; kontakt je neobvezan.",
+      "outputs": "202 s nepredvidljivim receipt_id i potvrdom primitka.",
+      "rules": "Kontakt nije javno dostupan; briše se najkasnije 30 dana od rješavanja.",
+      "errors": "Rate limit i veličina poruke štite od zlouporabe; nepoznat ciljani objekt vraća 422.",
+      "given": "Prijava sadrži kontakt i tvrdnju da je objekt zatvoren.",
+      "when": "Prijava se preda.",
+      "then": "Javni zapis ostaje isti do provjere, kontakt se ne izlaže.",
+      "tests": [
+        "TF21"
+      ]
+    },
+    {
+      "id": "FZ22",
+      "name": "Administratorski poslovi",
+      "role": "Administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listAdminSources",
+        "listImportJobs",
+        "getImportJob",
+        "getImportErrors",
+        "createImportJob",
+        "updateAdminSource",
+        "reviewImportJob",
+        "cancelImportJob"
+      ],
+      "entities": [
+        "import_job",
+        "import_error",
+        "source"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D11",
+        "D12",
+        "M01"
+      ],
+      "behavior": "Pregled prikazuje zadnji uspješan i zadnji neuspješan posao, aktivnu verziju, brojeve i stavke koje traže pregled.",
+      "inputs": "Filtri izvora, vrste i statusa; stranica do 100 zapisa. Pokretanje uz Idempotency-Key.",
+      "outputs": "queued/running/validating/awaiting_review/succeeded/failed/cancelled i sažetak.",
+      "rules": "Jedan aktivni posao po source_code; worker koristi lease i heartbeat.",
+      "errors": "Ponovljeni klik vraća isti posao; drugi različit posao istog izvora vraća 409 SOURCE_BUSY.",
+      "given": "Uvoz D01 već traje.",
+      "when": "Administrator ponovi klik i pokuša novi isti izvor.",
+      "then": "Ponavljanje istog ključa daje postojeći job_id; drugi se ne pokreće paralelno.",
+      "tests": [
+        "TF22"
+      ]
+    },
+    {
+      "id": "FZ23",
+      "name": "Izvori licence i atribucije",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "listSources"
+      ],
+      "entities": [
+        "source",
+        "source_version"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D10",
+        "D11",
+        "D12",
+        "M01"
+      ],
+      "behavior": "Ekran izvora prikazuje izdavatelje, kataloge, dozvole, model i komponente. OSM atribucija vidljiva je uz kartu i podatke.",
+      "inputs": "Samo aktivni i korišteni izvori; sigurne javne poveznice.",
+      "outputs": "Naziv, datum provjere, licenca, URL i opseg korištenja.",
+      "rules": "MIT koda ne zamjenjuje OD, ODbL ni Apache obveze.",
+      "errors": "Nedostajuća prava blokiraju aktivaciju tog izvora; javna kartica označuje razlog nedostupnosti.",
+      "given": "Prikaz se otvori na zaslonu 320 px.",
+      "when": "Pregledaju se karta i izvori.",
+      "then": "Atribucije ostaju čitljive i dosegljive tipkovnicom.",
+      "tests": [
+        "TF23"
+      ]
+    },
+    {
+      "id": "FZ24",
+      "name": "Ponašanje pri nedostupnosti izvora",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "getSystemStatus",
+        "listSpaces",
+        "rankSpaces",
+        "listCompetitors",
+        "listContext"
+      ],
+      "entities": [
+        "dataset_bundle",
+        "source_version"
+      ],
+      "sources": [
+        "D01",
+        "D08",
+        "D09"
+      ],
+      "behavior": "Kvar vanjskog servisa utječe na sljedeće osvježavanje, ne na već aktivni paket. Frontend prikazuje vrijeme posljednje obrade i djelomično stanje.",
+      "inputs": "Lokalni paket, stanje zadnjih poslova i dostupnost kartografske podloge.",
+      "outputs": "Podaci s upozorenjem o starosti ili null s razlogom kad podatak nikada nije postojao.",
+      "rules": "Karta bez pločica i tekstualni popis moraju ostati uporabivi. Nema automatskog vraćanja na javni Overpass.",
+      "errors": "Ako nema nijednog aktivnog paketa, javni API vraća 503 DATASET_NOT_READY i razumljivu poruku.",
+      "given": "Nakon pripreme paketa blokira se vanjski internet.",
+      "when": "Izvede se ključni javni tijek.",
+      "then": "Popis i usporedba rade bez lažnih nula i bez vanjskih zahtjeva po kliku.",
+      "tests": [
+        "TF24"
+      ]
+    },
+    {
+      "id": "FZ25",
+      "name": "Semantički prijedlog poslovnog profila",
+      "role": "Javni korisnik",
+      "priority": "P",
+      "phase": "Pilot dodatak",
+      "change": "Dopunjen",
+      "operations": [
+        "createProfileSuggestion"
+      ],
+      "entities": [
+        "criteria_profile",
+        "ai_result"
+      ],
+      "sources": [
+        "M01"
+      ],
+      "behavior": "Kratki opis može predložiti jedan od podržanih profila. Korisnik mora potvrditi prijedlog.",
+      "inputs": "Opis 5 do 500 znakova, bez kontakata; opcija je isključena u MVP-u.",
+      "outputs": "Podržani profil ili unsupported; izvorne težine nisu izmijenjene.",
+      "rules": "Nepodržana djelatnost ne preuzima težine cafe. Prag zahtijeva zasebnu razvojnu provjeru.",
+      "errors": "Nedostupan model vraća 503 samo za ovu opciju; ručni odabir ostaje.",
+      "given": "Opis glasi frizerski salon.",
+      "when": "Zatraži se prijedlog.",
+      "then": "Vraća se unsupported bez automatskog odabira cafe.",
+      "tests": [
+        "TF25"
+      ]
+    },
+    {
+      "id": "FZ26",
+      "name": "Ponovljiva demonstracija",
+      "role": "Razvojni tim",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "operations": [
+        "createImportJob",
+        "getImportJob",
+        "rankSpaces"
+      ],
+      "entities": [
+        "dataset_bundle",
+        "ai_result",
+        "ranking_run"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D09",
+        "D11",
+        "M01"
+      ],
+      "behavior": "Demonstracijski paket sadrži četiri stvarne kontrolne jedinice, lokalnu konkurenciju i najmanje 20 dopuštenih tekstova za prikaz. Stvarni model pokreće se nad barem jednim novim tekstom.",
+      "inputs": "Zaključane verzije, manifest, lokalni model i upute; nema stvarnih tajni ni izmišljenih statusa.",
+      "outputs": "Ponovljivi tijek, dnevnik novog AI izračuna, rezultati provjera i video do tri minute.",
+      "rules": "Demonstracijskih 20 tekstova nije zamjena za odvojeni evaluacijski korpus 12+28.",
+      "errors": "Ako model nije pokrenut ili M testovi nisu izvršeni, isporuka se ne označuje funkcionalno dovršenom.",
+      "given": "Drugi programer ima dopušteni paket i kod implementacije.",
+      "when": "Slijedi README od praznog klona.",
+      "then": "Može provesti uvoz, izračun i novi AI posao uz dokaz revizija; plan se ne prikazuje kao izvršeni test.",
+      "tests": [
+        "TF26"
+      ]
+    },
+    {
+      "id": "FZ27",
+      "name": "Prijava i odjava administratora",
+      "role": "Administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Nov",
+      "operations": [
+        "loginAdmin",
+        "getAdminSession",
+        "logoutAdmin"
+      ],
+      "entities": [
+        "admin_user",
+        "admin_session",
+        "audit_event"
+      ],
+      "sources": [],
+      "behavior": "Administrator se prijavljuje JSON zahtjevom i dobiva HttpOnly session cookie te CSRF token u odgovoru. Odjava opoziva sesiju u bazi.",
+      "inputs": "Korisničko ime, lozinka 12 do 128 znakova pri stvaranju računa; prijava do 5 pokušaja u 15 minuta po računu i privremenom identifikatoru klijenta.",
+      "outputs": "Podaci administratora, csrf_token i expires_at; ne vraća se password_hash ni session token u JSON-u.",
+      "rules": "Argon2id; Secure i SameSite=Strict u objavi. Neaktivnost 30 min, apsolutni rok 8 h. Račun se stvara lokalnom CLI naredbom.",
+      "errors": "Pogrešni podaci daju generički 401; istekla sesija 401, nevaljani CSRF 403.",
+      "given": "Sesija je valjana i poslije odjavljena.",
+      "when": "Ponovi se administratorski zahtjev s istim cookiejem.",
+      "then": "Zahtjev dobiva 401 i ne mijenja podatke.",
+      "tests": [
+        "TF27"
+      ]
+    },
+    {
+      "id": "FZ28",
+      "name": "Validacija aktivacija i povrat paketa",
+      "role": "Administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Nov",
+      "operations": [
+        "createBundle",
+        "getBundle",
+        "listBundles",
+        "validateBundle",
+        "activateBundle",
+        "rollbackBundle"
+      ],
+      "entities": [
+        "dataset_bundle",
+        "bundle_source",
+        "bundle_space",
+        "active_dataset",
+        "audit_event"
+      ],
+      "sources": [
+        "D01",
+        "D02",
+        "D03",
+        "D04",
+        "D05",
+        "D06",
+        "D07",
+        "D08",
+        "D11",
+        "D12"
+      ],
+      "behavior": "Administrator sastavlja manifest verzija, pregledava validaciju i atomskom transakcijom mijenja aktivni bundle. Povrat je ista kontrolirana aktivacija ranijeg valjanog paketa.",
+      "inputs": "dataset_bundle_id, expected_active_bundle_id, validation_hash, razlog i expected_version.",
+      "outputs": "Nova aktivna referenca i audit događaj; nijedna spremljena usporedba ne mijenja sadržaj.",
+      "rules": "D01 do D07 obvezni su za osnovni paket; D08 i D11 moraju ispuniti demonstracijske uvjete prije završnog prihvaćanja.",
+      "errors": "Nevažeće veze, konflikt D01/D02, nepoznata licenca ili zastarjela validacija daju 409/422.",
+      "given": "Dva administratora aktiviraju različite pakete na istoj početnoj referenci.",
+      "when": "Prvi završi transakciju.",
+      "then": "Drugi dobiva 409 ACTIVE_BUNDLE_CHANGED; nema djelomične zamjene tablica.",
+      "tests": [
+        "TF28"
+      ]
+    },
+    {
+      "id": "FZ29",
+      "name": "Dohvat spremljene usporedbe",
+      "role": "Javni korisnik",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Nov",
+      "operations": [
+        "getRanking"
+      ],
+      "entities": [
+        "ranking_run",
+        "ranking_item"
+      ],
+      "sources": [],
+      "behavior": "Nepromjenjivi izračun dohvaća se identifikatorom i nepredvidljivim pristupnim tokenom iz početnog odgovora.",
+      "inputs": "UUID ranking_run_id i X-Ranking-Token; token se ne stavlja u URL ni dnevnik.",
+      "outputs": "Izvorni zahtjev, kriteriji, rezultat, hashovi i zastavica historical.",
+      "rules": "MVP čuva izračune 90 dana; referencirani numerički ulazi i verzije ne uklanjaju se prije toga. Rok prikazan korisniku.",
+      "errors": "Nepoznat ID vraća 404, pogrešan token 403, istekao izračun 410.",
+      "given": "Aktivni podaci se promijene nakon spremanja.",
+      "when": "Otvorena spremljena usporedba dohvaća se uz token.",
+      "then": "Vraćaju se stari bodovi i izvorne verzije, s oznakom da postoji noviji paket.",
+      "tests": [
+        "TF29"
+      ]
+    },
+    {
+      "id": "FZ30",
+      "name": "Verzioniranje profila kriterija",
+      "role": "Administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Nov",
+      "operations": [
+        "listProfileVersions",
+        "createProfileVersion",
+        "listProfiles"
+      ],
+      "entities": [
+        "criteria_profile",
+        "audit_event"
+      ],
+      "sources": [],
+      "behavior": "Nova konfiguracija stvara novu immutable verziju; zadane težine i formule iz v2 zadržane su u početnoj v3 konfiguraciji.",
+      "inputs": "Osam težina, target_area_m2, pragovi, config hash i razlog izmjene; zbroj 100.",
+      "outputs": "Nova profile_version i zapis promjene; stari izračuni zadržavaju stari profil.",
+      "rules": "U MVP-u je cost_enabled=false dok nisu odobreni usporedivi troškovi i fiksne granice. office competition mora biti 0.",
+      "errors": "Nevažeća formula, negativan ponder i aktiviranje troška bez granica odbijaju se s 422.",
+      "given": "Postoji spremljen izračun na profilu P1.",
+      "when": "Administrator objavi P2.",
+      "then": "P1 se ne prepisuje; novi zahtjev izričito bira ili dobiva P2 putem bootstrap podataka.",
+      "tests": [
+        "TF30"
+      ]
+    },
+    {
+      "id": "FZ31",
+      "name": "Unos provjerenih prostornih i statusnih dokaza",
+      "role": "Administrator",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Nov",
+      "operations": [
+        "createCoordinateEvidence",
+        "createStatusAssessment"
+      ],
+      "entities": [
+        "geo_evidence",
+        "status_assessment",
+        "audit_event"
+      ],
+      "sources": [
+        "D11",
+        "D12"
+      ],
+      "behavior": "Ručno provjereni dokazi unose se kao novi zapisi s izvorom, datumom i autorom. Ne mijenjaju aktivni rezultat prije novog bundlea.",
+      "inputs": "space_id, profile ako je status, source_version_id, provjereni URL ili zapis opažanja, checked_at, vrijednosti yes/no/unknown.",
+      "outputs": "Novi evidence_id ili assessment_id i audit zapis.",
+      "rules": "Ne kopira se cijena iz nepovezanog natječaja; više jedinica iste adrese povezuje se po ID-u.",
+      "errors": "Dokaz iz budućnosti, nesklad ID-a ili neprovjerena veza vraćaju 422; zastarjeli input ne prepisuje povijest.",
+      "given": "Dvije jedinice dijele adresu, a dokaz potvrđuje samo jednu.",
+      "when": "Unese se status prve jedinice.",
+      "then": "Druga jedinica zadržava unknown; aktivni bundle se ne mijenja.",
+      "tests": [
+        "TF31"
+      ]
+    }
+  ],
+  "nonfunctional": [
+    {
+      "id": "NF01",
+      "name": "Ponovljivost i održavanje",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Zaključane ovisnosti, image digestovi, revizija modela, shema i konfiguracija; isti numerički ulazi daju isti poredak.",
+      "conditions": "Python 3.12 i deklarirane instalacijske datoteke; zasebni moduli adapters, gis, ranking, ai, api i worker.",
+      "check": "Druga čista instalacija provodi isti referentni paket; usporediti request_hash, criteria_used, rezultat na osam decimala i redoslijed.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF02",
+      "name": "Sigurna veza i prijava",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "HTTPS u javnoj objavi; samo valjana administratorska sesija mijenja stanje.",
+      "conditions": "Argon2id najmanje m=19456 KiB, t=2, p=1; slučajni token 256 bita, u bazi samo SHA256. Cookie Secure, HttpOnly, SameSite=Strict, Path=/.",
+      "check": "Isprobati anonimni, istekli, opozvani i CSRF-nevaljani zahtjev; ni jedan ne smije promijeniti bazu. Provjeriti da tajne nisu u JSON-u ni logu.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF03",
+      "name": "Zaštita ulaza i preuzetog sadržaja",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "JSON se strogo validira; SQL je parametriziran; sadržaj se prikazuje kao tekst.",
+      "conditions": "Najviše 64 KiB JSON tijela za javni API; izvorni tekst nema izvršne ovlasti, alate ni dodatno mrežno dohvaćanje.",
+      "check": "XSS u nazivu lokala, SQL metaznakovi i tekst koji traži pokretanje naredbe ostaju podaci; ne smije se izvršiti skripta ni naredba.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF04",
+      "name": "Kontrola vanjskih zahtjeva",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Adapter dohvaća samo odobrene HTTPS domene i putanje, bez privatnih ili lokalnih adresa.",
+      "conditions": "Svaki redirect i DNS rezultat provjeravaju se; najviše tri redirecta, connect 5 s, read 20 s, ukupno 60 s po pokušaju za male API/HTML/CSV odgovore; dva retryja. HTML 1 zahtjev/5 s, najviše 100 dokumenata. Offline PBF je zaseban posao do 500 MiB i 15 minuta.",
+      "check": "Testirati redirect na 127.0.0.1, IPv6 ::1, 169.254.169.254, DNS rebinding, ZIP traversal i prekoračenje veličine. Sve se odbija uz kod i bez djelomične aktivacije.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF05",
+      "name": "Privatnost i rokovi čuvanja",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Javno korištenje bez računa i bez lokacije uređaja; čuvaju se samo potrebni podaci.",
+      "conditions": "Operativni logovi 30 dana, usporedbe 90 dana, audit 180 dana za prototip; session zapisi uklanjaju se 7 dana nakon isteka. Kontakt opcionalne prijave 30 dana nakon rješavanja.",
+      "check": "Usporediti stvarna polja s allowlistom; provesti brisanje istečenih osobnih polja i potvrditi da javni odgovor ne sadrži kontakte institucija ni IP adrese.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF06",
+      "name": "Odziv osnovnih funkcija",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "p95 najviše 2 s za filtriranje i rangiranje, najviše 3 s za detalj.",
+      "conditions": "Najmanje 2 vCPU i 4 GB RAM-a, 500 prostora i 5000 POI, lokalna baza; 100 mjerenih zahtjeva uz 20 usporednih tokova. Razdvojiti hladan i zagrijan cache.",
+      "check": "Mjeriti vrijeme API-ja do zadnjeg bajta, broj grešaka i resurse. Ne uključivati vanjske preuzimanja; barem 99 od 100 tehnički uspješnih valjanih zahtjeva.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF07",
+      "name": "Obrada AI paketa",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Cilj 100 kratkih dokumenata u najviše 10 minuta; prekid ne gubi dovršene rezultate.",
+      "conditions": "4 CPU jezgre i 8 GB RAM-a, lokalno prethodno preuzet model; do 1000 sadržajnih tokena po dokumentu, batch 16, najveći broj blokova zapisan.",
+      "check": "Mjeriti stvarnu opremu i raspon duljina; prekinuti worker, nastaviti bez duplikata. Ako cilj nije postignut, manji paket bilježi odstupanje, a cilj se ne označuje prolaznim.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF08",
+      "name": "Dostupnost i prekid",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Kvar vanjskog izvora ne uklanja lokalni aktivni paket.",
+      "conditions": "Prototip nema ugovoreni SLA; lokalni demo pripremljen prije videa. Svaka funkcija prikazuje stanje podataka.",
+      "check": "Isključiti vanjsku mrežu i izvršiti javni tijek; bez aktivnog paketa očekuje se 503, uz aktivni paket prethodni valjani rezultati.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF09",
+      "name": "Sigurnosne kopije i povrat",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Dnevni backup, najmanje sedam dnevnih kopija; cilj RPO 24 h i RTO 4 h u radnom vremenu tima.",
+      "conditions": "Odvojena pohrana; šifrirana kopija baze, dopuštenih izvornika, model/config manifesta i deployment postavki. Tajne se kopiraju odvojeno i zaštićeno.",
+      "check": "Obnoviti u odvojenu bazu, provjeriti referencirani bundle i tri spremljena izračuna. Zapisati trajanje i usporediti hashove; dump sam nije dokaz povrata.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF10",
+      "name": "Podrijetlo i vremenska ispravnost",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Razlikuju se referentno razdoblje, fetched_at, last_checked_at i status_checked_at.",
+      "conditions": "Vremena timestamptz u UTC-u, prikaz Europe/Zagreb; datum bez sata ostaje date.",
+      "check": "Preuzeti 2024 CSV u 2026 i potvrditi da referenca ostaje 2024; nijedan aktualni badge ne nastaje samo zbog novog fetched_at.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF11",
+      "name": "Interoperabilnost",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "UTF-8 interno, JSON API, GeoJSON WGS84 i metričke GIS operacije.",
+      "conditions": "EPSG:4326 uz lon,lat; D07 se transformira iz pročitanog PRJ-a EPSG:3765; geography za udaljenosti.",
+      "check": "Poznate točke i poligoni daju očekivane metre, granice i istu četvrt nakon transformacije; zabraniti računanje metara na sirovim stupnjevima.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF12",
+      "name": "Pristupačnost i prilagodljivost",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Ključni tijek cilja WCAG 2.2 AA; puna uporaba tipkovnicom i tekstualni pandan karti.",
+      "conditions": "Širine 320, 768 i 1920 px; vidljiv fokus, semantički naslovi, oznake polja, status tekstom i kontrast prema AA.",
+      "check": "Ručno proći filtar, detalj i usporedbu uz tipkovnicu i čitač zaslona te automatizirani audit. Svaka teška pogreška ključnog tijeka blokira prihvaćanje.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF13",
+      "name": "Podržani preglednici",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Ključni tijek radi u aktualnoj i prethodnoj glavnoj verziji Chromiuma, Firefoxa i Safarija dostupnoj timu.",
+      "conditions": "Zabilježiti stvarni OS, verzije, datume i nedostupne kombinacije.",
+      "check": "Za svaku dostupnu kombinaciju provesti tri glavna korisnička scenarija; nedostupna kombinacija je not_run, ne pass.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF14",
+      "name": "Kvaliteta AI izlaza",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Cilj macro F1 najmanje 0.75 na 28 odvojenih završnih tekstova u četiri teme; sve javne kartice imaju provjeren izvor, mjesto i vrijeme.",
+      "conditions": "40 tekstova, 12 razvojnih i 28 završnih; bliske kopije pripadaju istom dijelu. Threshold i teme zaključati prije završnog testa.",
+      "check": "Prikazati confusion matrix i F1 po temi. uncertain se za tematsku evaluaciju bilježi kao propuštena točna klasa, a ne izostavlja iz nazivnika. Model se ne ocjenjuje samo na odobrenim karticama.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF15",
+      "name": "Licencijska sljedivost",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Svaki aktivan izvor i komponenta imaju izdavatelja, dozvolu, URL i hash zapisa uvjeta.",
+      "conditions": "D01-D07 OD; D08 ODbL; gradski tekst uz uvjete i iznimke; M01 Apache 2.0; vlastiti kod predloženo MIT.",
+      "check": "Prije aktivacije provjeriti nepostojanje praznih prava; odvojiti OSM izvedenu distribuciju i navesti atribucije u aplikaciji i demonstracijskom paketu.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF16",
+      "name": "Novčani limiti",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Osnovni plan 15 EUR mjesečno za infrastrukturu i kopije te 15 EUR godišnje za opcionalnu domenu; s 20% pričuve 234 EUR godišnje.",
+      "conditions": "Bez satnica i oportunitetnog obračuna rada; nema plaćenog AI API-ja. Troškovi su bruto planerski limiti, ne ugovorene cijene.",
+      "check": "Prije narudžbe provjeriti konačnu cijenu, poreze, IPv4 i pohranu. Tjedno pregledati potrošnju; prekoračenje vodi isključenju dodataka ili lokalnom demo načinu, bez gubitka podataka.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF17",
+      "name": "Nadzor i revizija",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Svaki posao ima request_id, source_code, vrijeme, brojeve, status i razlog pogreške; svaka promjena administratora ima audit.",
+      "conditions": "Strukturirani JSON logovi bez lozinki i tokena; heartbeat worker-a 15 s, lease 120 s; alarm na failed i na prekomjernu starost.",
+      "check": "Namjerno pokvariti CSV i izgubiti worker; status postaje vidljiv, zadnja verzija ostaje, ponovljeni posao ne proizvodi duplikate.",
+      "status": "not_run"
+    },
+    {
+      "id": "NF18",
+      "name": "Kapacitet početne izvedbe",
+      "priority": "M",
+      "phase": "MVP",
+      "change": "Dopunjen",
+      "goal": "Provjera do 500 prostora, 5000 lokalnih konkurentskih objekata i 500 tekstova.",
+      "conditions": "Do 500 ID-eva po ranking zahtjevu, stranica najviše 100, javni limit 30 zahtjeva/min po kratkotrajnom identifikatoru.",
+      "check": "Odvojeno napuniti umjetnu testnu bazu, izmjeriti odziv, veličinu i plan upita. Stvarni javni skup ne dopunjavati izmišljenim poslovnim objektima.",
+      "status": "not_run"
+    }
+  ]
+}

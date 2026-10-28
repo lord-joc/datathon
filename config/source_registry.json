@@ -1,0 +1,1819 @@
+{
+  "version": "3.0.0",
+  "checked_on": "2026-10-27",
+  "sources": [
+    {
+      "source_code": "D01",
+      "name": "Redovni popis gradskih poslovnih prostora",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.gov.hr/ckan/hr/dataset/prazni-poslovni-prostori",
+      "metadata_endpoint": "https://data.gov.hr/ckan/api/3/action/package_show?id=prazni-poslovni-prostori",
+      "resource_id": "10d3558e-1a4c-47c0-9f00-216f23ee0d54",
+      "resource_urls": [
+        "https://data.zagreb.hr/dataset/ca5d3f1b-75cc-4a49-8e92-f0e050ba8a41/resource/10d3558e-1a4c-47c0-9f00-216f23ee0d54/download/prazni-poslovni-prostori-2024.csv"
+      ],
+      "links": [
+        {
+          "label": "Nacionalni katalog",
+          "url": "https://data.gov.hr/ckan/hr/dataset/prazni-poslovni-prostori"
+        },
+        {
+          "label": "Provjereni CKAN API",
+          "url": "https://data.gov.hr/ckan/api/3/action/package_show?id=prazni-poslovni-prostori"
+        },
+        {
+          "label": "Izvorni CSV",
+          "url": "https://data.zagreb.hr/dataset/ca5d3f1b-75cc-4a49-8e92-f0e050ba8a41/resource/10d3558e-1a4c-47c0-9f00-216f23ee0d54/download/prazni-poslovni-prostori-2024.csv"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "CSV",
+      "encoding": "Windows-1250",
+      "delimiter": ";",
+      "reference_period": "2024",
+      "source_modified_at": "2025-12-30T13:01:18.034131",
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:46.007649+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 53442,
+          "sha256": "8759e2691dd758bcbcea2bd191f5b12a1f2c590733133ee952fb24b789587c20",
+          "last_modified": null,
+          "url": "https://data.gov.hr/ckan/hr/dataset/prazni-poslovni-prostori"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:46.011037+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 25831,
+          "sha256": "32ceec7d0f6665d6f95ad5fccdff8eb0d8d1b555d6b3f2b074d60aa19b8d4a56",
+          "last_modified": null,
+          "url": "https://data.gov.hr/ckan/api/3/action/package_show?id=prazni-poslovni-prostori"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:56.909163+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 37790,
+          "sha256": "3bc4a14c4b1d50950e0b766d9911d85e03a53c0c30d9c16f4cb8155df77910fd",
+          "last_modified": "Tue, 30 Dec 2025 13:01:18 GMT",
+          "url": "https://data.zagreb.hr/dataset/ca5d3f1b-75cc-4a49-8e92-f0e050ba8a41/resource/10d3558e-1a4c-47c0-9f00-216f23ee0d54/download/prazni-poslovni-prostori-2024.csv"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "ID",
+          "target_field": "space.space_id",
+          "transform": "digits_string"
+        },
+        {
+          "source_field": "GRADSKA ČETVRT",
+          "target_field": "space_revision.district_name_source",
+          "transform": "normalize_whitespace"
+        },
+        {
+          "source_field": "ADRESA",
+          "target_field": "space_revision.address",
+          "transform": "strip_only_preserve_original"
+        },
+        {
+          "source_field": "Površina u m2",
+          "target_field": "space_revision.area_m2",
+          "transform": "decimal_comma_to_numeric"
+        },
+        {
+          "source_field": "POLOŽAJ",
+          "target_field": "space_revision.position_code",
+          "transform": "ULIČNI=street; other nonempty=other; empty=null"
+        },
+        {
+          "source_field": "Opis strukture",
+          "target_field": "space_revision.structure_description",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "Status korištenja",
+          "target_field": "space_revision.usage_code_source",
+          "transform": "source_code_only_no_inference"
+        }
+      ],
+      "limitations": "Nema potvrđene aktualne cijene, koordinata ulaza ni aktivnog natječaja. Uvoz svaki dan provjerava promjenu datoteke, bez pretpostavke dnevno ažurnog sadržaja.",
+      "refresh": "daily",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:39:56.909163+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 37790,
+        "sha256": "3bc4a14c4b1d50950e0b766d9911d85e03a53c0c30d9c16f4cb8155df77910fd",
+        "last_modified": "Tue, 30 Dec 2025 13:01:18 GMT"
+      },
+      "actual_header": [
+        "R.br.",
+        "ID",
+        "Oznaka nastanka",
+        "Šifra objekta",
+        "Vrsta / podvrsta nekretnine kompleks",
+        "Zona",
+        "GRADSKA\nČETVRT",
+        "ADRESA",
+        "Površina u m2",
+        "Status korištenja",
+        "POLOŽAJ",
+        "NAPOMENA",
+        "Napomena \nSEGI",
+        "Napomena Odjela za PP ovdje upisati eventualne promjene Napomena pod L\n (kolona L)",
+        "Odjel za PP \nObjaviti na WEB-u \nDA/NE",
+        "Opis strukture",
+        "Nacionaliziran",
+        "Povrat",
+        ""
+      ],
+      "header_row_1based": 2,
+      "observed_records": 186,
+      "actual_example": {
+        "ID": "10422",
+        "GRADSKA ČETVRT": "BREZOVICA",
+        "ADRESA": "STRMEČKA CESTA 0057",
+        "Površina u m2": "87,96",
+        "Status korištenja": "G-GP",
+        "POLOŽAJ": "ULIČNI",
+        "Opis strukture": "dvije prostorije i sanitarni čvor u prizemlju samostojećeg objekta"
+      }
+    },
+    {
+      "source_code": "D02",
+      "name": "Neuvjetni poslovni prostori",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.gov.hr/ckan/hr/dataset/prazni-poslovni-prostori",
+      "metadata_endpoint": "https://data.gov.hr/ckan/api/3/action/package_show?id=prazni-poslovni-prostori",
+      "resource_id": "bc43e807-4f80-4f7a-9c0e-de5ca9bfae6a",
+      "resource_urls": [
+        "https://data.zagreb.hr/dataset/ca5d3f1b-75cc-4a49-8e92-f0e050ba8a41/resource/bc43e807-4f80-4f7a-9c0e-de5ca9bfae6a/download/ne-uvjetni-prazni-poslovni-prostori-2024.csv"
+      ],
+      "links": [
+        {
+          "label": "Nacionalni skup",
+          "url": "https://data.gov.hr/ckan/hr/dataset/prazni-poslovni-prostori"
+        },
+        {
+          "label": "Izvorni neuvjetni CSV",
+          "url": "https://data.zagreb.hr/dataset/ca5d3f1b-75cc-4a49-8e92-f0e050ba8a41/resource/bc43e807-4f80-4f7a-9c0e-de5ca9bfae6a/download/ne-uvjetni-prazni-poslovni-prostori-2024.csv"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "CSV",
+      "encoding": "Windows-1250",
+      "delimiter": ";",
+      "reference_period": "2024",
+      "source_modified_at": "2025-12-30T12:53:40.674414",
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:46.007649+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 53442,
+          "sha256": "8759e2691dd758bcbcea2bd191f5b12a1f2c590733133ee952fb24b789587c20",
+          "last_modified": null,
+          "url": "https://data.gov.hr/ckan/hr/dataset/prazni-poslovni-prostori"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:58.481300+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 23472,
+          "sha256": "22552f3f17e499032167b6be47b745b3ca518bc8d9f8ca0900d93b0babeeecea",
+          "last_modified": "Tue, 30 Dec 2025 12:53:40 GMT",
+          "url": "https://data.zagreb.hr/dataset/ca5d3f1b-75cc-4a49-8e92-f0e050ba8a41/resource/bc43e807-4f80-4f7a-9c0e-de5ca9bfae6a/download/ne-uvjetni-prazni-poslovni-prostori-2024.csv"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "ID",
+          "target_field": "space.space_id",
+          "transform": "digits_string"
+        },
+        {
+          "source_field": "GRADSKA ČETVRT",
+          "target_field": "space_revision.district_name_source",
+          "transform": "normalize_whitespace"
+        },
+        {
+          "source_field": "ADRESA",
+          "target_field": "space_revision.address",
+          "transform": "strip_only_preserve_original"
+        },
+        {
+          "source_field": "Površina m2",
+          "target_field": "space_revision.area_m2",
+          "transform": "decimal_comma_to_numeric"
+        },
+        {
+          "source_field": "POLOŽAJ",
+          "target_field": "space_revision.position_code",
+          "transform": "ULIČNI=street; other nonempty=other; empty=null"
+        },
+        {
+          "source_field": "Opis strukture",
+          "target_field": "space_revision.structure_description",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "constant unfit",
+          "target_field": "space_revision.inventory_kind",
+          "transform": "technical_suitable=no"
+        }
+      ],
+      "limitations": "Ovi prostori ne ulaze u redovnu preporuku spremnosti za djelatnost. Visoka lokacijska ocjena ne uklanja poznato ograničenje. Provjera promjene dnevno.",
+      "refresh": "daily",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:39:58.481300+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 23472,
+        "sha256": "22552f3f17e499032167b6be47b745b3ca518bc8d9f8ca0900d93b0babeeecea",
+        "last_modified": "Tue, 30 Dec 2025 12:53:40 GMT"
+      },
+      "actual_header": [
+        "R.br.",
+        "ID",
+        "Oznaka nastanka",
+        "Šifra objekta",
+        "Vrsta / podvrsta nekretnine kompleks",
+        "Zona",
+        "GRADSKA ČETVRT",
+        "ADRESA",
+        "Površina\n m2",
+        "Status korištenja",
+        "POLOŽAJ",
+        "NAPOMENA",
+        "Napomena \nSEGI",
+        "Napomena Odjela za PP ovdje upisati eventualne promjene Napomena pod L\n (kolona L)",
+        "Odjel za PP \nObjaviti na WEB-u \nDA/NE",
+        "Opis strukture",
+        "Nacionaliziran",
+        "Povrat",
+        ""
+      ],
+      "header_row_1based": 3,
+      "observed_records": 76,
+      "actual_example": {
+        "ID": "5357",
+        "GRADSKA ČETVRT": "DONJA DUBRAVA",
+        "ADRESA": "MAKSIMIRSKA CESTA 0286",
+        "Površina  m2": "41,00",
+        "Status korištenja": "G-ND",
+        "POLOŽAJ": "DVORIŠNI",
+        "Opis strukture": "jedne prostorije u podrumu, ulaz iz dvorišta"
+      }
+    },
+    {
+      "source_code": "D03",
+      "name": "Tramvajska stajališta ZET",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-tramvajska-stajalista-zet",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-tramvajska-stajalista-zet",
+      "resource_id": "a485b57a-aff1-4b5e-a760-998784600c64",
+      "resource_urls": [
+        "https://opendata.arcgis.com/api/v3/datasets/8f84d42e684141eaa7ceb26d9c9b8f5a_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+      ],
+      "links": [
+        {
+          "label": "Katalog",
+          "url": "https://data.zagreb.hr/dataset/geoportal-tramvajska-stajalista-zet"
+        },
+        {
+          "label": "CKAN API",
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-tramvajska-stajalista-zet"
+        },
+        {
+          "label": "GeoJSON datoteka",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/8f84d42e684141eaa7ceb26d9c9b8f5a_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:46.014225+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 23664,
+          "sha256": "b8ef2f8f1eb8fba54b2d341528e37382708d2978816d1d6e1368412cbdae4c2f",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/dataset/geoportal-tramvajska-stajalista-zet"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:58.884141+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 6775,
+          "sha256": "ac007658f19ed79b783536f571d9a7f9963459ce54b8d156d4f13232b257cdcb",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-tramvajska-stajalista-zet"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:58.931821+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 70463,
+          "sha256": "22521b5755815c61302818166b92892cb3787c4f99872f2a9fbb0f881ecbd3c1",
+          "count": 260,
+          "last_modified": "Tue, 24 Jun 2025 14:37:17 GMT",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/8f84d42e684141eaa7ceb26d9c9b8f5a_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "properties.OBJECTID",
+          "target_field": "spatial_feature.feature_key",
+          "transform": "string_within_source_version"
+        },
+        {
+          "source_field": "properties.Naziv_stajališta",
+          "target_field": "spatial_feature.name",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.Linije",
+          "target_field": "spatial_feature.properties.lines",
+          "transform": "plain_text_not_frequency"
+        },
+        {
+          "source_field": "geometry",
+          "target_field": "spatial_feature.geom",
+          "transform": "GeoJSON lon_lat SRID4326"
+        }
+      ],
+      "limitations": "Udaljenost do najbližeg evidentiranog stajališta; broj smjerova nije broj tokova ljudi. Plan provjere datoteke jednom tjedno, uz zadržavanje izvornog datuma.",
+      "refresh": "weekly",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:39:58.931821+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 70463,
+        "sha256": "22521b5755815c61302818166b92892cb3787c4f99872f2a9fbb0f881ecbd3c1",
+        "count": 260,
+        "last_modified": "Tue, 24 Jun 2025 14:37:17 GMT"
+      },
+      "observed_records": 260,
+      "actual_property_keys": [
+        "OBJECTID",
+        "Naziv_stajališta",
+        "Linije",
+        "Opis",
+        "Napomena"
+      ],
+      "actual_example": {
+        "type": "Feature",
+        "properties": {
+          "OBJECTID": 1,
+          "Naziv_stajališta": "Adžijina - istok",
+          "Linije": "2"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            15.962046001000033,
+            45.80759599900006
+          ]
+        }
+      }
+    },
+    {
+      "source_code": "D04",
+      "name": "Visokoškolske ustanove",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-visokoskolske-ustanove",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-visokoskolske-ustanove",
+      "resource_id": "996b1d4e-50fe-4bee-8172-331cc857a399",
+      "resource_urls": [
+        "https://opendata.arcgis.com/api/v3/datasets/3f6954c6679f4b299f738304542a4837_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+      ],
+      "links": [
+        {
+          "label": "Katalog",
+          "url": "https://data.zagreb.hr/dataset/geoportal-visokoskolske-ustanove"
+        },
+        {
+          "label": "CKAN API",
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-visokoskolske-ustanove"
+        },
+        {
+          "label": "GeoJSON datoteka",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/3f6954c6679f4b299f738304542a4837_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:46.019515+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 23492,
+          "sha256": "cf16f2eb1b8cf3355903a74fd788c0b4ce3a12eb8e5ff4de70fe0a8cf22f271e",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/dataset/geoportal-visokoskolske-ustanove"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:59.485191+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 6822,
+          "sha256": "7098fa4c1d56ad7d15c321a3c4a4c62b6468f175e497b4e8d853a335f71b90db",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-visokoskolske-ustanove"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:59.493728+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 35756,
+          "sha256": "b770ccc52576bff148a562d9d2564ec64e53018d7fa7a47ef4140d69cfd34399",
+          "count": 75,
+          "last_modified": "Tue, 24 Jun 2025 14:53:55 GMT",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/3f6954c6679f4b299f738304542a4837_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "properties.OBJECTID",
+          "target_field": "spatial_feature.feature_key",
+          "transform": "string_within_source_version"
+        },
+        {
+          "source_field": "properties.naziv",
+          "target_field": "spatial_feature.name",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.adresa",
+          "target_field": "spatial_feature.address",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.vrsta",
+          "target_field": "spatial_feature.properties.type",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.kampus",
+          "target_field": "spatial_feature.properties.campus",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.sjediste",
+          "target_field": "spatial_feature.properties.headquarters",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "geometry",
+          "target_field": "spatial_feature.geom",
+          "transform": "GeoJSON lon_lat SRID4326"
+        }
+      ],
+      "limitations": "Broj evidentiranih lokacija unutar 600 metara; nije broj studenata ni dnevnih posjetitelja. Plan provjere datoteke jednom tjedno, uz zadržavanje izvornog datuma.",
+      "refresh": "weekly",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:39:59.493728+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 35756,
+        "sha256": "b770ccc52576bff148a562d9d2564ec64e53018d7fa7a47ef4140d69cfd34399",
+        "count": 75,
+        "last_modified": "Tue, 24 Jun 2025 14:53:55 GMT"
+      },
+      "observed_records": 75,
+      "actual_property_keys": [
+        "OBJECTID",
+        "naziv",
+        "vrsta",
+        "adresa",
+        "telefon",
+        "fax",
+        "email",
+        "web",
+        "osnivac",
+        "kampus",
+        "sjediste",
+        "nadlezan"
+      ],
+      "actual_example": {
+        "type": "Feature",
+        "properties": {
+          "OBJECTID": 1,
+          "naziv": "Agronomski fakultet",
+          "vrsta": "Fakultet",
+          "adresa": "Svetošimunska cesta 25",
+          "kampus": "Istočni",
+          "sjediste": "Sjedište"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            16.030636988000026,
+            45.82641089600003
+          ]
+        }
+      }
+    },
+    {
+      "source_code": "D05",
+      "name": "Kulturne ustanove",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-kulturne-ustanove",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-kulturne-ustanove",
+      "resource_id": "b3b33c05-c1f6-4d9e-a6e9-b7d247dcb1a9",
+      "resource_urls": [
+        "https://opendata.arcgis.com/api/v3/datasets/83db22aeb39441ec84911ee94f26e746_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+      ],
+      "links": [
+        {
+          "label": "Katalog",
+          "url": "https://data.zagreb.hr/dataset/geoportal-kulturne-ustanove"
+        },
+        {
+          "label": "CKAN API",
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-kulturne-ustanove"
+        },
+        {
+          "label": "GeoJSON datoteka",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/83db22aeb39441ec84911ee94f26e746_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:46.028949+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 23768,
+          "sha256": "13d185a9b11e1e20bb24494c4249cf451bb188e0891f07872baf2dbae509c9f2",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/dataset/geoportal-kulturne-ustanove"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:00.325683+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 7178,
+          "sha256": "215868e3914f2417367dfa1e3995a512cdb36c1f00541721846e078f2d8c233c",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-kulturne-ustanove"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:00.549645+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 119615,
+          "sha256": "897ad0ce008c94039b41a810ac1d37128c1f7b87dd66665fc3e53832e86c07bf",
+          "count": 204,
+          "last_modified": "Tue, 24 Jun 2025 16:11:04 GMT",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/83db22aeb39441ec84911ee94f26e746_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "properties.OBJECTID",
+          "target_field": "spatial_feature.feature_key",
+          "transform": "string_within_source_version"
+        },
+        {
+          "source_field": "properties.naziv",
+          "target_field": "spatial_feature.name",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.adresa",
+          "target_field": "spatial_feature.address",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.ustanove",
+          "target_field": "spatial_feature.properties.institutions",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.radno_vrijeme",
+          "target_field": "spatial_feature.properties.opening_hours",
+          "transform": "optional_text"
+        },
+        {
+          "source_field": "geometry",
+          "target_field": "spatial_feature.geom",
+          "transform": "GeoJSON lon_lat SRID4326"
+        }
+      ],
+      "limitations": "Prostorni sadržaji unutar 600 metara; nema podataka o stvarnoj posjećenosti. Plan provjere datoteke jednom tjedno, uz zadržavanje izvornog datuma.",
+      "refresh": "weekly",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:40:00.549645+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 119615,
+        "sha256": "897ad0ce008c94039b41a810ac1d37128c1f7b87dd66665fc3e53832e86c07bf",
+        "count": 204,
+        "last_modified": "Tue, 24 Jun 2025 16:11:04 GMT"
+      },
+      "observed_records": 204,
+      "actual_property_keys": [
+        "OBJECTID",
+        "naziv",
+        "adresa",
+        "telefon",
+        "fax",
+        "email",
+        "web",
+        "radno_vrijeme",
+        "osnivac",
+        "energetski_razred",
+        "nadlezan",
+        "ustanove"
+      ],
+      "actual_example": {
+        "type": "Feature",
+        "properties": {
+          "OBJECTID": 1,
+          "naziv": "Centar za kulturu i film Augusta Cesarca",
+          "adresa": "Ilica 227",
+          "radno_vrijeme": "08h-16h (stranke 09h-15h)",
+          "ustanove": "CENTAR ZA KULTURU I NARODNO SVEUČILIŠTE"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            15.93696116700005,
+            45.81451280500005
+          ]
+        }
+      }
+    },
+    {
+      "source_code": "D06",
+      "name": "Javne garaže",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/geoportal-javne-garaze",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-javne-garaze",
+      "resource_id": "0bd82cd2-8d69-4375-9459-2f102a5b81d4",
+      "resource_urls": [
+        "https://opendata.arcgis.com/api/v3/datasets/3e3484aca5284b16b4a1c41bd6594711_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+      ],
+      "links": [
+        {
+          "label": "Katalog",
+          "url": "https://data.zagreb.hr/dataset/geoportal-javne-garaze"
+        },
+        {
+          "label": "CKAN API",
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-javne-garaze"
+        },
+        {
+          "label": "GeoJSON datoteka",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/3e3484aca5284b16b4a1c41bd6594711_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "GeoJSON",
+      "encoding": "UTF-8",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:46.033535+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 23531,
+          "sha256": "1ccac0bce411d05ea0774ba266136d76bb6569654737288de79dd79c48b5d642",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/dataset/geoportal-javne-garaze"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:03.459551+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 7399,
+          "sha256": "19cae52932661dcb5452e38012f3fa3060f5ed8163c049c92235d9b2ecf76995",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/api/3/action/package_show?id=geoportal-javne-garaze"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:03.528851+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 27805,
+          "sha256": "f01389df31313cc8da28992d4f5aa8c29c9e8aaf2cae7df8067f04a3c08d8173",
+          "count": 36,
+          "last_modified": "Tue, 24 Jun 2025 14:50:57 GMT",
+          "url": "https://opendata.arcgis.com/api/v3/datasets/3e3484aca5284b16b4a1c41bd6594711_0/downloads/data?format=geojson&spatialRefId=4326&where=1%3D1"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "properties.OBJECTID",
+          "target_field": "spatial_feature.feature_key",
+          "transform": "string_within_source_version"
+        },
+        {
+          "source_field": "properties.naziv",
+          "target_field": "spatial_feature.name",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.adresa",
+          "target_field": "spatial_feature.address",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "properties.kapacitet",
+          "target_field": "spatial_feature.properties.capacity",
+          "transform": "optional_number_not_live_availability"
+        },
+        {
+          "source_field": "properties.invalidska_mj",
+          "target_field": "spatial_feature.properties.accessible_spaces",
+          "transform": "optional_number"
+        },
+        {
+          "source_field": "geometry",
+          "target_field": "spatial_feature.geom",
+          "transform": "GeoJSON lon_lat SRID4326"
+        }
+      ],
+      "limitations": "Udaljenost do evidentirane garaže; nije dokaz trenutačne raspoloživosti ili cijene. Plan provjere datoteke jednom tjedno, uz zadržavanje izvornog datuma.",
+      "refresh": "weekly",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:40:03.528851+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 27805,
+        "sha256": "f01389df31313cc8da28992d4f5aa8c29c9e8aaf2cae7df8067f04a3c08d8173",
+        "count": 36,
+        "last_modified": "Tue, 24 Jun 2025 14:50:57 GMT"
+      },
+      "observed_records": 36,
+      "actual_property_keys": [
+        "OBJECTID",
+        "naziv",
+        "adresa",
+        "telefon",
+        "kapacitet",
+        "invalidska_mj",
+        "punionica_za_EV",
+        "mj_za_hibrid_voz",
+        "parkiraliste_za_bic",
+        "obiteljska_mj",
+        "br_etaza",
+        "uk_povr_m2",
+        "preuzete_garaze_god",
+        "korisnici",
+        "vlasnistvo",
+        "nadlezan",
+        "izvor",
+        "izradio"
+      ],
+      "actual_example": {
+        "type": "Feature",
+        "properties": {
+          "OBJECTID": 1,
+          "naziv": "Garaža Gorica",
+          "adresa": "Martićeva ulica 69",
+          "kapacitet": 370,
+          "invalidska_mj": 21
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            15.997419186000059,
+            45.813160793000065
+          ]
+        }
+      }
+    },
+    {
+      "source_code": "D07",
+      "name": "Granice gradskih četvrti",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.zagreb.hr/dataset/gradske-cetvrti-prostorna-jedinica-mjesne-samouprave-za-podrucje-grada-zagreba",
+      "metadata_endpoint": "https://data.zagreb.hr/api/3/action/package_show?id=gradske-cetvrti-prostorna-jedinica-mjesne-samouprave-za-podrucje-grada-zagreba",
+      "resource_id": "f2406ad9-34bf-4235-aa24-d71a08ae2863",
+      "resource_urls": [
+        "https://data.zagreb.hr/dataset/9c52e229-09bf-4569-8e01-37f338070d02/resource/f2406ad9-34bf-4235-aa24-d71a08ae2863/download/rpj_gc.zip"
+      ],
+      "links": [
+        {
+          "label": "Katalog",
+          "url": "https://data.zagreb.hr/dataset/gradske-cetvrti-prostorna-jedinica-mjesne-samouprave-za-podrucje-grada-zagreba"
+        },
+        {
+          "label": "SHP ZIP",
+          "url": "https://data.zagreb.hr/dataset/9c52e229-09bf-4569-8e01-37f338070d02/resource/f2406ad9-34bf-4235-aa24-d71a08ae2863/download/rpj_gc.zip"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "SHP ZIP",
+      "encoding": "DBF cp1250; PRJ explicit EPSG3765",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": "2025-02-03T13:40:26.099532",
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:50.205662+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 17934,
+          "sha256": "bfc3cb533c5f56d19dc77d26a911ff2cab71c101ef48291728e278ec39e19a19",
+          "last_modified": null,
+          "url": "https://data.zagreb.hr/dataset/gradske-cetvrti-prostorna-jedinica-mjesne-samouprave-za-podrucje-grada-zagreba"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:03.584107+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 245497,
+          "sha256": "6d7bb86716184ca1860ca578d37de6d6cf1bcc176bec2b56095e2d5a893042b5",
+          "count": 17,
+          "last_modified": "Mon, 03 Feb 2025 13:40:26 GMT",
+          "url": "https://data.zagreb.hr/dataset/9c52e229-09bf-4569-8e01-37f338070d02/resource/f2406ad9-34bf-4235-aa24-d71a08ae2863/download/rpj_gc.zip"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "JMS_MB",
+          "target_field": "district.district_id",
+          "transform": "string_preserve_leading_zero"
+        },
+        {
+          "source_field": "JMS_IME",
+          "target_field": "district.name",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "shape",
+          "target_field": "district.geom",
+          "transform": "read_PRJ transform_3765_to_4326 multi_polygon"
+        },
+        {
+          "source_field": "datum_a",
+          "target_field": "source_record.raw_values.reference_date",
+          "transform": "date"
+        },
+        {
+          "source_field": "Shape_Area",
+          "target_field": "source_record.raw_values.source_area_m2",
+          "transform": "reference_only"
+        }
+      ],
+      "limitations": "Provjerena je valjanost svih 17 preuzetih poligona i pročitan izričiti CRS. To ne potvrđuje aktualnost granica; svaka nova verzija ponovno prolazi geometrijsku i prostornu provjeru.",
+      "refresh": "weekly",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 20971520
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "sample_verification": {
+        "checked_at": "2026-10-27T10:40:03.584107+00:00",
+        "method": "GET",
+        "http_status": 200,
+        "bytes": 245497,
+        "sha256": "6d7bb86716184ca1860ca578d37de6d6cf1bcc176bec2b56095e2d5a893042b5",
+        "count": 17,
+        "last_modified": "Mon, 03 Feb 2025 13:40:26 GMT"
+      },
+      "observed_records": 17,
+      "actual_dbf_fields": [
+        [
+          "JMS_MB",
+          "C",
+          6,
+          0
+        ],
+        [
+          "JMS_IME",
+          "C",
+          150,
+          0
+        ],
+        [
+          "Shape_Area",
+          "F",
+          31,
+          15
+        ],
+        [
+          "datum_a",
+          "D",
+          8,
+          0
+        ]
+      ],
+      "actual_example": {
+        "JMS_MB": "00051",
+        "JMS_IME": "Brezovica",
+        "Shape_Area": 127298347.2969,
+        "datum_a": "2025-02-03"
+      },
+      "geometry_validation": {
+        "count": 17,
+        "all_valid": true,
+        "geometry_types": [
+          "Polygon"
+        ],
+        "first_bbox_3765": [
+          443411.07,
+          5052840.54,
+          459853.02,
+          5068153.3
+        ],
+        "first_centroid_lonlat": [
+          15.885550020265725,
+          45.689935567546804
+        ]
+      }
+    },
+    {
+      "source_code": "D08",
+      "name": "Evidentirani konkurenti iz OpenStreetMapa",
+      "publisher": "OpenStreetMap contributors; Geofabrik distributor",
+      "catalog_url": "https://download.geofabrik.de/europe/croatia.html",
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [],
+      "links": [
+        {
+          "label": "Overpass endpoint",
+          "url": "https://overpass-api.de/api/interpreter"
+        },
+        {
+          "label": "Pravila operatora",
+          "url": "https://dev.overpass-api.de/overpass-doc/en/preface/commons.html"
+        },
+        {
+          "label": "Geofabrik Croatia",
+          "url": "https://download.geofabrik.de/europe/croatia.html"
+        },
+        {
+          "label": "PBF izvadak",
+          "url": "https://download.geofabrik.de/europe/croatia-latest.osm.pbf"
+        },
+        {
+          "label": "OSM atribucija i licenca",
+          "url": "https://www.openstreetmap.org/copyright"
+        }
+      ],
+      "method": "HEAD only for PBF availability; download prepared offline for implementation",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "ODbL-1.0",
+      "attribution": "© OpenStreetMap contributors; ODbL",
+      "format": "OSM PBF",
+      "encoding": "binarni PBF s UTF-8 oznakama",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "format_and_delivery_checked_no_clean_import",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:40:03.866154+00:00",
+          "method": "GET",
+          "http_status": 502,
+          "error": "HTTP Error 502: Bad Gateway",
+          "url": "https://overpass-api.de/api/interpreter"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:51.128009+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 12237,
+          "sha256": "664ae364690159d960ea919539a9e399f773aaa2ada8c751a53795f4d7a54785",
+          "last_modified": "Fri, 12 Apr 2024 04:25:35 GMT",
+          "url": "https://dev.overpass-api.de/overpass-doc/en/preface/commons.html"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:53.234352+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 22343,
+          "sha256": "e4c9de373e44a4caf82a0cc3098120a2096149698b3c41302aa1cb6cf4612670",
+          "last_modified": "Tue, 27 Oct 2026 10:33:32 GMT",
+          "url": "https://download.geofabrik.de/europe/croatia.html"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:03.880804+00:00",
+          "method": "HEAD",
+          "http_status": 200,
+          "last_modified": "Mon, 26 Oct 2026 00:35:08 GMT",
+          "url": "https://download.geofabrik.de/europe/croatia-latest.osm.pbf"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:50.727081+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 21314,
+          "sha256": "ad7168ee766f1dc5264dd879aa98f4c053def77e089041a312104b66cf74ddf2",
+          "last_modified": null,
+          "url": "https://www.openstreetmap.org/copyright"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "type/id",
+          "target_field": "competitor.osm_type/osm_id",
+          "transform": "composite_identity"
+        },
+        {
+          "source_field": "tags.amenity",
+          "target_field": "competitor.category",
+          "transform": "cafe|bar|pub"
+        },
+        {
+          "source_field": "tags.name",
+          "target_field": "competitor.name",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "tags.addr:street + addr:housenumber",
+          "target_field": "competitor.address",
+          "transform": "nullable_complete_address"
+        },
+        {
+          "source_field": "geometry",
+          "target_field": "competitor.original_geom",
+          "transform": "assemble_full_geometry_if_available"
+        },
+        {
+          "source_field": "representative point",
+          "target_field": "competitor.geom",
+          "transform": "node_or_PointOnSurface"
+        },
+        {
+          "source_field": "lifecycle tags",
+          "target_field": "competitor.lifecycle_status",
+          "transform": "explicit_closed_disused_construction_filter"
+        },
+        {
+          "source_field": "timestamp",
+          "target_field": "competitor.osm_timestamp",
+          "transform": "nullable_no_invented_date"
+        }
+      ],
+      "limitations": "Nema jamstva potpune evidencije ni stvarnog rada objekta. Starost izvatka nije datum provjere poslovanja. Javni Overpass ne postavlja se kao pozadinski servis aplikacije. Provjera lokalnog paketa tjedno.",
+      "refresh": "weekly",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 524288000
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "endpoint_check": {
+        "checked_at": "2026-10-27T10:40:03.866154+00:00",
+        "method": "GET",
+        "http_status": 502,
+        "error": "HTTP Error 502: Bad Gateway"
+      },
+      "pbf_head_check": {
+        "checked_at": "2026-10-27T10:40:03.880804+00:00",
+        "method": "HEAD",
+        "http_status": 200,
+        "last_modified": "Mon, 26 Oct 2026 00:35:08 GMT"
+      },
+      "actual_example": null
+    },
+    {
+      "source_code": "D09",
+      "name": "Izvorne gradske vijesti i prometne obavijesti",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://www.zagreb.hr/gradske-vijesti/17",
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [],
+      "links": [
+        {
+          "label": "Gradske vijesti",
+          "url": "https://www.zagreb.hr/gradske-vijesti/17"
+        },
+        {
+          "label": "Privremene regulacije",
+          "url": "https://www.zagreb.hr/privremene-regulacije-prometa/1880"
+        },
+        {
+          "label": "Uvjeti uporabe",
+          "url": "https://www.zagreb.hr/uvjeti-koristenja/2048"
+        },
+        {
+          "label": "Primjer izvorne objave",
+          "url": "https://www.zagreb.hr/slavonska-avenija-1c/227162"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "City_Zagreb_original_content_terms",
+      "attribution": "Izdavatelj, naslov i izvorna poveznica; poštovati zasebne uvjete",
+      "format": "HTML",
+      "encoding": "UTF-8",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:56.341760+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 123472,
+          "sha256": "0db3a13ba42c4ec49ebffe2c8a62e1a1837f68abeac708224658fea3e2f69687",
+          "last_modified": null,
+          "url": "https://www.zagreb.hr/gradske-vijesti/17"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:55.495188+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 113271,
+          "sha256": "c953e755a311b8cb4cca6219cb006f49c53d3d33dd47fe14fafe8ef651371ac9",
+          "last_modified": null,
+          "url": "https://www.zagreb.hr/privremene-regulacije-prometa/1880"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:51.236908+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 112046,
+          "sha256": "b485599dda0a77e71fe99eb228ef11ba86b36b8e5ee3ca4fa69440672d707132",
+          "last_modified": null,
+          "url": "https://www.zagreb.hr/uvjeti-koristenja/2048"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:03.885662+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 122653,
+          "sha256": "bbc9a6f80e9fa411ef1ccf871ca37849788cef07f060d506c5a74d1d01db4043",
+          "last_modified": null,
+          "url": "https://www.zagreb.hr/slavonska-avenija-1c/227162"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "list .listaitem h4 a",
+          "target_field": "notice.canonical_url",
+          "transform": "urljoin_then_allowlist"
+        },
+        {
+          "source_field": "list .datum",
+          "target_field": "notice_revision.published_date",
+          "transform": "date_only_if_no_time"
+        },
+        {
+          "source_field": "#clanak_container > h1",
+          "target_field": "notice_revision.title",
+          "transform": "plain_text"
+        },
+        {
+          "source_field": "#clanak_container #opis",
+          "target_field": "notice_revision.clean_text",
+          "transform": "UTF8 inner_text including br; remove script style iframe form img svg and third_party_material"
+        },
+        {
+          "source_field": "content SHA256",
+          "target_field": "notice_revision.content_sha256",
+          "transform": "UTF8_canonical_text"
+        }
+      ],
+      "limitations": "Jedna vijest nije dokaz ukupne potražnje. Objave se razvrstavaju i prikazuju kao kontekst, nakon provjere mjesta i vremena. Raspored dvaput dnevno, do 100 dokumenata po obradi.",
+      "refresh": "twice_daily",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation"
+    },
+    {
+      "source_code": "D10",
+      "name": "ZET RSS metapodaci",
+      "publisher": "ZET",
+      "catalog_url": "https://www.zet.hr/rss_promet.aspx",
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [],
+      "links": [
+        {
+          "label": "RSS promet",
+          "url": "https://www.zet.hr/rss_promet.aspx"
+        },
+        {
+          "label": "RSS novosti",
+          "url": "https://www.zet.hr/rss_novosti.aspx"
+        },
+        {
+          "label": "Web popis izmjena",
+          "url": "https://www.zet.hr/aktualnosti/izmjene-u-prometu/31"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "publisher_terms_conditional",
+      "attribution": "Izdavatelj, naslov i izvorna poveznica; poštovati zasebne uvjete",
+      "format": "RSS XML",
+      "encoding": "UTF-8 / HTTP or XML declaration",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:51.511529+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 31554,
+          "sha256": "a1d735e1476ccf0aa23ae534882c44df0e126c7dbb1cdaf6c9d007e21eb1bf6b",
+          "last_modified": null,
+          "url": "https://www.zet.hr/rss_promet.aspx"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:03.948947+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 115239,
+          "sha256": "f827c1c0f94bb3f88548aa4785a0fba1d13d09f9cacc49a3c2d461ab6507d01d",
+          "last_modified": null,
+          "url": "https://www.zet.hr/rss_novosti.aspx"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:04.200009+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 32572,
+          "sha256": "147980e75f365b827f3050e36b8f131ef9496f05124c0868562eb3786925a661",
+          "last_modified": "Tue, 27 Oct 2026 10:40:08 GMT",
+          "url": "https://www.zet.hr/aktualnosti/izmjene-u-prometu/31"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "item.guid or item.link",
+          "target_field": "notice.canonical_url",
+          "transform": "canonical_link_key"
+        },
+        {
+          "source_field": "item.title",
+          "target_field": "notice_revision.title",
+          "transform": "metadata_only_if_permitted"
+        },
+        {
+          "source_field": "item.pubDate",
+          "target_field": "notice_revision.published_at",
+          "transform": "RFC822_to_UTC"
+        },
+        {
+          "source_field": "item.description",
+          "target_field": "notice_revision.clean_text",
+          "transform": "disabled_until_reuse_approval"
+        }
+      ],
+      "limitations": "Ne prenositi automatski licencu otvorenog GTFS skupa na web vijesti. Aktivacija izvora i opseg zapisani su u registru. Nakon aktivacije provjera jednom dnevno.",
+      "refresh": "daily_if_enabled",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "feeds": {
+        "https://www.zet.hr/rss_promet.aspx": {
+          "observed_items": 11,
+          "observed_fields": [
+            "title",
+            "description",
+            "link",
+            "pubDate",
+            "guid"
+          ]
+        },
+        "https://www.zet.hr/rss_novosti.aspx": {
+          "observed_items": 20,
+          "observed_fields": [
+            "title",
+            "description",
+            "link",
+            "pubDate",
+            "guid"
+          ]
+        }
+      },
+      "enabled_for_full_text": false
+    },
+    {
+      "source_code": "D11",
+      "name": "Kontrolirana tablica koordinata prostora",
+      "publisher": "Projektni tim",
+      "catalog_url": null,
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [],
+      "links": [
+        {
+          "label": "Nominatim uvjeti",
+          "url": "https://operations.osmfoundation.org/policies/nominatim/"
+        },
+        {
+          "label": "OSM licenca",
+          "url": "https://www.openstreetmap.org/copyright"
+        }
+      ],
+      "method": "Controlled local CSV registration; optional geocoding is a separate disabled action",
+      "authentication": "Local CLI registration and protected own admin API",
+      "license_id": "per_record_provenance",
+      "attribution": "Izdavatelj, naslov i izvorna poveznica; poštovati zasebne uvjete",
+      "format": "CSV",
+      "encoding": "UTF-8",
+      "delimiter": ",",
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "manual_table_proposed",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:55.381408+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 8409,
+          "sha256": "96f1c62c2b6d886d2c525cb60b5d2fbc24532d25ef477bc0aaf31ce786f9ad74",
+          "last_modified": "Fri, 16 Oct 2026 22:59:42 GMT",
+          "url": "https://operations.osmfoundation.org/policies/nominatim/"
+        },
+        {
+          "checked_at": "2026-10-27T10:39:50.727081+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 21314,
+          "sha256": "ad7168ee766f1dc5264dd879aa98f4c053def77e089041a312104b66cf74ddf2",
+          "last_modified": null,
+          "url": "https://www.openstreetmap.org/copyright"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "space_id",
+          "target_field": "geo_evidence.space_id",
+          "transform": "exact_official_id"
+        },
+        {
+          "source_field": "lon/lat",
+          "target_field": "geo_evidence.geom",
+          "transform": "WGS84_lon_lat"
+        },
+        {
+          "source_field": "precision_status",
+          "target_field": "geo_evidence.precision_status",
+          "transform": "entrance_confirmed|building_approximate|needs_review|missing"
+        },
+        {
+          "source_field": "source_version_id",
+          "target_field": "geo_evidence.source_version_id",
+          "transform": "provenance_version"
+        },
+        {
+          "source_field": "checked_at",
+          "target_field": "geo_evidence.checked_at",
+          "transform": "UTC"
+        },
+        {
+          "source_field": "evidence_url/evidence_note",
+          "target_field": "geo_evidence.evidence_url/evidence_note",
+          "transform": "reviewed_proof"
+        }
+      ],
+      "limitations": "Jedna adresa može sadržavati više prostora. Geokodirana zgrada nije potvrđen ulaz. Pravila javnog Nominatima provjeravaju se prije odluke o uporabi; za redovito veće geokodiranje bira se drugi odgovarajući način.",
+      "refresh": "before_demo_and_pilot",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation"
+    },
+    {
+      "source_code": "D12",
+      "name": "Provjera objave prostora i natječaja",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://www.zagreb.hr/prazni-poslovni-prostori-na-podrucju-grada-zagreba/90054",
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [],
+      "links": [
+        {
+          "label": "Službena stranica prostora",
+          "url": "https://www.zagreb.hr/prazni-poslovni-prostori-na-podrucju-grada-zagreba/90054"
+        },
+        {
+          "label": "Pregledani redovni PDF",
+          "url": "https://www.zagreb.hr/UserDocsImages/segi/01_ZAGREB_GP_18092026.pdf"
+        },
+        {
+          "label": "Pregledani neuvjetni PDF",
+          "url": "https://www.zagreb.hr/UserDocsImages/segi/02_ZAGREB_G_ND_18092026.pdf"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "City_Zagreb_original_content_terms",
+      "attribution": "Izdavatelj, naslov i izvorna poveznica; poštovati zasebne uvjete",
+      "format": "HTML i PDF",
+      "encoding": "UTF-8 HTML i binarni PDF",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "page_and_pdfs_fetched_individual_tenders_not_confirmed",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:56.889935+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 112629,
+          "sha256": "1167635ef37bfdf38553aa6abaa59d63e4316efde185e18ebe12cd66ad2b87cf",
+          "last_modified": null,
+          "url": "https://www.zagreb.hr/prazni-poslovni-prostori-na-podrucju-grada-zagreba/90054"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:07.853807+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 132659,
+          "sha256": "1a446e5581f01808a8a92f735b274bf8b55de83ed7d2cf3a465aaa95b7820e58",
+          "last_modified": "Mon, 21 Sep 2026 07:51:37 GMT",
+          "url": "https://www.zagreb.hr/UserDocsImages/segi/01_ZAGREB_GP_18092026.pdf"
+        },
+        {
+          "checked_at": "2026-10-27T10:40:07.861153+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 104613,
+          "sha256": "ce6d8526a0311c18d07b2613d249f9aa07b295a2260b60c6a6e9087ca12f78a7",
+          "last_modified": "Mon, 21 Sep 2026 07:51:38 GMT",
+          "url": "https://www.zagreb.hr/UserDocsImages/segi/02_ZAGREB_G_ND_18092026.pdf"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "space_id",
+          "target_field": "status_assessment.space_id",
+          "transform": "exact_id_or_manual_resolution"
+        },
+        {
+          "source_field": "profile",
+          "target_field": "status_assessment.profile_code",
+          "transform": "cafe|office"
+        },
+        {
+          "source_field": "document URL",
+          "target_field": "status_assessment.evidence_url",
+          "transform": "approved_official_source"
+        },
+        {
+          "source_field": "conditions",
+          "target_field": "status_assessment.*",
+          "transform": "yes|no|unknown_no_inference_from_inventory"
+        },
+        {
+          "source_field": "monthly_total_eur",
+          "target_field": "status_assessment.monthly_total_eur",
+          "transform": "nullable_comparable_definition_only"
+        },
+        {
+          "source_field": "checked_at",
+          "target_field": "status_assessment.checked_at",
+          "transform": "UTC"
+        }
+      ],
+      "limitations": "Provjera pojedinog prostora obvezna je prije javnog pilota. Najamnina iz natječaja nije automatski konačan ukupni trošak. Ne uvoditi lažnu cijenu kada podatak nije dostupan.",
+      "refresh": "before_demo_and_pilot",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation"
+    },
+    {
+      "source_code": "M01",
+      "name": "AI model i vlastiti označeni korpus",
+      "publisher": "Sentence Transformers",
+      "catalog_url": "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "metadata_endpoint": null,
+      "resource_id": null,
+      "resource_urls": [],
+      "links": [
+        {
+          "label": "Kartica modela",
+          "url": "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        }
+      ],
+      "method": "GET",
+      "authentication": "none for checked public URLs; admin session for own import actions",
+      "license_id": "Apache-2.0",
+      "attribution": "Izdavatelj, naslov i izvorna poveznica; poštovati zasebne uvjete",
+      "format": "Safetensors and JSON",
+      "encoding": "binarne težine i UTF-8 konfiguracija",
+      "delimiter": null,
+      "reference_period": null,
+      "source_modified_at": null,
+      "verification_status": "checked_this_task",
+      "checks": [
+        {
+          "checked_at": "2026-10-27T10:39:53.354807+00:00",
+          "method": "GET",
+          "http_status": 200,
+          "bytes": 247981,
+          "sha256": "f1582c07637bec6a12bd149070265667e1709f299697ae1cdd6a65c754326c75",
+          "last_modified": null,
+          "url": "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+        }
+      ],
+      "mapping": [
+        {
+          "source_field": "model ID/revision",
+          "target_field": "ai_result.model_id/model_revision",
+          "transform": "pinned_model_revision"
+        },
+        {
+          "source_field": "topic/config hash",
+          "target_field": "ai_result.config_sha256",
+          "transform": "canonical_JSON_SHA256"
+        },
+        {
+          "source_field": "cosine scores",
+          "target_field": "ai_result.topic_scores",
+          "transform": "float_not_probability"
+        },
+        {
+          "source_field": "evidence spans",
+          "target_field": "ai_result.evidence_spans",
+          "transform": "character_offsets_of_clean_text"
+        },
+        {
+          "source_field": "topic label + split",
+          "target_field": "evaluation_manifest",
+          "transform": "12_development_28_held_out"
+        }
+      ],
+      "limitations": "Semantički model nije alat za potvrdu činjenica. Kontrolni tekstovi i njihove kopije ne dijele se između razvojnog i završnog skupa. Po promjeni modela ponovno se provode provjere.",
+      "refresh": "manual_pinned_revision",
+      "network_policy": {
+        "connect_timeout_s": 5,
+        "read_timeout_s": 20,
+        "total_timeout_s": 60,
+        "max_retries": 2,
+        "retry_backoff_s": [
+          2,
+          5
+        ],
+        "max_redirects": 3,
+        "cache": "ETag or Last-Modified conditional GET; on 304 retain source version and add check event",
+        "rate_limit": "1 request per 5 seconds per HTML host; Nominatim at most 1 per second single thread",
+        "max_response_bytes": 10485760
+      },
+      "failure_policy": "stage only; never replace active data after failed import; unknown license or schema change blocks activation",
+      "model_config": {
+        "sentence_bert_config.json": {
+          "max_seq_length": 128,
+          "do_lower_case": false
+        },
+        "config.json": {
+          "_name_or_path": "old_models/paraphrase-multilingual-MiniLM-L12-v2/0_Transformer",
+          "architectures": [
+            "BertModel"
+          ],
+          "attention_probs_dropout_prob": 0.1,
+          "gradient_checkpointing": false,
+          "hidden_act": "gelu",
+          "hidden_dropout_prob": 0.1,
+          "hidden_size": 384,
+          "initializer_range": 0.02,
+          "intermediate_size": 1536,
+          "layer_norm_eps": 1e-12,
+          "max_position_embeddings": 512,
+          "model_type": "bert",
+          "num_attention_heads": 12,
+          "num_hidden_layers": 12,
+          "pad_token_id": 0,
+          "position_embedding_type": "absolute",
+          "transformers_version": "4.7.0",
+          "type_vocab_size": 2,
+          "use_cache": true,
+          "vocab_size": 250037
+        },
+        "tokenizer_config.json": {
+          "do_lower_case": true,
+          "unk_token": "<unk>",
+          "sep_token": "</s>",
+          "pad_token": "<pad>",
+          "cls_token": "<s>",
+          "mask_token": {
+            "content": "<mask>",
+            "single_word": false,
+            "lstrip": true,
+            "rstrip": false,
+            "normalized": true,
+            "__type": "AddedToken"
+          },
+          "tokenize_chinese_chars": true,
+          "strip_accents": null,
+          "bos_token": "<s>",
+          "eos_token": "</s>",
+          "model_max_length": 512,
+          "special_tokens_map_file": null,
+          "name_or_path": "old_models/paraphrase-multilingual-MiniLM-L12-v2/0_Transformer",
+          "tokenizer_class": "PreTrainedTokenizerFast"
+        }
+      },
+      "inference_status": "not_run"
+    }
+  ]
+}

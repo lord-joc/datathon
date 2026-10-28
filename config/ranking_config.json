@@ -1,0 +1,56 @@
+{
+  "version": "ranking-3.0.0",
+  "inherited_from": "2.0",
+  "profiles": {
+    "cafe": {
+      "label": "Kafić",
+      "target_area_m2": 60,
+      "weights": {
+        "transit": 20,
+        "universities": 10,
+        "culture": 10,
+        "parking": 5,
+        "area": 15,
+        "street": 10,
+        "competition": 10,
+        "cost": 20
+      }
+    },
+    "office": {
+      "label": "Ured",
+      "target_area_m2": 80,
+      "weights": {
+        "transit": 15,
+        "universities": 5,
+        "culture": 5,
+        "parking": 15,
+        "area": 25,
+        "street": 5,
+        "competition": 0,
+        "cost": 30
+      }
+    }
+  },
+  "transit_zero_m": 800,
+  "parking_zero_m": 1200,
+  "poi_radius_m": 600,
+  "university_cap": 5,
+  "culture_cap": 10,
+  "other_position_utility": 0.4,
+  "competition_density_scale_km2": 20,
+  "competition_radii_m": [
+    500,
+    1000
+  ],
+  "duplicate_distance_m": 20,
+  "cost_bounds_eur": null,
+  "cost_enabled": false,
+  "precision_digits": 8,
+  "display_digits": 2,
+  "missing_policy": "require_ack_for_partial",
+  "tie_break": "official_id_numeric_ascending",
+  "distance_method": "PostGIS geography spheroid",
+  "inventory_time_semantics": "historical_until_individually_verified",
+  "status_validity_hours": 168,
+  "comparison_confirmation_ttl_s": 600
+}

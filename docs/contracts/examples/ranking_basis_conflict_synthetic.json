@@ -1,0 +1,22 @@
+{
+  "error": {
+    "code": "COMPARISON_BASIS_CHANGED",
+    "message": "Jedan kriterij nije dostupan svim kandidatima. Potvrdite zajedničku osnovu ili uklonite nepotpunog kandidata.",
+    "details": {
+      "missing_by_space": {
+        "900002": [
+          "transit"
+        ]
+      },
+      "proposed_criteria": [
+        "universities",
+        "culture",
+        "parking",
+        "area",
+        "street"
+      ],
+      "comparison_basis_token": "synthetic-basis-token-0000000000001"
+    },
+    "request_id": "00000000-0000-4000-8000-000000000401"
+  }
+}

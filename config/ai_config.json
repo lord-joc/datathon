@@ -1,0 +1,47 @@
+{
+  "version": "ai-3.0.0",
+  "model_id": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+  "model_revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+  "device": "cpu",
+  "trust_remote_code": false,
+  "content_chunk_tokens": 96,
+  "overlap_tokens": 16,
+  "topic_min_similarity": 0.45,
+  "topic_min_margin": 0.05,
+  "aggregation": "maximum_cosine_per_topic_over_content_chunks",
+  "normalize_embeddings": true,
+  "unknown_end_review_days": 30,
+  "summary_max_words": 60,
+  "topics": {
+    "traffic_works": "Privremena regulacija prometa, zatvorena ulica, radovi na prometnici, promjena javnog prijevoza ili pristupa lokaciji.",
+    "public_projects_services": "Izgradnja, obnova ili otvaranje javnog projekta, škole, parka, kulturne ustanove ili druge javne usluge na određenoj lokaciji.",
+    "events": "Najavljeno javno događanje, sajam, koncert, festival ili okupljanje s navedenim mjestom i vremenom.",
+    "irrelevant": "Protokolarna objava, opća izjava, čestitka ili sadržaj bez konkretne lokacijske promjene važne za izbor poslovnog prostora."
+  },
+  "profile_descriptions": {
+    "cafe": "Otvaranje kafića, pristup gostiju, dostupnost okolnih sadržaja i lokalna događanja.",
+    "office": "Najam uredskog prostora, pristup zaposlenika i poslovnih posjetitelja te dostupnost prijevoza i javnih usluga."
+  },
+  "topic_profiles": {
+    "traffic_works": [
+      "cafe",
+      "office"
+    ],
+    "public_projects_services": [
+      "cafe",
+      "office"
+    ],
+    "events": [
+      "cafe"
+    ],
+    "irrelevant": []
+  },
+  "evaluation": {
+    "classes": 4,
+    "total_texts": 40,
+    "development_per_class": 3,
+    "held_out_per_class": 7,
+    "target_macro_f1": 0.75,
+    "status": "not_run"
+  }
+}

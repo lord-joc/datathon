@@ -1,0 +1,59 @@
+{
+  "dataset_bundle_id": "00000000-0000-4000-8000-000000000100",
+  "profile": "cafe",
+  "items": [
+    {
+      "space_id": "900001",
+      "address": "Testna ulica A 1",
+      "area": {
+        "value": 60,
+        "unit": "m2",
+        "reason": null,
+        "source_version_ids": [
+          "00000000-0000-4000-8000-000000000001"
+        ]
+      },
+      "position_code": "street",
+      "position_reason": null,
+      "district_id": "TEST01",
+      "district_name": "Testna četvrt",
+      "district_assignment": "source_name",
+      "coordinate": {
+        "geometry": null,
+        "precision_status": "missing",
+        "reason": "missing_coordinate",
+        "geo_evidence_id": null,
+        "checked_at": null
+      },
+      "status": {
+        "inventory_kind": "regular",
+        "physical_vacancy": "unknown",
+        "tender_active": "unknown",
+        "activity_allowed": "unknown",
+        "technical_suitable": "unknown",
+        "candidate_status": "conditional",
+        "reasons": [
+          "tender_not_confirmed",
+          "activity_not_confirmed",
+          "technical_not_confirmed",
+          "vacancy_not_confirmed"
+        ],
+        "checked_at": null,
+        "evidence_url": null,
+        "tender_url": null,
+        "valid_until": null,
+        "evaluated_at": "2026-10-27T11:00:00Z"
+      },
+      "reference_period": "TEST",
+      "historical_inventory": true
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "page_size": 20,
+  "without_usable_coordinate": 1,
+  "warnings": [
+    "Synthetic contract example; not public inventory.",
+    "No current tender confirmed."
+  ]
+}

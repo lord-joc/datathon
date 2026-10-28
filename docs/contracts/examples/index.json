@@ -1,0 +1,56 @@
+[
+  {
+    "file": "space_list_response_synthetic.json",
+    "schema": "SpaceList",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "space_detail_response_synthetic.json",
+    "schema": "SpaceDetail",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "ranking_request_synthetic.json",
+    "schema": "RankingRequest",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "ranking_response_missing_criteria_synthetic.json",
+    "schema": "RankingResponse",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "ranking_basis_conflict_synthetic.json",
+    "schema": "Error",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "context_card_response_synthetic.json",
+    "schema": "ContextCard",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "import_request_synthetic.json",
+    "schema": "ImportRequest",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "import_queued_response_synthetic.json",
+    "schema": "Job",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  },
+  {
+    "file": "import_failed_response_synthetic.json",
+    "schema": "Job",
+    "data_kind": "synthetic_contract",
+    "execution_status": "not_an_application_result"
+  }
+]

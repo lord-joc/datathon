@@ -1,0 +1,270 @@
+{
+  "ranking_run_id": "00000000-0000-4000-8000-000000000300",
+  "dataset_bundle_id": "00000000-0000-4000-8000-000000000100",
+  "profile": "cafe",
+  "profile_version": "00000000-0000-4000-8000-000000000200",
+  "config_version": "ranking-3.0.0",
+  "source_versions": {
+    "D01": "00000000-0000-4000-8000-000000000001",
+    "D02": "00000000-0000-4000-8000-000000000002",
+    "D03": "00000000-0000-4000-8000-000000000003",
+    "D04": "00000000-0000-4000-8000-000000000004",
+    "D05": "00000000-0000-4000-8000-000000000005",
+    "D06": "00000000-0000-4000-8000-000000000006",
+    "D07": "00000000-0000-4000-8000-000000000007",
+    "D08": "00000000-0000-4000-8000-000000000008",
+    "D11": "00000000-0000-4000-8000-000000000011"
+  },
+  "comparison_basis_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "criteria_used": [
+    "transit",
+    "universities",
+    "culture",
+    "parking",
+    "area",
+    "street"
+  ],
+  "excluded_criteria": [
+    {
+      "criterion": "competition",
+      "reason": "coverage_unchecked"
+    },
+    {
+      "criterion": "cost",
+      "reason": "cost_not_configured"
+    }
+  ],
+  "coverage_active": 70,
+  "coverage_default_profile": 70,
+  "items": [
+    {
+      "space_id": "900001",
+      "candidate_status": "conditional",
+      "rank": 1,
+      "score": 59.28571429,
+      "reason": null,
+      "reasons": [
+        "tender_not_confirmed",
+        "activity_not_confirmed",
+        "technical_not_confirmed",
+        "vacancy_not_confirmed"
+      ],
+      "raw_metrics": {
+        "transit": {
+          "value": 400,
+          "unit": "m",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000003"
+          ]
+        },
+        "universities": {
+          "value": 2,
+          "unit": "count",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000004"
+          ]
+        },
+        "culture": {
+          "value": 0,
+          "unit": "count",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000005"
+          ]
+        },
+        "parking": {
+          "value": 600,
+          "unit": "m",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000006"
+          ]
+        },
+        "area": {
+          "value": 60,
+          "unit": "m2",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        },
+        "street": {
+          "value": 1,
+          "unit": "utility",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        }
+      },
+      "utilities": {
+        "transit": 0.5,
+        "universities": 0.4,
+        "culture": 0,
+        "parking": 0.5,
+        "area": 1,
+        "street": 1
+      },
+      "contributions": {
+        "transit": 14.28571429,
+        "universities": 5.71428571,
+        "culture": 0.0,
+        "parking": 3.57142857,
+        "area": 21.42857143,
+        "street": 14.28571429
+      },
+      "status_snapshot": {
+        "inventory_kind": "regular",
+        "physical_vacancy": "unknown",
+        "tender_active": "unknown",
+        "activity_allowed": "unknown",
+        "technical_suitable": "unknown",
+        "candidate_status": "conditional",
+        "reasons": [
+          "tender_not_confirmed",
+          "activity_not_confirmed",
+          "technical_not_confirmed",
+          "vacancy_not_confirmed"
+        ],
+        "checked_at": null,
+        "evidence_url": null,
+        "tender_url": null,
+        "valid_until": null,
+        "evaluated_at": "2026-10-27T11:00:00Z"
+      },
+      "coordinate_snapshot": {
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            15.977,
+            45.813
+          ]
+        },
+        "precision_status": "building_approximate",
+        "reason": null,
+        "geo_evidence_id": "00000000-0000-4000-8000-000000000700",
+        "checked_at": "2026-10-27T10:00:00Z"
+      }
+    },
+    {
+      "space_id": "900002",
+      "candidate_status": "conditional",
+      "rank": 2,
+      "score": 52.14285714,
+      "reason": null,
+      "reasons": [
+        "tender_not_confirmed",
+        "activity_not_confirmed",
+        "technical_not_confirmed",
+        "vacancy_not_confirmed"
+      ],
+      "raw_metrics": {
+        "transit": {
+          "value": 800,
+          "unit": "m",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000003"
+          ]
+        },
+        "universities": {
+          "value": 5,
+          "unit": "count",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000004"
+          ]
+        },
+        "culture": {
+          "value": 10,
+          "unit": "count",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000005"
+          ]
+        },
+        "parking": {
+          "value": 0,
+          "unit": "m",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000006"
+          ]
+        },
+        "area": {
+          "value": 30,
+          "unit": "m2",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        },
+        "street": {
+          "value": 0.4,
+          "unit": "utility",
+          "reason": null,
+          "source_version_ids": [
+            "00000000-0000-4000-8000-000000000001"
+          ]
+        }
+      },
+      "utilities": {
+        "transit": 0,
+        "universities": 1,
+        "culture": 1,
+        "parking": 1,
+        "area": 0.5,
+        "street": 0.4
+      },
+      "contributions": {
+        "transit": 0.0,
+        "universities": 14.28571429,
+        "culture": 14.28571429,
+        "parking": 7.14285714,
+        "area": 10.71428571,
+        "street": 5.71428571
+      },
+      "status_snapshot": {
+        "inventory_kind": "regular",
+        "physical_vacancy": "unknown",
+        "tender_active": "unknown",
+        "activity_allowed": "unknown",
+        "technical_suitable": "unknown",
+        "candidate_status": "conditional",
+        "reasons": [
+          "tender_not_confirmed",
+          "activity_not_confirmed",
+          "technical_not_confirmed",
+          "vacancy_not_confirmed"
+        ],
+        "checked_at": null,
+        "evidence_url": null,
+        "tender_url": null,
+        "valid_until": null,
+        "evaluated_at": "2026-10-27T11:00:00Z"
+      },
+      "coordinate_snapshot": {
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            15.978,
+            45.813
+          ]
+        },
+        "precision_status": "building_approximate",
+        "reason": null,
+        "geo_evidence_id": "00000000-0000-4000-8000-000000000701",
+        "checked_at": "2026-10-27T10:00:00Z"
+      }
+    }
+  ],
+  "created_at": "2026-10-27T11:00:00Z",
+  "expires_at": "2027-01-25T11:00:00Z",
+  "historical": false,
+  "warnings": [
+    "Synthetic contract example; scores are not real-space ratings."
+  ],
+  "access_token": "synthetic-token-for-contract-validation-0001"
+}

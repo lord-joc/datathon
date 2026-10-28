@@ -1,0 +1,54 @@
+# ProstorIQ web server: static SPA + same-origin reverse proxy to the API.
+# SITE_ADDRESS=":80" locally (plain HTTP on localhost). In production set it to the
+# public domain (e.g. "prostoriq.example.hr") and Caddy obtains a TLS certificate itself.
+{
+	admin off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		# Master prompt §8. MapLibre needs blob: workers; tiles are served from this origin.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# HSTS only when served over HTTPS (production domain).
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+	handle /api/* {
+		reverse_proxy api:8000 {
+			header_up X-Request-ID {http.request.uuid}
+		}
+	}
+
+	handle {
+		root * /srv
+
+		# Hashed build assets never change.
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+
+		@html path / /index.html
+		header @html Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

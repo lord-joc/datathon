@@ -1,0 +1,13 @@
+{
+  "profile": "cafe",
+  "profile_version": "00000000-0000-4000-8000-000000000200",
+  "dataset_bundle_id": "00000000-0000-4000-8000-000000000100",
+  "space_ids": [
+    "900001",
+    "900002"
+  ],
+  "radius_m": 500,
+  "prefer_lower_competition": true,
+  "include_conditional": true,
+  "missing_policy": "require_ack"
+}

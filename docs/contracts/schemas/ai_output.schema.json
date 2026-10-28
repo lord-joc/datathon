@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/prostoriq/ai-output.schema.json",
+  "title": "ProstorIQ internal AI output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ai_result_id",
+    "notice_revision_id",
+    "model_id",
+    "model_revision",
+    "config_version",
+    "pipeline_version",
+    "topic",
+    "status",
+    "topic_scores",
+    "profile_scores",
+    "evidence_spans",
+    "processed_at"
+  ],
+  "properties": {
+    "ai_result_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "notice_revision_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "model_id": {
+      "const": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    },
+    "model_revision": {
+      "const": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42"
+    },
+    "config_version": {
+      "const": "ai-3.0.0"
+    },
+    "pipeline_version": {
+      "const": "3.0.0"
+    },
+    "topic": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "traffic_works",
+        "public_projects_services",
+        "events",
+        "irrelevant",
+        null
+      ]
+    },
+    "status": {
+      "enum": [
+        "classified",
+        "uncertain",
+        "irrelevant"
+      ]
+    },
+    "topic_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "traffic_works": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "public_projects_services": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "events": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "irrelevant": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "traffic_works",
+        "public_projects_services",
+        "events",
+        "irrelevant"
+      ]
+    },
+    "profile_scores": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cafe": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "office": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "cafe",
+        "office"
+      ]
+    },
+    "evidence_spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "text",
+          "start",
+          "end"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "location",
+              "date"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "processed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

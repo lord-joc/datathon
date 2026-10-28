@@ -1,0 +1,31 @@
+{
+  "card_id": "00000000-0000-4000-8000-000000000500",
+  "version": 2,
+  "status": "approved",
+  "topic": "traffic_works",
+  "summary": "Najavljeni su radovi u Testnoj ulici od 1. studenoga. Provjerite izvorne obavijesti o pristupu lokaciji.",
+  "profile_codes": [
+    "cafe",
+    "office"
+  ],
+  "location": {
+    "kind": "street",
+    "label": "Testna ulica",
+    "district_ids": [
+      "TEST01"
+    ],
+    "geometry": null,
+    "evidence_quote": "Radovi u Testnoj ulici počinju 1. studenoga 2026.",
+    "evidence_start": 0,
+    "evidence_end": 48
+  },
+  "source_url": "https://example.org/synthetic-notice",
+  "publisher": "Testni izdavatelj",
+  "published_date": "2026-10-27",
+  "published_at": null,
+  "valid_from": "2026-10-31T23:00:00Z",
+  "valid_to": null,
+  "review_due_at": "2026-11-26T11:00:00Z",
+  "temporal_label": "announced",
+  "approved_at": "2026-10-27T11:00:00Z"
+}

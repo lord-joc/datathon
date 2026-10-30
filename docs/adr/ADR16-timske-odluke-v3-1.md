@@ -23,4 +23,4 @@ Dokumentacija v3 (27. 10. 2026.) definira profile kafić i ured, kriterij „Tra
 
 - Kafić i ured zadržavaju težine iz v3. Referentni primjer 90,55 vrijedi kad je najbliže stajalište tramvajsko.
 - Pokrivenost zadanog profila za nove profile računa se istom formulom, uz trošak kao nedostupan.
-- `ranking_config.json` iz v3 ostaje u `config/` kao referenca dok isječak 4 ne prijeđe na `profiles.json`.
+- Od isječka 4 težine su samo u `profiles.json`, a `ranking_config.json` sadrži samo konstante formula ([ADR19](ADR19-rangiranje-i-javni-api.md)).

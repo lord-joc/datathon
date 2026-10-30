@@ -3,7 +3,8 @@
 build_bundle()
   1. latest valid version of every source (D01-D07 required)
   2. bundle_space: each D01/D02 space with its best location evidence
-     (D11 entrance_confirmed > D11/D19 building_approximate > needs_review > missing)
+     (newest row per source version, then D11 entrance_confirmed > building_approximate
+     > needs_review > missing, D11 first on ties)
      and its district (point in polygon, else the name from the list, else missing)
   3. spatial_metric for radius 500 and 1000 m: raw values, never utilities.
      Distances and counts use geography (metres on the ellipsoid), never raw degrees (NF11).
@@ -59,13 +60,18 @@ def _versions(conn: Connection) -> dict[str, str]:
     return versions
 
 
-# Best location evidence per space: D11 entrance > building-level > review > missing, D11 first
-# on ties, then newest. geo_evidence is append-only, so re-geocoding adds rows instead of
-# replacing them; this pick is what the bundle uses and what its identity covers.
+# Location evidence per space. geo_evidence is append-only: within one source version the
+# newest row is that version's current answer (a corrected geocoding replaces a wrong one).
+# Across D11 and D19: entrance > building-level > review > missing, D11 first on ties.
+# This pick is what the bundle uses and what its identity covers.
 _BEST_EVIDENCE = """
     SELECT DISTINCT ON (g.space_id) g.space_id, g.geo_evidence_id, g.geom, g.precision_status
-    FROM prostoriq.geo_evidence g
-    WHERE g.source_version_id IN (CAST(:d11 AS uuid), CAST(:d19 AS uuid))
+    FROM (
+        SELECT DISTINCT ON (e.space_id, e.source_version_id) e.*
+        FROM prostoriq.geo_evidence e
+        WHERE e.source_version_id IN (CAST(:d11 AS uuid), CAST(:d19 AS uuid))
+        ORDER BY e.space_id, e.source_version_id, e.checked_at DESC
+    ) g
     ORDER BY g.space_id,
         CASE g.precision_status WHEN 'entrance_confirmed' THEN 0
             WHEN 'building_approximate' THEN 1 WHEN 'needs_review' THEN 2 ELSE 3 END,

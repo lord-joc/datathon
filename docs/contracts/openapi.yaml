@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ProstorIQ vlastiti aplikacijski API
-  version: 3.0.0
+  version: 3.1.0
   description: Implementacijski ugovor. Rute nisu objavljena usluga. Primjeri u prilogu
     su umjetni ugovorni podaci; izvorni zapisi nalaze se zasebno u registru.
 servers:
@@ -28,25 +28,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -58,7 +58,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -79,25 +79,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -109,7 +109,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -137,25 +137,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -167,7 +167,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -188,25 +188,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -218,14 +218,15 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
       parameters:
       - name: dataset_bundle_id
         in: query
-        required: true
+        required: false
+        description: Optional guard; a bundle other than the active one gives 409 DATASET_CHANGED.
         schema:
           type: string
           format: uuid
@@ -237,6 +238,11 @@ paths:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
       - name: area_min_m2
         in: query
         required: false
@@ -304,25 +310,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -334,7 +340,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -347,7 +353,8 @@ paths:
           pattern: ^[0-9]+$
       - name: dataset_bundle_id
         in: query
-        required: true
+        required: false
+        description: Optional guard; a bundle other than the active one gives 409 DATASET_CHANGED.
         schema:
           type: string
           format: uuid
@@ -359,6 +366,11 @@ paths:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
   /api/v1/rankings:
     post:
       operationId: rankSpaces
@@ -376,19 +388,19 @@ paths:
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -400,7 +412,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -427,25 +439,25 @@ paths:
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '410':
           description: Resurs je istekao
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -487,25 +499,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -517,7 +529,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -562,25 +574,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -592,7 +604,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -605,7 +617,8 @@ paths:
           pattern: ^[0-9]+$
       - name: dataset_bundle_id
         in: query
-        required: true
+        required: false
+        description: Optional guard; a bundle other than the active one gives 409 DATASET_CHANGED.
         schema:
           type: string
           format: uuid
@@ -617,6 +630,11 @@ paths:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
       - *id001
       - *id002
   /api/v1/sources:
@@ -636,25 +654,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -666,7 +684,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -687,25 +705,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -717,7 +735,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -757,19 +775,19 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -781,7 +799,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -808,37 +826,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -850,7 +868,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -868,37 +886,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -910,7 +928,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -933,37 +951,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -975,7 +993,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -997,37 +1015,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1039,7 +1057,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1075,37 +1093,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1117,7 +1135,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1155,37 +1173,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1197,7 +1215,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1240,37 +1258,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1282,7 +1300,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1311,37 +1329,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1353,7 +1371,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1384,37 +1402,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1426,7 +1444,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1462,37 +1480,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1504,7 +1522,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1540,37 +1558,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1582,7 +1600,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1606,37 +1624,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1648,7 +1666,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1677,37 +1695,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1719,7 +1737,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1748,37 +1766,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1790,7 +1808,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1820,37 +1838,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1862,7 +1880,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1898,37 +1916,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -1940,7 +1958,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -1976,37 +1994,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2018,7 +2036,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -2055,37 +2073,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2097,7 +2115,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -2133,37 +2151,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2175,7 +2193,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -2211,37 +2229,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2253,7 +2271,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -2289,37 +2307,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2331,7 +2349,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -2352,37 +2370,37 @@ paths:
         '401':
           description: Sesija nije valjana
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2394,7 +2412,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security:
@@ -2423,19 +2441,19 @@ paths:
         '403':
           description: Pristup nije dopušten
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '410':
           description: Resurs je istekao
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -2471,25 +2489,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2501,7 +2519,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -2528,25 +2546,25 @@ paths:
         '404':
           description: Resurs ne postoji ili dodatak nije uključen
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: Sukob verzije ili osnove usporedbe
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Ulaz ili poslovno pravilo nije valjano
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
         '429':
           description: Previše zahtjeva
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
           headers:
@@ -2558,7 +2576,7 @@ paths:
         '503':
           description: Podaci ili komponenta nisu spremni
           content:
-            application/json:
+            application/problem+json:
               schema:
                 $ref: '#/components/schemas/Error'
       security: []
@@ -2580,32 +2598,30 @@ components:
       name: X-CSRF-Token
   schemas:
     Error:
+      description: RFC 9457 problem details; code is the stable machine code. Extension
+        members carry details (e.g. missing_by_space, comparison_basis_token for 409).
       type: object
-      additionalProperties: false
+      additionalProperties: true
       properties:
-        error:
-          type: object
-          additionalProperties: false
-          properties:
-            code:
-              type: string
-            message:
-              type: string
-            details:
-              type: object
-              additionalProperties: true
-              properties: {}
-              required: []
-            request_id:
-              type: string
-              format: uuid
-          required:
-          - code
-          - message
-          - details
-          - request_id
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        code:
+          type: string
+        detail:
+          type: string
+        request_id:
+          type: string
+          format: uuid
       required:
-      - error
+      - type
+      - title
+      - status
+      - code
+      - detail
     Metric:
       type: object
       additionalProperties: false
@@ -2644,6 +2660,11 @@ components:
             type: string
             format: uuid
           minItems: 0
+        detail:
+          type: object
+          description: Display context, never scored (nearest name, mode, distance 'air',
+            nearest_names, counts by category).
+          additionalProperties: true
       required:
       - value
       - unit
@@ -2899,6 +2920,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         items:
           type: array
           items:
@@ -2940,6 +2966,11 @@ components:
           format: uuid
         space:
           $ref: '#/components/schemas/SpaceSummary'
+        radius_m:
+          type: integer
+          enum:
+          - 500
+          - 1000
         metrics:
           type: object
           additionalProperties:
@@ -2957,6 +2988,7 @@ components:
       required:
       - dataset_bundle_id
       - space
+      - radius_m
       - metrics
       - source_versions
       - attribution
@@ -2981,6 +3013,10 @@ components:
           type: number
           minimum: 0
           maximum: 100
+        schools:
+          type: number
+          minimum: 0
+          maximum: 100
         area:
           type: number
           minimum: 0
@@ -3002,6 +3038,7 @@ components:
       - universities
       - culture
       - parking
+      - schools
       - area
       - street
       - competition
@@ -3015,6 +3052,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         profile_version:
           type: string
           format: uuid
@@ -3025,6 +3067,17 @@ components:
           exclusiveMinimum: 0
         weights:
           $ref: '#/components/schemas/Weights'
+        name:
+          type: string
+        summary:
+          type: string
+        icon:
+          type: string
+          description: Lucide icon name
+        competitor_categories:
+          type: array
+          items:
+            type: string
         config_version:
           type: string
         cost_enabled:
@@ -3033,8 +3086,12 @@ components:
       - profile
       - profile_version
       - version_label
+      - name
+      - summary
+      - icon
       - target_area_m2
       - weights
+      - competitor_categories
       - config_version
       - cost_enabled
     ProfileList:
@@ -3083,6 +3140,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         profile_version:
           type: string
           format: uuid
@@ -3120,6 +3182,14 @@ components:
           type: string
           minLength: 20
           maxLength: 2048
+          description: From a 409 COMPARISON_BASIS_CHANGED; valid 10 minutes, only for the
+            same request.
+        basis_choice:
+          type: string
+          enum:
+          - common_criteria
+          - remove_incomplete
+          description: Required together with comparison_basis_token.
       required:
       - profile
       - profile_version
@@ -3216,6 +3286,7 @@ components:
           - universities
           - culture
           - parking
+          - schools
           - area
           - street
           - competition
@@ -3253,6 +3324,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         profile_version:
           type: string
           format: uuid
@@ -3272,6 +3348,7 @@ components:
             - universities
             - culture
             - parking
+            - schools
             - area
             - street
             - competition
@@ -3558,6 +3635,11 @@ components:
             enum:
             - cafe
             - office
+            - retail
+            - food_takeaway
+            - personal_care
+            - education
+            - workshop
           minItems: 1
           maxItems: 2
         location:
@@ -3632,6 +3714,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         items:
           type: array
           items:
@@ -3735,6 +3822,9 @@ components:
       type: object
       additionalProperties: false
       properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
         items:
           type: array
           items:
@@ -4262,6 +4352,11 @@ components:
             enum:
             - cafe
             - office
+            - retail
+            - food_takeaway
+            - personal_care
+            - education
+            - workshop
           minItems: 1
           maxItems: 2
         location:
@@ -4442,6 +4537,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         physical_vacancy:
           type: string
           enum:
@@ -4537,6 +4637,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
         version_label:
           type: string
           minLength: 1
@@ -4673,6 +4778,11 @@ components:
           enum:
           - cafe
           - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
           - null
         status:
           type: string

@@ -8,9 +8,14 @@ than placed somewhere plausible.
 Two naming habits differ between the city list and OSM (ADR18):
 - the generic word "ulica" is often left out ("VLAŠKA" vs "Vlaška ulica"), so it never
   takes part in the street key;
-- the list uses the possessive form of a person's name ("HEINZELOVA") where OSM uses the
-  official "Ulica Vjekoslava Heinzela". Such OSM streets also get possessive aliases, used
-  only when there is no exact match and only when the alias names exactly one OSM street.
+- the list uses the possessive form of a person's name ("HEINZELOVA", "SVAČIĆEV TRG") where
+  OSM uses the official "Ulica Vjekoslava Heinzela", "Trg kralja Petra Svačića". Such OSM
+  streets also get possessive aliases, used only when there is no exact match and only
+  when the alias names exactly one OSM street.
+
+The city district of the space (from the list) only ever narrows candidates down: when an
+alias fits several OSM streets, or the same address exists in several places, the
+candidates inside that district are kept. It never moves a point anywhere.
 """
 
 import difflib
@@ -39,6 +44,7 @@ _GENERIC_STREET = "ulica"
 FUZZY_CUTOFF = 0.88
 FUZZY_MARGIN = 0.04
 SAME_BUILDING_M = 80.0
+DIFFERENT_PLACE_M = 500.0
 
 
 def strip_accents(value: str) -> str:
@@ -64,19 +70,30 @@ def street_key(street: str) -> str:
 
 
 def possessive_aliases(street: str) -> set[str]:
-    """'Ulica Vjekoslava Heinzela' -> {'heinzelova', 'heinzeleva'}.
+    """'Ulica Vjekoslava Heinzela' -> {'heinzelova', 'heinzeleva'};
+    'Trg kralja Petra Svačića' -> {'svacicov trg', 'svacicev trg'}.
 
-    Only for OSM names of the form 'Ulica <given name> <surname in genitive>'. Both suffixes
-    are generated because accents are stripped (š/s, ž/z); the city key picks the right one.
+    Only for OSM names of the form 'Ulica|Trg <name words> <surname in genitive>'. Both
+    suffixes are generated because accents are stripped (š/s, ž/z); the city key picks the
+    right one.
     """
     words = _street_words(street)
-    if len(words) < 3 or words[0] != _GENERIC_STREET:
+    if len(words) < 3 or words[0] not in (_GENERIC_STREET, "trg"):
         return set()
     surname = words[-1]
     if len(surname) < 4 or not surname.endswith("a") or "-" in surname:
         return set()
     stem = surname[:-1]
+    if words[0] == "trg":
+        return {stem + "ov trg", stem + "ev trg"}
     return {stem + "ova", stem + "eva"}
+
+
+def district_key(name: str | None) -> str | None:
+    """'GORNJI GRAD - MEDVEŠČAK' and 'Gornji Grad-Medveščak' -> 'gornji grad medvescak'."""
+    if not name:
+        return None
+    return " ".join(re.sub(r"[\s-]+", " ", strip_accents(name).casefold()).split()) or None
 
 
 @dataclass(frozen=True)
@@ -129,6 +146,7 @@ class AddressPoint:
     housenumber: str
     lon: float
     lat: float
+    district: str | None = None  # district_key of the D07 polygon the point lies in
 
     @property
     def url(self) -> str:
@@ -174,7 +192,9 @@ class AddressIndex:
     def __len__(self) -> int:
         return sum(len(v) for v in self._by_key.values())
 
-    def geocode(self, address: str) -> GeocodeResult:
+    def geocode(self, address: str, district: str | None = None) -> GeocodeResult:
+        """district: the space's district name from the city list (optional)."""
+        in_district = district_key(district)
         parsed = parse_city_address(address)
         if parsed is None:
             return GeocodeResult("missing", None, None, "unparsed", "Adresa nema kućni broj.", None)
@@ -182,6 +202,18 @@ class AddressIndex:
         method = "exact"
         if not candidates and parsed.street_key in self._aliases:
             streets = sorted(self._aliases[parsed.street_key])
+            method = "alias"
+            if len(streets) > 1 and in_district:
+                local = [
+                    s
+                    for s in streets
+                    if any(
+                        p.district == in_district
+                        for _, p in self._by_key.get((s, parsed.house.number), [])
+                    )
+                ]
+                if len(local) == 1:
+                    streets, method = local, "alias+district"
             if len(streets) > 1:
                 return GeocodeResult(
                     "needs_review",
@@ -192,7 +224,6 @@ class AddressIndex:
                     None,
                 )
             candidates = self._by_key.get((streets[0], parsed.house.number))
-            method = "alias"
         if not candidates:
             streets = list(self._streets_by_number.get(parsed.house.number, ()))
             scored = sorted(
@@ -231,14 +262,32 @@ class AddressIndex:
                 f"Kućni broj postoji samo kao {', '.join(letters)}.",
                 candidates[0][1].url,
             )
-        # A building outline (way) carrying the address beats business nodes inside it.
-        buildings = [p for p in same_letter if p.osm_type == "way"]
-        if buildings:
-            same_letter = buildings
-        spread = max(
-            (haversine_m(a.lon, a.lat, b.lon, b.lat) for a in same_letter for b in same_letter),
-            default=0.0,
-        )
+        nearby = [p for p in same_letter if in_district and p.district == in_district]
+        # 1. Objects far apart are different places with the same street name (Ulica Slavka
+        #    Kolara exists twice). Only the district may pick one; an outline never does.
+        spread = _spread(same_letter)
+        if spread > DIFFERENT_PLACE_M:
+            if not nearby or _spread(nearby) > DIFFERENT_PLACE_M:
+                return GeocodeResult(
+                    "needs_review",
+                    None,
+                    None,
+                    "spread",
+                    f"{len(same_letter)} OSM objekta s istom adresom udaljena do {spread:.0f} m "
+                    "(različita mjesta).",
+                    same_letter[0].url,
+                )
+            same_letter = nearby
+            method = method if "+district" in method else f"{method}+district"
+        # 2. One building: an outline (way) beats business nodes inside it.
+        points = _prefer_buildings(same_letter)
+        spread = _spread(points)
+        if spread > SAME_BUILDING_M and nearby:
+            inside = _prefer_buildings([p for p in same_letter if p in nearby])
+            if _spread(inside) <= SAME_BUILDING_M:
+                points, spread = inside, _spread(inside)
+                method = method if "+district" in method else f"{method}+district"
+        same_letter = points
         if spread > SAME_BUILDING_M:
             return GeocodeResult(
                 "needs_review",
@@ -253,3 +302,15 @@ class AddressIndex:
         best = same_letter[0]
         note = f"OSM {best.osm_type}/{best.osm_id}: {best.street} {best.housenumber} ({method})"
         return GeocodeResult("building_approximate", lon, lat, method, note, best.url)
+
+
+def _prefer_buildings(points: list[AddressPoint]) -> list[AddressPoint]:
+    """A building outline (way) carrying the address beats business nodes inside it."""
+    buildings = [p for p in points if p.osm_type == "way"]
+    return buildings or points
+
+
+def _spread(points: list[AddressPoint]) -> float:
+    return max(
+        (haversine_m(a.lon, a.lat, b.lon, b.lat) for a in points for b in points), default=0.0
+    )

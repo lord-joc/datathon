@@ -5,11 +5,13 @@
 Commands
   migrate                 apply database migrations (owner role)
   db-check                check the API role connection
-  sources-load            load config/source_registry*.json into the database
+  sources-load            load config/source_registry*.json and config/profiles.json
   source-resources CODE   list CKAN resources of a source (to confirm resource_id)
   import CODE [--file F]  import one source (network, or a manually downloaded file)
   import-all              import D01-D07 and the team additions that have a resource
   sources-status          latest version, record count and last job per source
+  reviews                 imports waiting for a human decision (awaiting_review)
+  source-review JOB --approve|--reject --reason TEXT   decide on such an import
   osm-import --file F     D08 competitors + D19 address points from one Geofabrik PBF
   import-coordinates --file F   D11 team-checked coordinates (CSV)
   geocode                 match D01/D02 addresses to D19 address points
@@ -37,6 +39,9 @@ from app.core.config import get_settings
 from app.pipeline.bundle import BundleError, activate_bundle, build_bundle
 from app.pipeline.geocode import geocode_spaces, review_csv
 from app.pipeline.importer import ImportBusyError, Importer, ImportOutcome, sync_sources
+from app.pipeline.profiles import ProfileVersionError, sync_profiles
+from app.pipeline.review import ReviewError, pending_reviews, review_import
+from app.ranking.config import load_profiles
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_IMPORT_ORDER = ("D07", "D01", "D02", "D03", "D04", "D05", "D06", "D14", "D17", "D18")
@@ -94,9 +99,16 @@ def cmd_db_check(_: argparse.Namespace) -> int:
 
 def cmd_sources_load(_: argparse.Namespace) -> int:
     registry = _registry()
-    with _pipeline_engine().begin() as conn:
-        count = sync_sources(conn, registry)
+    profiles = load_profiles(get_settings().config_dir)
+    try:
+        with _pipeline_engine().begin() as conn:
+            count = sync_sources(conn, registry)
+            created = sync_profiles(conn, profiles)
+    except ProfileVersionError as exc:
+        print(str(exc))
+        return 1
     print(f"Učitano izvora iz registra: {count}")
+    print(f"Profili verzije {profiles.version}: {len(profiles.profiles)} ({created} novih)")
     return 0
 
 
@@ -133,6 +145,11 @@ def _print_outcome(o: ImportOutcome) -> None:
         print(f"    greška: {message}")
     for message in o.warnings[:10]:
         print(f"    upozorenje: {message}")
+    if o.status == "awaiting_review":
+        print(
+            "    Verzija se ne koristi dok je netko ne odobri: "
+            f'python -m app.cli source-review {o.job_id} --approve|--reject --reason "..."'
+        )
 
 
 def _run_import(
@@ -332,6 +349,35 @@ def cmd_sources_status(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_reviews(_: argparse.Namespace) -> int:
+    pending = pending_reviews(_pipeline_engine())
+    if not pending:
+        print("Nijedan uvoz ne čeka pregled.")
+        return 0
+    for p in pending:
+        print(f"{p.job_id}  {p.source_code}  zapisa: {p.record_count}")
+        for warning in p.warnings:
+            print(f"    {warning}")
+    print('Odluka: python -m app.cli source-review <posao> --approve|--reject --reason "..."')
+    return 0
+
+
+def cmd_source_review(args: argparse.Namespace) -> int:
+    try:
+        outcome = review_import(
+            _pipeline_engine(), args.job, approve=args.approve, reason=args.reason
+        )
+    except ReviewError as exc:
+        print(str(exc))
+        return 1
+    if outcome.decision == "approved":
+        print(f"[{outcome.source_code}] Odobreno: verzija {outcome.source_version_id} je valjana.")
+        print("Sljedeći korak: python -m app.cli bundle-build")
+    else:
+        print(f"[{outcome.source_code}] Odbijeno: ostaje prethodna valjana verzija.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="app.cli", description="ProstorIQ CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -354,6 +400,14 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("sources-status", help="Stanje izvora i zadnjih uvoza").set_defaults(
         func=cmd_sources_status
     )
+    sub.add_parser("reviews", help="Uvozi koji čekaju pregled").set_defaults(func=cmd_reviews)
+    rev = sub.add_parser("source-review", help="Odobri ili odbij uvoz koji čeka pregled")
+    rev.add_argument("job")
+    decision = rev.add_mutually_exclusive_group(required=True)
+    decision.add_argument("--approve", action="store_true")
+    decision.add_argument("--reject", action="store_true")
+    rev.add_argument("--reason", required=True, help="Zašto (zapisuje se u audit)")
+    rev.set_defaults(func=cmd_source_review)
     osm = sub.add_parser("osm-import", help="Uvezi D08 i D19 iz Geofabrik PBF-a")
     osm.add_argument("--file", required=True)
     osm.set_defaults(func=cmd_osm_import)

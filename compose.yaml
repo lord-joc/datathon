@@ -47,6 +47,10 @@ services:
       DATABASE_USER: prostoriq_api
       DATABASE_PASSWORD: ${API_DB_PASSWORD}
       APP_HMAC_SECRET: ${APP_HMAC_SECRET:?Postavi APP_HMAC_SECRET u .env}
+      # Profiles and formula constants (read-only); their versions must match the database.
+      CONFIG_DIR: /app/config
+    volumes:
+      - ./config:/app/config:ro
     depends_on:
       db:
         condition: service_healthy

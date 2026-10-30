@@ -4,103 +4,30 @@ import D01-D07 (+D14/D18) -> osm-import (D19 + D08 from one PBF) -> geocode -> D
 bundle-build -> metrics -> activate. Distances are checked against independent haversine.
 """
 
-import os
-from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
-from sqlalchemy import Engine, create_engine, text
-from sqlalchemy.engine import make_url
+from sqlalchemy import Engine, text
 
 from app.adapters.coordinates_csv import HEADER_LINE
-from app.cli import main as cli_main
 from app.gis.addresses import haversine_m
 from app.pipeline.bundle import BundleError, activate_bundle, build_bundle
 from app.pipeline.geocode import geocode_spaces, review_csv
-from app.pipeline.importer import Importer, sync_sources
+from app.pipeline.importer import Importer
 from tests import fixtures as fx
+from tests.integration.support import (
+    PARKING_NEAR_4010,
+    STOP_NEAR_4763,
+    URL,
+    import_ok,
+    write_file,
+)
 
-URL = os.environ.get("MIGRATION_DATABASE_URL")
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(not URL, reason="MIGRATION_DATABASE_URL not set"),
 ]
-PASSWORD = "pipeline_test_only"
-STOP_NEAR_4763 = (15.9775, 45.8063)  # ~200 m north of Trg Ante Starčevića 7
-PARKING_NEAR_4010 = (15.9860, 45.8250)
-
-
-@pytest.fixture(scope="module")
-def owner() -> Engine:
-    assert URL
-    assert cli_main(["migrate"]) == 0
-    engine = create_engine(URL)
-    with engine.begin() as conn:
-        conn.execute(
-            text(
-                "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='test_pipeline') "
-                f"THEN CREATE ROLE test_pipeline LOGIN PASSWORD '{PASSWORD}'; END IF; END $$"
-            )
-        )
-        conn.execute(text("GRANT pipeline TO test_pipeline"))
-    return engine
-
-
-@pytest.fixture
-def pipeline(owner: Engine) -> Iterator[Engine]:
-    with owner.begin() as conn:
-        conn.execute(
-            text(
-                "TRUNCATE prostoriq.active_dataset, prostoriq.spatial_metric, "
-                "prostoriq.bundle_space, prostoriq.bundle_source, prostoriq.dataset_bundle, "
-                "prostoriq.geo_evidence, prostoriq.competitor, prostoriq.osm_address, "
-                "prostoriq.district, prostoriq.spatial_feature, prostoriq.space_revision, "
-                "prostoriq.space, prostoriq.source_record, prostoriq.source_version, "
-                "prostoriq.import_error, prostoriq.import_job CASCADE"
-            )
-        )
-    assert URL
-    engine = create_engine(make_url(URL).set(username="test_pipeline", password=PASSWORD))
-    with engine.begin() as conn:
-        sync_sources(conn, fx.registry())
-    yield engine
-    engine.dispose()
-
-
-def _file(tmp_path: Path, name: str, content: bytes) -> Path:
-    path = tmp_path / name
-    path.write_bytes(content)
-    return path
-
-
-def _ok(importer: Importer, code: str, path: Path) -> None:
-    outcome = importer.run(code, idempotency_key=f"t-{code}-{path.name}", local_file=path)
-    assert outcome.status == "succeeded", (code, outcome)
-
-
-@pytest.fixture
-def imported(pipeline: Engine, tmp_path: Path) -> Engine:
-    imp = Importer(pipeline, fx.registry(), tmp_path / "raw")
-    _ok(imp, "D01", _file(tmp_path, "d01.csv", fx.spaces_csv()))
-    d02 = fx.spaces_csv(fx.D02_HEADER, fx.D02_ROWS, preamble_rows=2)
-    _ok(imp, "D02", _file(tmp_path, "d02.csv", d02))
-    stops = fx.geojson_points(
-        [fx.point(1, STOP_NEAR_4763[0], STOP_NEAR_4763[1], **{"Naziv_stajališta": "Jurišićeva"})]
-    )
-    _ok(imp, "D03", _file(tmp_path, "d03.geojson", stops))
-    unis = fx.geojson_points([fx.point(1, 15.9780, 45.8050), fx.point(2, 15.90, 45.78)])
-    _ok(imp, "D04", _file(tmp_path, "d04.geojson", unis))
-    _ok(
-        imp, "D05", _file(tmp_path, "d05.geojson", fx.geojson_points([fx.point(1, 15.977, 45.806)]))
-    )
-    parking = fx.geojson_points([fx.point(1, *PARKING_NEAR_4010)])
-    _ok(imp, "D06", _file(tmp_path, "d06.geojson", parking))
-    _ok(imp, "D07", _file(tmp_path, "d07.zip", fx.districts_zip()))
-    pbf = fx.osm_pbf(tmp_path / "croatia.osm.pbf")
-    _ok(imp, "D19", pbf)
-    _ok(imp, "D08", pbf)
-    return pipeline
 
 
 def _metric(engine: Engine, bundle: str, space: str, criterion: str, radius: int = 500) -> Any:
@@ -223,7 +150,7 @@ def test_d11_entrance_overrides_osm_and_creates_new_bundle(
         "5357,,,missing,,MAKSIMIRSKA: nema,\n"
     ).encode()
     imp = Importer(imported, fx.registry(), tmp_path / "raw")
-    _ok(imp, "D11", _file(tmp_path, "d11.csv", d11))
+    import_ok(imp, "D11", write_file(tmp_path, "d11.csv", d11))
 
     second = build_bundle(imported)
     assert second.created and second.bundle_id != first
@@ -255,11 +182,35 @@ def test_new_d19_evidence_creates_new_bundle(imported: Engine) -> None:
     assert (again.bundle_id, again.created) == (second.bundle_id, False)
 
 
+def test_newest_d19_answer_replaces_a_wrong_earlier_match(imported: Engine) -> None:
+    geocode_spaces(imported)
+    assert _bundle_space(imported, build_bundle(imported).bundle_id, "4763")[2] == (
+        "building_approximate"
+    )
+    # A corrected matcher now sends 4763 to review: the old point must not survive.
+    with imported.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO prostoriq.geo_evidence (space_id, source_version_id, geom,
+                    precision_status, evidence_note, checked_at, license_id)
+                SELECT '4763', source_version_id, NULL, 'needs_review', 'test: corrected',
+                    now(), 'ODbL-1.0'
+                FROM prostoriq.source_version WHERE source_code = 'D19'
+                ORDER BY fetched_at DESC LIMIT 1
+                """
+            )
+        )
+    second = build_bundle(imported)
+    assert second.created
+    assert _bundle_space(imported, second.bundle_id, "4763")[2] == "needs_review"
+
+
 def test_overlapping_d01_d02_is_rejected(pipeline: Engine, tmp_path: Path) -> None:
     imp = Importer(pipeline, fx.registry(), tmp_path / "raw")
-    _ok(imp, "D01", _file(tmp_path, "d01.csv", fx.spaces_csv()))
+    import_ok(imp, "D01", write_file(tmp_path, "d01.csv", fx.spaces_csv()))
     clash = fx.spaces_csv(fx.D02_HEADER, [fx.D01_ROWS[1]], preamble_rows=2)
-    _ok(imp, "D02", _file(tmp_path, "d02.csv", clash))
+    import_ok(imp, "D02", write_file(tmp_path, "d02.csv", clash))
     for code, name, content in (
         ("D03", "a.geojson", fx.geojson_points([fx.point(1, 15.97, 45.80)])),
         ("D04", "b.geojson", fx.geojson_points([fx.point(1, 15.97, 45.80)])),
@@ -267,7 +218,7 @@ def test_overlapping_d01_d02_is_rejected(pipeline: Engine, tmp_path: Path) -> No
         ("D06", "d.geojson", fx.geojson_points([fx.point(1, 15.97, 45.80)])),
         ("D07", "e.zip", fx.districts_zip()),
     ):
-        _ok(imp, code, _file(tmp_path, name, content))
+        import_ok(imp, code, write_file(tmp_path, name, content))
     result = build_bundle(pipeline)
     assert result.status == "rejected"
     assert result.report["space_ids"] == ["4763"]

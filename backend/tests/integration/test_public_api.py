@@ -1,0 +1,290 @@
+"""Public API contract tests on PostgreSQL + PostGIS, as the restricted API role.
+
+Builds the slice-3 fixture bundle (3 regular spaces + 1 unfit), activates it and calls the
+routes through FastAPI. The API role can read and insert ranking snapshots, nothing else.
+"""
+
+import uuid
+from collections.abc import Iterator
+from typing import Any
+
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import make_url
+
+from app.api.v1 import presenters, public, rankings, system
+from app.main import create_app
+from app.pipeline.bundle import activate_bundle, build_bundle
+from app.pipeline.geocode import geocode_spaces
+from app.pipeline.profiles import sync_profiles
+from tests.integration.support import URL
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(not URL, reason="MIGRATION_DATABASE_URL not set"),
+]
+API_PASSWORD = "api_test_only"
+
+
+@pytest.fixture
+def client(
+    imported: Engine, owner: Engine, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[TestClient]:
+    geocode_spaces(imported)
+    with imported.begin() as conn:
+        sync_profiles(conn, presenters.profiles())
+    activate_bundle(imported, build_bundle(imported, "api-test").bundle_id)
+    with owner.begin() as conn:
+        conn.execute(
+            text(
+                "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='test_api') "
+                f"THEN CREATE ROLE test_api LOGIN PASSWORD '{API_PASSWORD}'; END IF; END $$"
+            )
+        )
+        conn.execute(text("GRANT app_read, app_ranking_write TO test_api"))
+    assert URL
+    api_engine = create_engine(
+        make_url(URL).set(username="test_api", password=API_PASSWORD),
+        connect_args={"options": "-c search_path=prostoriq,public"},
+    )
+    for module in (public, rankings, system):
+        monkeypatch.setattr(module, "get_engine", lambda: api_engine)
+    yield TestClient(create_app())
+    api_engine.dispose()
+
+
+def _profile(client: TestClient, code: str = "cafe") -> dict[str, Any]:
+    items = client.get("/api/v1/profiles").json()["items"]
+    return next(p for p in items if p["profile"] == code)
+
+
+def _request(client: TestClient, space_ids: list[str], **overrides: Any) -> dict[str, Any]:
+    bundle = client.get("/api/v1/status").json()["active_bundle_id"]
+    body: dict[str, Any] = {
+        "profile": "cafe",
+        "profile_version": _profile(client)["profile_version"],
+        "dataset_bundle_id": bundle,
+        "space_ids": space_ids,
+        "radius_m": 500,
+        "prefer_lower_competition": True,
+        "include_conditional": True,
+        "missing_policy": "require_ack",
+    }
+    body.update(overrides)
+    return body
+
+
+def test_profiles_are_served_with_db_versions_and_etag(client: TestClient) -> None:
+    response = client.get("/api/v1/profiles")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert len(items) == 7
+    cafe = next(p for p in items if p["profile"] == "cafe")
+    assert cafe["weights"]["transit"] == 20 and cafe["competitor_categories"] == [
+        "bar",
+        "cafe",
+        "pub",
+    ]
+    etag = response.headers["ETag"]
+    again = client.get("/api/v1/profiles", headers={"If-None-Match": etag})
+    assert again.status_code == 304
+
+
+def test_districts_and_sources(client: TestClient) -> None:
+    names = [d["name"] for d in client.get("/api/v1/districts").json()["items"]]
+    assert "Donji grad" in names
+    sources = {s["source_code"]: s for s in client.get("/api/v1/sources").json()["items"]}
+    assert sources["D01"]["availability"] == "available"
+    assert sources["D01"]["limitations"]
+
+
+def test_space_list_filters_and_never_lists_unfit_by_default(client: TestClient) -> None:
+    body = client.get("/api/v1/spaces", params={"profile": "cafe"}).json()
+    assert body["total"] == 3
+    assert {i["space_id"] for i in body["items"]} == {"4763", "4010", "10422"}
+    assert body["without_usable_coordinate"] == 1
+    assert all(i["status"]["candidate_status"] == "conditional" for i in body["items"])
+    assert body["warnings"][0].startswith("Popis Grada iz 2024.")
+
+    with_unfit = client.get("/api/v1/spaces", params={"profile": "cafe", "include_excluded": True})
+    assert with_unfit.json()["total"] == 4
+
+    ranged = client.get(
+        "/api/v1/spaces", params={"profile": "cafe", "area_min_m2": 30, "area_max_m2": 70}
+    ).json()
+    assert {i["space_id"] for i in ranged["items"]} == {"4763", "4010"}
+
+    bad = client.get("/api/v1/spaces", params={"profile": "cafe", "page_size": 101})
+    assert bad.status_code == 422
+    stale = client.get(
+        "/api/v1/spaces", params={"profile": "cafe", "dataset_bundle_id": str(uuid.uuid4())}
+    )
+    assert stale.status_code == 409 and stale.json()["code"] == "DATASET_CHANGED"
+
+
+def test_space_detail_has_metrics_with_sources_and_reasons(client: TestClient) -> None:
+    body = client.get("/api/v1/spaces/4763", params={"profile": "cafe"}).json()
+    transit = body["metrics"]["transit"]
+    assert transit["unit"] == "m" and transit["value"] > 0
+    assert transit["detail"]["name"] == "Jurišićeva" and transit["detail"]["distance"] == "air"
+    assert transit["source_version_ids"]
+    cost = body["metrics"]["cost"]
+    assert (cost["value"], cost["unit"], cost["reason"]) == (
+        None,
+        "eur_month",
+        "cost_not_configured",
+    )
+    assert body["metrics"]["street"]["value"] == 1
+    assert "© OpenStreetMap contributors, ODbL" in body["attribution"]
+
+    missing = client.get("/api/v1/spaces/10422", params={"profile": "cafe"}).json()
+    assert missing["space"]["coordinate"]["geometry"] is None
+    assert missing["metrics"]["transit"]["reason"] == "missing_coordinate"
+    assert client.get("/api/v1/spaces/999", params={"profile": "cafe"}).status_code == 404
+
+
+def test_ranking_snapshot_and_token(client: TestClient) -> None:
+    response = client.post("/api/v1/rankings", json=_request(client, ["4010", "4763"]))
+    assert response.status_code == 201, response.json().get("errors")
+    body = response.json()
+    assert [i["rank"] for i in body["items"]] == [1, 2]
+    assert body["items"][0]["score"] >= body["items"][1]["score"]
+    assert "competition" not in body["criteria_used"]
+    assert {"criterion": "competition", "reason": "coverage_unchecked"} in body["excluded_criteria"]
+    assert {"criterion": "cost", "reason": "cost_not_configured"} in body["excluded_criteria"]
+    first = body["items"][0]
+    assert sum(first["contributions"].values()) == pytest.approx(first["score"], abs=1e-6)
+    token = body["access_token"]
+    assert len(token) >= 32
+
+    run = body["ranking_run_id"]
+    stored = client.get(f"/api/v1/rankings/{run}", headers={"X-Ranking-Token": token})
+    assert stored.status_code == 200
+    again = stored.json()
+    assert again["access_token"] is None and again["historical"] is False
+    assert [(i["space_id"], i["score"]) for i in again["items"]] == [
+        (i["space_id"], i["score"]) for i in body["items"]
+    ]
+    wrong = client.get(f"/api/v1/rankings/{run}", headers={"X-Ranking-Token": "x" * 43})
+    assert wrong.status_code == 403
+    unknown = client.get(f"/api/v1/rankings/{uuid.uuid4()}", headers={"X-Ranking-Token": token})
+    assert unknown.status_code == 404
+
+
+def test_partial_criterion_needs_confirmation_then_ranks(client: TestClient) -> None:
+    request = _request(client, ["4763", "10422"])
+    conflict = client.post("/api/v1/rankings", json=request)
+    assert conflict.status_code == 409
+    problem = conflict.json()
+    assert problem["code"] == "COMPARISON_BASIS_CHANGED"
+    assert "transit" in problem["missing_by_space"]["10422"]
+    assert problem["options"] == ["common_criteria", "remove_incomplete"]
+    token = problem["comparison_basis_token"]
+
+    no_choice = client.post("/api/v1/rankings", json={**request, "comparison_basis_token": token})
+    assert no_choice.status_code == 422
+
+    removed = client.post(
+        "/api/v1/rankings",
+        json={**request, "comparison_basis_token": token, "basis_choice": "remove_incomplete"},
+    ).json()
+    ranked = [i for i in removed["items"] if i["rank"]]
+    assert [i["space_id"] for i in ranked] == ["4763"]
+    dropped = next(i for i in removed["items"] if i["space_id"] == "10422")
+    assert dropped["reason"] == "partial_coverage" and "removed_incomplete" in dropped["reasons"]
+
+    common = client.post(
+        "/api/v1/rankings",
+        json={**request, "comparison_basis_token": token, "basis_choice": "common_criteria"},
+    ).json()
+    assert len([i for i in common["items"] if i["rank"]]) == 2
+    assert {"criterion": "transit", "reason": "partial_coverage"} in common["excluded_criteria"]
+    assert common["coverage_active"] < removed["coverage_active"]
+
+    # The token is bound to this request: another radius needs a new confirmation.
+    other = client.post(
+        "/api/v1/rankings",
+        json={
+            **request,
+            "radius_m": 1000,
+            "comparison_basis_token": token,
+            "basis_choice": "common_criteria",
+        },
+    )
+    assert other.status_code == 409 and "istekla" in other.json()["detail"]
+
+
+def test_unfit_space_is_never_ranked(client: TestClient) -> None:
+    body = client.post("/api/v1/rankings", json=_request(client, ["4763", "5357"])).json()
+    unfit = next(i for i in body["items"] if i["space_id"] == "5357")
+    assert unfit["candidate_status"] == "excluded" and unfit["rank"] is None
+    assert "unfit_inventory" in unfit["reasons"]
+
+
+@pytest.mark.parametrize(
+    ("overrides", "status", "code"),
+    [
+        ({"dataset_bundle_id": str(uuid.uuid4())}, 409, "DATASET_CHANGED"),
+        ({"profile_version": str(uuid.uuid4())}, 409, "PROFILE_CHANGED"),
+        ({"space_ids": ["999999"]}, 422, "UNKNOWN_SPACES"),
+        ({"space_ids": ["4763", "4763"]}, 422, "VALIDATION_FAILED"),
+        ({"space_ids": [f"{i}" for i in range(501)]}, 422, "VALIDATION_FAILED"),
+        ({"unexpected": 1}, 422, "VALIDATION_FAILED"),
+        (
+            {
+                "weights": {
+                    k: 0
+                    for k in (
+                        "transit",
+                        "universities",
+                        "culture",
+                        "parking",
+                        "schools",
+                        "area",
+                        "street",
+                        "competition",
+                        "cost",
+                    )
+                }
+            },
+            422,
+            "NO_ACTIVE_CRITERIA",
+        ),
+    ],
+)
+def test_ranking_rejections(
+    client: TestClient, overrides: dict[str, Any], status: int, code: str
+) -> None:
+    response = client.post("/api/v1/rankings", json={**_request(client, ["4763"]), **overrides})
+    assert response.status_code == status, response.json()
+    assert response.json()["code"] == code
+
+
+def test_stored_ranking_survives_a_new_bundle(client: TestClient, imported: Engine) -> None:
+    body = client.post("/api/v1/rankings", json=_request(client, ["4763"])).json()
+    with imported.begin() as conn:
+        conn.execute(
+            text(
+                """
+                INSERT INTO prostoriq.geo_evidence (space_id, source_version_id, geom,
+                    precision_status, evidence_note, checked_at, license_id)
+                SELECT '10422', source_version_id, ST_SetSRID(ST_MakePoint(15.87, 45.77), 4326),
+                    'building_approximate', 'test', now(), 'ODbL-1.0'
+                FROM prostoriq.source_version WHERE source_code = 'D19'
+                ORDER BY fetched_at DESC LIMIT 1
+                """
+            )
+        )
+    activate_bundle(imported, build_bundle(imported, "newer").bundle_id)
+    old = client.get(
+        f"/api/v1/rankings/{body['ranking_run_id']}",
+        headers={"X-Ranking-Token": body["access_token"]},
+    ).json()
+    assert old["historical"] is True
+    assert old["items"][0]["score"] == body["items"][0]["score"]
+    stale = client.post(
+        "/api/v1/rankings",
+        json={**_request(client, ["4763"]), "dataset_bundle_id": body["dataset_bundle_id"]},
+    )
+    assert stale.status_code == 409

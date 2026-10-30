@@ -1,0 +1,222 @@
+"""Public API request and response models (docs/contracts/openapi.yaml)."""
+
+from datetime import datetime
+from typing import Annotated, Any, Literal
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+ProfileCode = Literal[
+    "cafe", "office", "retail", "food_takeaway", "personal_care", "education", "workshop"
+]
+Criterion = Literal[
+    "transit",
+    "universities",
+    "culture",
+    "parking",
+    "schools",
+    "area",
+    "street",
+    "competition",
+    "cost",
+]
+CandidateStatus = Literal["ready", "conditional", "excluded"]
+Precision = Literal["entrance_confirmed", "building_approximate", "needs_review", "missing"]
+SpaceId = Annotated[str, Field(pattern=r"^[0-9]{1,12}$")]
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class Weights(Strict):
+    transit: float = Field(ge=0, le=100)
+    universities: float = Field(ge=0, le=100)
+    culture: float = Field(ge=0, le=100)
+    parking: float = Field(ge=0, le=100)
+    schools: float = Field(ge=0, le=100)
+    area: float = Field(ge=0, le=100)
+    street: float = Field(ge=0, le=100)
+    competition: float = Field(ge=0, le=100)
+    cost: float = Field(ge=0, le=100)
+
+
+class Profile(Strict):
+    profile: ProfileCode
+    profile_version: UUID
+    version_label: str
+    name: str
+    summary: str
+    icon: str
+    target_area_m2: float
+    weights: Weights
+    competitor_categories: list[str]
+    config_version: str
+    cost_enabled: bool
+
+
+class ProfileList(Strict):
+    items: list[Profile]
+
+
+class District(Strict):
+    district_id: str
+    name: str
+
+
+class DistrictList(Strict):
+    dataset_bundle_id: UUID
+    items: list[District]
+
+
+class Metric(Strict):
+    value: float | None
+    unit: Literal["m", "count", "m2", "objects_per_km2", "eur_month", "utility"]
+    reason: str | None
+    source_version_ids: list[UUID]
+    detail: dict[str, Any] = Field(default_factory=dict)
+
+
+class Point(Strict):
+    type: Literal["Point"] = "Point"
+    coordinates: tuple[float, float]
+
+
+class Coordinate(Strict):
+    geometry: Point | None
+    precision_status: Precision
+    reason: str | None
+    geo_evidence_id: UUID | None
+    checked_at: datetime | None
+
+
+class Status(Strict):
+    inventory_kind: Literal["regular", "unfit"]
+    physical_vacancy: Literal["yes", "no", "unknown"]
+    tender_active: Literal["yes", "no", "unknown"]
+    activity_allowed: Literal["yes", "no", "unknown"]
+    technical_suitable: Literal["yes", "no", "unknown"]
+    candidate_status: CandidateStatus
+    reasons: list[str]
+    checked_at: datetime | None
+    evidence_url: str | None
+    tender_url: str | None
+    valid_until: datetime | None
+    evaluated_at: datetime
+
+
+class SpaceSummary(Strict):
+    space_id: str
+    address: str
+    area: Metric
+    position_code: Literal["street", "other"] | None
+    position_reason: str | None
+    district_id: str | None
+    district_name: str | None
+    district_assignment: Literal["confirmed", "source_name", "boundary_review", "missing"]
+    coordinate: Coordinate
+    status: Status
+    reference_period: str | None
+    historical_inventory: bool
+
+
+class SpaceList(Strict):
+    dataset_bundle_id: UUID
+    profile: ProfileCode
+    items: list[SpaceSummary]
+    total: int
+    page: int
+    page_size: int
+    without_usable_coordinate: int
+    warnings: list[str]
+
+
+class SpaceDetail(Strict):
+    dataset_bundle_id: UUID
+    space: SpaceSummary
+    radius_m: Literal[500, 1000]
+    metrics: dict[str, Metric]
+    source_versions: dict[str, UUID]
+    attribution: list[str]
+    context_count: int
+
+
+class RankingRequest(Strict):
+    profile: ProfileCode
+    profile_version: UUID
+    dataset_bundle_id: UUID
+    space_ids: list[SpaceId] = Field(min_length=1, max_length=500)
+    target_area_m2: float | None = Field(default=None, gt=0, le=100000)
+    radius_m: Literal[500, 1000] = 500
+    prefer_lower_competition: bool
+    include_conditional: bool
+    weights: Weights | None = None
+    missing_policy: Literal["require_ack"]
+    comparison_basis_token: str | None = Field(default=None, min_length=20, max_length=2048)
+    basis_choice: Literal["common_criteria", "remove_incomplete"] | None = None
+
+    @field_validator("space_ids")
+    @classmethod
+    def _unique(cls, value: list[str]) -> list[str]:
+        if len(set(value)) != len(value):
+            raise ValueError("space_ids ne smije sadržavati duplikate")
+        return value
+
+
+class ExcludedCriterion(Strict):
+    criterion: Criterion
+    reason: str
+
+
+class RankingItem(Strict):
+    space_id: str
+    candidate_status: CandidateStatus
+    rank: int | None
+    score: float | None
+    reason: str | None
+    reasons: list[str]
+    raw_metrics: dict[str, Metric]
+    utilities: dict[str, float]
+    contributions: dict[str, float]
+    status_snapshot: Status
+    coordinate_snapshot: Coordinate
+
+
+class RankingResponse(Strict):
+    ranking_run_id: UUID
+    dataset_bundle_id: UUID
+    profile: ProfileCode
+    profile_version: UUID
+    config_version: str
+    source_versions: dict[str, UUID]
+    comparison_basis_id: str
+    criteria_used: list[Criterion]
+    excluded_criteria: list[ExcludedCriterion]
+    coverage_active: float
+    coverage_default_profile: float
+    items: list[RankingItem]
+    created_at: datetime
+    expires_at: datetime
+    historical: bool
+    warnings: list[str]
+    access_token: str | None = None
+
+
+class SourcePublic(Strict):
+    source_code: str
+    name: str
+    publisher: str
+    catalog_url: str | None
+    license_id: str
+    attribution: str
+    active_source_version_id: UUID | None
+    reference_period: str | None
+    fetched_at: datetime | None
+    last_checked_at: datetime | None
+    availability: Literal["available", "unavailable", "disabled"]
+    limitations: list[str]
+
+
+class SourceList(Strict):
+    dataset_bundle_id: UUID
+    items: list[SourcePublic]

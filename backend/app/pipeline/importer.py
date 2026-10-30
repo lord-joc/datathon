@@ -261,7 +261,10 @@ class Importer:
                     {"c": spec.code, "k": key, "sha": _sha(body.encode()), "body": body},
                 ).scalar_one()
             except IntegrityError as exc:
-                raise ImportBusyError(f"Uvoz izvora {spec.code} već traje.") from exc
+                raise ImportBusyError(
+                    f"Uvoz izvora {spec.code} već traje ili čeka pregled "
+                    "(provjeri: python -m app.cli reviews)."
+                ) from exc
         return str(job_id), False
 
     def _finish_job(

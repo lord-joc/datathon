@@ -7,6 +7,7 @@ from app.adapters.osm import as_parse_result, extract_osm
 from app.gis.addresses import (
     AddressIndex,
     AddressPoint,
+    district_key,
     parse_city_address,
     parse_house_number,
     possessive_aliases,
@@ -55,6 +56,13 @@ def test_possessive_aliases_only_for_ulica_given_name_surname() -> None:
     assert possessive_aliases("Vlaška ulica") == set()
     assert possessive_aliases("Ulica grada") == set()
     assert possessive_aliases("Ulica Ivane Brlić-Mažuranić") == set()
+    assert "svacicev trg" in possessive_aliases("Trg kralja Petra Svačića")
+    assert possessive_aliases("Trg bana") == set()
+
+
+def test_district_key_ignores_case_accents_and_dashes() -> None:
+    assert district_key("GORNJI GRAD - MEDVEŠČAK") == district_key("Gornji Grad-Medveščak")
+    assert district_key("") is None
 
 
 @pytest.mark.parametrize(
@@ -73,14 +81,23 @@ def _index() -> AddressIndex:
             AddressPoint("node", 1, "Trg Ante Starčevića", "7", 15.9775, 45.8045),
             AddressPoint("node", 22, "Trg Ante Starčevića", "7", 15.9770, 45.8040),
             AddressPoint("node", 2, "Strmečka cesta", "57A", 15.87, 45.77),
-            AddressPoint("node", 5, "Ilica", "10", 15.96, 45.81),
+            AddressPoint("node", 5, "Ilica", "10", 15.96, 45.81, "donji grad"),
             AddressPoint("node", 6, "Ilica", "10", 15.99, 45.81),
             AddressPoint("node", 7, "Savska cesta", "41", 15.96, 45.80),
             AddressPoint("node", 8, "Savska cesta", "41", 15.961, 45.80),
             AddressPoint("way", 30, "Ulica Vjekoslava Heinzela", "66", 16.00, 45.81),
             # Two different people with the same surname: the alias is ambiguous.
-            AddressPoint("way", 31, "Ulica Ivana Horvata", "5", 15.95, 45.79),
-            AddressPoint("way", 32, "Ulica Josipa Horvata", "5", 16.05, 45.83),
+            AddressPoint("way", 31, "Ulica Ivana Horvata", "5", 15.95, 45.79, "trnje"),
+            AddressPoint("way", 32, "Ulica Josipa Horvata", "5", 16.05, 45.83, "maksimir"),
+            AddressPoint("node", 40, "Trg kralja Petra Svačića", "12", 15.9737, 45.8069),
+            # Same street name in two districts; the outline is the far one.
+            AddressPoint("way", 50, "Ulica Slavka Kolara", "4", 16.2404, 45.8059, "sesvete"),
+            AddressPoint(
+                "node", 51, "Ulica Slavka Kolara", "4", 16.0259, 45.8077, "pescenica zitnjak"
+            ),
+            AddressPoint(
+                "way", 52, "Ulica Večeslava Kolara", "4", 15.90, 45.79, "tresnjevka sjever"
+            ),
         ]
     )
 
@@ -124,6 +141,38 @@ def test_ambiguous_possessive_alias_needs_review() -> None:
     assert result.precision == "needs_review"
     assert result.method == "alias_ambiguous"
     assert result.lon is None
+
+
+def test_district_resolves_an_ambiguous_alias() -> None:
+    result = _index().geocode("HORVATOVA 0005", "TRNJE")
+    assert result.precision == "building_approximate"
+    assert result.method == "alias+district"
+    assert result.evidence_url == "https://www.openstreetmap.org/way/31"
+    assert _index().geocode("HORVATOVA 0005", "SESVETE").method == "alias_ambiguous"
+
+
+def test_district_resolves_far_apart_duplicates_but_never_guesses() -> None:
+    result = _index().geocode("ILICA 0010", "DONJI GRAD")
+    assert result.precision == "building_approximate"
+    assert result.method == "exact+district"
+    assert (result.lon, result.lat) == (15.96, 45.81)
+    assert _index().geocode("ILICA 0010", "ČRNOMEREC").method == "spread"
+
+
+def test_far_outline_does_not_beat_the_object_in_the_district() -> None:
+    result = _index().geocode("KOLAROVA 0004", "PEŠČENICA - ŽITNJAK")
+    assert result.precision == "building_approximate"
+    assert result.method == "alias+district"
+    assert (result.lon, result.lat) == (16.0259, 45.8077)
+    assert _index().geocode("KOLAROVA 0004").method == "alias_ambiguous"
+    # Without a district the two same-named streets stay a review case.
+    assert _index().geocode("SLAVKA KOLARA 0004").method == "spread"
+
+
+def test_possessive_square_matches_official_osm_name() -> None:
+    result = _index().geocode("SVAČIĆEV TRG 0012")
+    assert result.precision == "building_approximate"
+    assert result.method == "alias"
 
 
 def test_letter_mismatch_needs_review() -> None:

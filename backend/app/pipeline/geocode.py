@@ -1,9 +1,9 @@
 """Geocode city premises against OSM address points (D19) and write geo_evidence.
 
-Idempotent and append-only. A space that already has building-level evidence from the same
-D19 version is skipped. Spaces still 'needs_review'/'missing' are matched again, so an
-improved matcher can place them; a new row is written only when the result changes, and
-the bundle step picks the best evidence per space. Manual D11 evidence is never touched.
+Idempotent and append-only. Every space is matched again with the current matcher and a
+new row is written only when the result changes (precision or matched object). The newest
+row of a D19 version is that version's answer, so a corrected match also replaces a wrong
+earlier one; the bundle then prefers D11 over it. Manual D11 evidence is never touched.
 """
 
 import csv
@@ -13,10 +13,9 @@ from datetime import UTC, datetime
 
 from sqlalchemy import Connection, Engine, text
 
-from app.gis.addresses import AddressIndex, AddressPoint, GeocodeResult
+from app.gis.addresses import AddressIndex, AddressPoint, GeocodeResult, district_key
 
 OSM_LICENSE = "ODbL-1.0"
-_PLACED = {"entrance_confirmed", "building_approximate"}
 
 
 @dataclass
@@ -41,12 +40,12 @@ def latest_valid_version(conn: Connection, code: str) -> str | None:
     return str(value) if value else None
 
 
-def _spaces(conn: Connection) -> list[tuple[str, str]]:
-    """(space_id, address) from the latest valid D01 and D02 versions."""
+def _spaces(conn: Connection) -> list[tuple[str, str, str | None]]:
+    """(space_id, address, district name) from the latest valid D01 and D02 versions."""
     rows = conn.execute(
         text(
             """
-            SELECT r.space_id, r.address
+            SELECT r.space_id, r.address, r.district_name_source
             FROM prostoriq.space_revision r
             WHERE r.source_version_id IN (
                 SELECT DISTINCT ON (source_code) source_version_id
@@ -58,19 +57,32 @@ def _spaces(conn: Connection) -> list[tuple[str, str]]:
             """
         )
     ).all()
-    return [(str(r[0]), str(r[1])) for r in rows]
+    return [(str(r[0]), str(r[1]), r[2]) for r in rows]
 
 
 def _load_index(conn: Connection, version_id: str) -> AddressIndex:
+    """Address points with the D07 district they lie in (None without D07 or on a border)."""
     rows = conn.execute(
         text(
-            "SELECT osm_type, osm_id, street, housenumber, ST_X(geom), ST_Y(geom) "
-            "FROM prostoriq.osm_address WHERE source_version_id = CAST(:v AS uuid)"
+            """
+            SELECT a.osm_type, a.osm_id, a.street, a.housenumber, ST_X(a.geom), ST_Y(a.geom),
+                   d.name
+            FROM prostoriq.osm_address a
+            LEFT JOIN LATERAL (
+                SELECT CASE WHEN count(*) = 1 THEN min(x.name) END AS name
+                FROM prostoriq.district x
+                WHERE x.source_version_id = CAST(:d07 AS uuid) AND ST_Covers(x.geom, a.geom)
+            ) d ON true
+            WHERE a.source_version_id = CAST(:v AS uuid)
+            """
         ),
-        {"v": version_id},
+        {"v": version_id, "d07": latest_valid_version(conn, "D07")},
     ).all()
     return AddressIndex(
-        [AddressPoint(r[0], int(r[1]), r[2], r[3], float(r[4]), float(r[5])) for r in rows]
+        [
+            AddressPoint(r[0], int(r[1]), r[2], r[3], float(r[4]), float(r[5]), district_key(r[6]))
+            for r in rows
+        ]
     )
 
 
@@ -96,12 +108,9 @@ def geocode_spaces(engine: Engine) -> GeocodeReport:
     report = GeocodeReport(address_version_id=version, address_points=len(index))
     now = datetime.now(UTC)
     rows = []
-    for space_id, address in spaces:
+    for space_id, address, district in spaces:
         previous = existing.get(space_id)
-        if previous and previous[0] in _PLACED:
-            report.skipped_existing += 1
-            continue
-        result: GeocodeResult = index.geocode(address)
+        result: GeocodeResult = index.geocode(address, district)
         note = f"{result.note} | adresa u popisu: {address}"
         if previous == (result.precision, note):
             report.skipped_existing += 1
@@ -170,15 +179,11 @@ def review_csv(engine: Engine) -> str:
                 SELECT r.space_id, r.address, g.precision_status, g.evidence_note
                 FROM prostoriq.space_revision r
                 LEFT JOIN (
-                    -- Best, then newest evidence per space (the table is append-only).
+                    -- Newest automatic answer per space (the table is append-only).
                     SELECT DISTINCT ON (space_id) space_id, precision_status, evidence_note
                     FROM prostoriq.geo_evidence
                     WHERE source_version_id = CAST(:v AS uuid)
-                    ORDER BY space_id,
-                        CASE precision_status WHEN 'entrance_confirmed' THEN 0
-                            WHEN 'building_approximate' THEN 1 WHEN 'needs_review' THEN 2
-                            ELSE 3 END,
-                        checked_at DESC
+                    ORDER BY space_id, checked_at DESC
                 ) g ON g.space_id = r.space_id
                 WHERE r.source_version_id IN (
                     SELECT DISTINCT ON (source_code) source_version_id

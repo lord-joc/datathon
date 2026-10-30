@@ -637,6 +637,63 @@ paths:
           - workshop
       - *id001
       - *id002
+  /api/v1/layers/{layer}:
+    get:
+      operationId: getMapLayer
+      summary: GeoJSON sloj za kartu (samo prikaz, ne ulazi u bodove)
+      description: districts vraća pojednostavljene granice D07 s točkom unutar svake četvrti
+        (label_point). Ostali slojevi su točke iz aktivnog paketa s nazivom i vrstom (kind =
+        tram, bus, kindergarten, school…). ETag i Cache-Control kao za referentne podatke.
+      tags:
+      - Public
+      x-phase: MVP
+      parameters:
+      - name: layer
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+          - districts
+          - transit
+          - parking
+          - universities
+          - culture
+          - schools
+      responses:
+        '200':
+          description: GeoJSON FeatureCollection (EPSG:4326)
+          content:
+            application/geo+json:
+              schema:
+                type: object
+                required:
+                - type
+                - features
+                properties:
+                  type:
+                    type: string
+                    enum:
+                    - FeatureCollection
+                  features:
+                    type: array
+                    items:
+                      type: object
+        '304':
+          description: Nepromijenjeno (If-None-Match)
+        '422':
+          description: Nepoznat sloj
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Podaci ili komponenta nisu spremni
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security: []
   /api/v1/sources:
     get:
       operationId: listSources
@@ -3367,6 +3424,13 @@ components:
           type: number
           minimum: 0
           maximum: 100
+        radius_m:
+          type: integer
+          enum:
+          - 500
+          - 1000
+        target_area_m2:
+          type: number
         items:
           type: array
           items:
@@ -3401,6 +3465,8 @@ components:
       - excluded_criteria
       - coverage_active
       - coverage_default_profile
+      - radius_m
+      - target_area_m2
       - items
       - created_at
       - expires_at

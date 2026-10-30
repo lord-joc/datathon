@@ -26,7 +26,7 @@ from sqlalchemy import Connection, Engine, text
 from app.pipeline.geocode import latest_valid_version
 
 REQUIRED = ("D01", "D02", "D03", "D04", "D05", "D06", "D07")
-OPTIONAL = ("D08", "D11", "D14", "D17", "D18", "D19")
+OPTIONAL = ("D08", "D11", "D12", "D14", "D17", "D18", "D19")
 RADII = (500, 1000)
 COUNT_RADIUS_M = 600
 USABLE = ("entrance_confirmed", "building_approximate")
@@ -135,6 +135,7 @@ def build_bundle(engine: Engine, label: str | None = None) -> BundleReport:
             "d07": versions["D07"],
             "d08": versions.get("D08"),
             "d11": versions.get("D11"),
+            "d12": versions.get("D12"),
             "d14": versions.get("D14"),
             "d17": versions.get("D17"),
             "d18": versions.get("D18"),
@@ -160,6 +161,7 @@ def build_bundle(engine: Engine, label: str | None = None) -> BundleReport:
             return BundleReport(bundle_id, "rejected", True, report)
 
         _insert_bundle_spaces(conn, params)
+        _insert_bundle_status(conn, params)
         _insert_metrics(conn, params)
         report = _validation_report(conn, params, versions)
         _finish(conn, bundle_id, "valid", report)
@@ -371,6 +373,28 @@ def _insert_metrics(conn: Connection, p: dict[str, Any]) -> None:
         conn.execute(text(sql), p)
 
 
+def _insert_bundle_status(conn: Connection, p: dict[str, Any]) -> None:
+    """D12: the newest tender reading per space and profile in this bundle."""
+    if p["d12"] is None:
+        return
+    conn.execute(
+        text(
+            """
+            INSERT INTO prostoriq.bundle_status (dataset_bundle_id, space_id, profile_code,
+                assessment_id)
+            SELECT DISTINCT ON (a.space_id, a.profile_code)
+                   CAST(:b AS uuid), a.space_id, a.profile_code, a.assessment_id
+            FROM prostoriq.status_assessment a
+            JOIN prostoriq.bundle_space bs
+              ON bs.dataset_bundle_id = CAST(:b AS uuid) AND bs.space_id = a.space_id
+            WHERE a.source_version_id = CAST(:d12 AS uuid)
+            ORDER BY a.space_id, a.profile_code, a.checked_at DESC, a.assessment_id
+            """
+        ),
+        p,
+    )
+
+
 def _validation_report(
     conn: Connection, p: dict[str, Any], versions: dict[str, str]
 ) -> dict[str, Any]:
@@ -405,9 +429,17 @@ def _validation_report(
         ),
         p,
     ).all()
+    priced = conn.execute(
+        text(
+            "SELECT count(DISTINCT st.space_id) FROM prostoriq.bundle_status st "
+            "JOIN prostoriq.status_assessment a ON a.assessment_id = st.assessment_id "
+            "WHERE st.dataset_bundle_id = CAST(:b AS uuid) AND a.monthly_total_eur IS NOT NULL"
+        ),
+        p,
+    ).scalar_one()
     return {
         "versions": versions,
-        "spaces": {"total": total, "by_inventory": by_kind},
+        "spaces": {"total": total, "by_inventory": by_kind, "with_tender_rent": int(priced)},
         "location": {
             "by_precision": by_precision,
             "usable": located,

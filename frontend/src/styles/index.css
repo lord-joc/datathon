@@ -54,3 +54,104 @@
     @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
   }
 }
+
+/* Range slider (step 2): large thumb for thumbs and keyboards. */
+@layer components {
+  .range {
+    @apply h-11 w-full cursor-pointer appearance-none bg-transparent;
+  }
+  .range::-webkit-slider-runnable-track {
+    @apply h-1.5 rounded-full bg-surface-2;
+  }
+  .range::-moz-range-track {
+    @apply h-1.5 rounded-full bg-surface-2;
+  }
+  .range::-webkit-slider-thumb {
+    @apply -mt-[9px] h-6 w-6 appearance-none rounded-full border-2 border-bg bg-accent;
+  }
+  .range::-moz-range-thumb {
+    @apply h-6 w-6 rounded-full border-2 border-bg bg-accent;
+  }
+}
+
+/* Map markers: rank in a circle. Hollow ring = approximate building, dashed = district only. */
+.map-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid rgb(var(--text-muted));
+  background: rgb(var(--surface));
+  color: rgb(var(--text));
+  font:
+    600 12px/1 Inter,
+    system-ui,
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.map-marker::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+.map-marker--entrance {
+  background: rgb(var(--text-muted));
+  color: rgb(var(--bg));
+}
+.map-marker--district {
+  border-style: dashed;
+  border-color: rgb(var(--text-subtle));
+  background: rgb(var(--bg) / 0.6);
+  color: rgb(var(--text-muted));
+}
+.map-marker:hover,
+.map-marker:focus-visible {
+  transform: scale(1.12);
+  z-index: 3;
+}
+.map-marker.is-selected {
+  z-index: 4;
+  border-color: rgb(var(--accent));
+  background: rgb(var(--accent));
+  color: rgb(var(--bg));
+  transform: scale(1.18);
+}
+.map-far .map-marker:not(.is-selected) {
+  width: 12px;
+  height: 12px;
+  font-size: 0;
+}
+
+/* MapLibre controls in the dark theme. */
+.space-map .maplibregl-ctrl-group {
+  background: rgb(var(--surface));
+  border: 1px solid rgb(var(--border));
+  box-shadow: none;
+}
+.space-map .maplibregl-ctrl-group button {
+  width: 36px;
+  height: 36px;
+}
+.space-map .maplibregl-ctrl-group button + button {
+  border-top: 1px solid rgb(var(--border));
+}
+.space-map .maplibregl-ctrl-icon {
+  filter: invert(0.85);
+}
+.space-map .maplibregl-ctrl-attrib {
+  background: rgb(var(--bg) / 0.85);
+  color: rgb(var(--text-muted));
+  font-size: 11px;
+}
+.space-map .maplibregl-ctrl-attrib a {
+  color: rgb(var(--accent));
+}
+.space-map .maplibregl-cooperative-gesture-screen {
+  background: rgb(var(--bg) / 0.75);
+  color: rgb(var(--text));
+  font-size: 14px;
+}

@@ -105,6 +105,8 @@ services:
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+      # Basemap extract (see README "Podloga karte"); the map falls back to districts without it.
+      - ./data/basemap:/srv/tiles:ro
 
 volumes:
   pg_data:

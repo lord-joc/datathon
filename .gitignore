@@ -26,6 +26,8 @@ data/manual/*
 !data/manual/.gitkeep
 data/staging/
 data/model/
+data/basemap/*
+!data/basemap/.gitkeep
 *.osm.pbf
 *.pmtiles
 

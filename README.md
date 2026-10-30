@@ -2,14 +2,16 @@
 
 Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u Zagrebu na temelju otvorenih podataka (data.gov.hr, Geoportal Grada Zagreba, OpenStreetMap). Datathon Portala otvorenih podataka 2026, izazov C.
 
-**Stanje:** isječak 4.
+**Stanje:** isječak 5.
 
 - **Isječak 1:** Docker okruženje, baza, API skelet i prvi korak Vodiča.
 - **Isječak 2:** uvoz otvorenih podataka. D01/D02 dolaze preko CKAN API-ja data.gov.hr, uz prostorne slojeve D03–D07 te autobusna stajališta, vrtiće i škole (D14, D17, D18).
 - **Isječak 3:** geokodiranje prostora (OSM adrese D19, timska provjera D11), konkurencija (D08), sirove prostorne metrike i paket podataka.
 - **Isječak 4:** rangiranje kao čista funkcija (7 profila, zajednički kriteriji, potvrda nove osnove usporedbe) i javni API: profili, četvrti, prostori, detalj, izračun i izvori.
 
-Sljedeći je isječak 5 (frontend s kartom). Odluke su u [`docs/adr/`](docs/adr/README.md).
+- **Isječak 5:** sučelje: Vodič u četiri koraka (živi brojač, razine važnosti, dijalog 409), rezultati s kartom MapLibre, detalj prostora, usporedba do 3 prostora i izvori. Filtri su u URL-u, a pristupni ključ izračuna samo u `sessionStorage`.
+
+Sljedeći je isječak 6 (OSM konkurencija i AI). Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
 
@@ -155,6 +157,26 @@ docker compose run --rm cli python -m app.cli import-coordinates --file /app/man
 
 Ponovno geokodiranje provjerava sve prostore i zapisuje novi redak samo kad se rezultat promijeni. Najnoviji rezultat iste verzije D19 zamjenjuje stariji, pa ispravak uparivanja ispravlja i krivu točku. Ako se ista adresa nalazi na mjestima udaljenima više od 500 m (npr. dvije Ulice Slavka Kolara), odlučuje četvrt iz popisa. Ako ona ne može odlučiti, prostor ide na ručnu provjeru.
 
+**2a. Zakupnine iz natječaja Grada (D12, neobavezno):**
+
+```cmd
+docker compose run --rm -T cli python -m app.cli tender-template > data\manual\d12.csv
+```
+
+Predložak ima jedan redak po prostoru iz popisa (D01). Adresa, četvrt i površina na kraju retka služe samo za snalaženje. Za prostor koji je u natječaju na zagreb.hr upiši:
+- `monthly_rent_eur`: početni mjesečni iznos zakupnine iz natječaja, npr. `1.250,00`. Ako ga natječaj ne navodi, ostavi prazno. Nikad ne upisuj procjenu.
+- `tender_url`: https poveznica na natječaj na zagreb.hr (drugi hostovi se odbijaju),
+- `checked_at`: kad je natječaj pročitan, npr. `30.10.2026.`,
+- neobavezno: `profile` (prazno znači sve djelatnosti), `tender_active`, `physical_vacancy`, `activity_allowed`, `technical_suitable` (`da`/`ne`/`nepoznato`) i `evidence_note`.
+
+Neispunjeni redci se preskaču. Upisani `da` vrijedi 7 dana od `checked_at`.
+
+```cmd
+docker compose run --rm cli python -m app.cli import-tenders --file /app/manual/d12.csv
+```
+
+Zakupnina se ne boduje (ADR20). Prikazuje se uz poveznicu na natječaj i uspoređuje s budžetom korisnika. Nakon uvoza napravi novi paket (korak 3).
+
 **3. Paket i aktivacija:**
 
 ```cmd
@@ -163,7 +185,7 @@ docker compose run --rm cli python -m app.cli bundle-activate
 docker compose run --rm cli python -m app.cli bundles
 ```
 
-`bundle-build` (opcionalno `--label "opis"`) uzima zadnju valjanu verziju svakog izvora. Dodjeljuje gradsku četvrt: točkom u poligonu, a inače po nazivu iz popisa. Zatim računa sirove metrike za radijuse 500 i 1000 m: udaljenost do stajališta javnog prijevoza (tramvaj D03 i autobus D14) i do parkinga, broj fakulteta, kulturnih ustanova te škola i vrtića (D17 + D18) u 600 m, površinu i položaj. Udaljenosti su zračne. Konkurencija se broji, ali ne boduje dok pokrivenost OSM-a nije pregledana. Trošak je „nije dostupno”, nikad 0 EUR. Isti skup verzija izvora i odabranih dokaza o lokaciji ne stvara novi paket. Novo geokodiranje ili D11 stvaraju novi paket. `bundle-activate` aktivira najnoviji valjani paket, a `--id <uuid>` određeni paket. Aktivacija je atomska i bilježi se u `audit_event`. Nakon nje `/api/v1/status` javlja `dataset_ready: true`. Povratak na raniji paket: `bundle-activate --id <uuid>` (popis daje `bundles`).
+`bundle-build` (opcionalno `--label "opis"`) uzima zadnju valjanu verziju svakog izvora. Dodjeljuje gradsku četvrt: točkom u poligonu, a inače po nazivu iz popisa. Zatim računa sirove metrike za radijuse 500 i 1000 m: udaljenost do stajališta javnog prijevoza (tramvaj D03 i autobus D14) i do parkinga, broj fakulteta, kulturnih ustanova te škola i vrtića (D17 + D18) u 600 m, površinu i položaj. Udaljenosti su zračne. Konkurencija se broji, ali ne boduje dok pokrivenost OSM-a nije pregledana. Trošak je zakupnina iz D12 ako je upisana, a inače „nije dostupno”, nikad 0 EUR. Isti skup verzija izvora i odabranih dokaza o lokaciji ne stvara novi paket. Novo geokodiranje ili D11 stvaraju novi paket. `bundle-activate` aktivira najnoviji valjani paket, a `--id <uuid>` određeni paket. Aktivacija je atomska i bilježi se u `audit_event`. Nakon nje `/api/v1/status` javlja `dataset_ready: true`. Povratak na raniji paket: `bundle-activate --id <uuid>` (popis daje `bundles`).
 
 ## Rangiranje i javni API
 
@@ -177,6 +199,7 @@ Formule su u `backend/app/ranking/` (čista funkcija, bez baze), težine u `conf
 | `GET /api/v1/spaces/{id}?profile=cafe&radius_m=500` | detalj s metrikama, izvorima i razlozima kad vrijednost nedostaje |
 | `POST /api/v1/rankings` | novi nepromjenjiv izračun (do 500 prostora): `201` + `access_token`, `409`, `422` |
 | `GET /api/v1/rankings/{id}` | spremljeni izračun, uz zaglavlje `X-Ranking-Token` |
+| `GET /api/v1/layers/{layer}` | GeoJSON za kartu: `districts`, `transit`, `parking`, `universities`, `culture`, `schools` (samo prikaz) |
 | `GET /api/v1/sources` | izvori, licence, datumi i ograničenja |
 
 Kad kriterij nedostaje samo dijelu prostora, `POST /rankings` vraća `409 COMPARISON_BASIS_CHANGED`, s popisom što nedostaje i potpisanim tokenom. Klijent ponavlja zahtjev s `comparison_basis_token` i `basis_choice`: `common_criteria` (svi prostori, manja pokrivenost) ili `remove_incomplete` (bez nepotpunih). Token vrijedi 10 minuta i samo za taj zahtjev. Interaktivna dokumentacija je na http://localhost:8000/api/docs (samo lokalno).
@@ -192,6 +215,29 @@ npm run dev
 ```
 
 Otvori http://localhost:5173. Zahtjevi na `/api` idu na API na portu 8000.
+
+Stranice sučelja:
+
+| Put | Što prikazuje |
+|---|---|
+| `/` | Vodič: djelatnost → prostor → prioriteti → rezultati. Postavke su u URL-u (`?djelatnost=cafe&m2=60&cetvrti=…`). |
+| `/rezultati/{id}` | spremljeni izračun: skupine Spremno i Potrebna provjera, traka doprinosa, karta i slojevi |
+| `/rezultati/{id}/usporedba?prostori=a,b,c` | do 3 prostora iz istog izračuna |
+| `/prostor/{id}?djelatnost=cafe` | detalj: obrazloženje, četiri uvjeta, okolina, lokacija, popis za provjeru |
+| `/izvori` | izvori, licence i datumi |
+
+### Podloga karte
+
+Karta koristi Protomaps izvadak za Zagreb (vektorske pločice iz OpenStreetMapa, ODbL), poslužen s istog servera. Izvadak nije u gitu. Preuzmi ga jednom (desetci MB):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scriptsetch-basemap.ps1
+docker compose up -d web
+```
+
+Skripta preuzima službeni alat `pmtiles` (go-pmtiles) i iz najnovijeg dnevnog builda čita samo područje Zagreba. Bez izvatka karta prikazuje samo granice četvrti.
+
+Spremljeni izračun otvara se samo u kartici u kojoj je napravljen, jer je pristupni ključ u `sessionStorage`. Prostor bez poznate lokacije prikazuje se isprekidano unutar svoje četvrti i ne ulazi u udaljenosti ([ADR20](docs/adr/ADR20-priblizna-lokacija-i-karta.md)).
 
 ## Provjere prije commita
 

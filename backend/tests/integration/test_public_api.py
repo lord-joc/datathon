@@ -6,6 +6,7 @@ routes through FastAPI. The API role can read and insert ranking snapshots, noth
 
 import uuid
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -17,8 +18,10 @@ from app.api.v1 import presenters, public, rankings, system
 from app.main import create_app
 from app.pipeline.bundle import activate_bundle, build_bundle
 from app.pipeline.geocode import geocode_spaces
+from app.pipeline.importer import Importer
 from app.pipeline.profiles import sync_profiles
-from tests.integration.support import URL
+from tests import fixtures as fx
+from tests.integration.support import URL, import_ok, write_file
 
 pytestmark = [
     pytest.mark.integration,
@@ -288,3 +291,53 @@ def test_stored_ranking_survives_a_new_bundle(client: TestClient, imported: Engi
         json={**_request(client, ["4763"]), "dataset_bundle_id": body["dataset_bundle_id"]},
     )
     assert stale.status_code == 409
+
+
+def test_map_layers_are_geojson_with_etag(client: TestClient) -> None:
+    districts = client.get("/api/v1/layers/districts")
+    assert districts.status_code == 200
+    assert districts.headers["content-type"].startswith("application/geo+json")
+    body = districts.json()
+    assert body["type"] == "FeatureCollection"
+    assert body["features"], "fixture bundle has D07 districts"
+    first = body["features"][0]
+    assert first["geometry"]["type"] in {"Polygon", "MultiPolygon"}
+    assert len(first["properties"]["label_point"]) == 2
+
+    again = client.get(
+        "/api/v1/layers/districts", headers={"If-None-Match": districts.headers["etag"]}
+    )
+    assert again.status_code == 304
+
+    transit = client.get("/api/v1/layers/transit").json()
+    assert {f["properties"]["kind"] for f in transit["features"]} <= {"tram", "bus"}
+    assert client.get("/api/v1/layers/roads").status_code == 422
+
+
+def test_d12_tender_rent_reaches_the_cost_metric_but_is_never_scored(
+    client: TestClient, imported: Engine, tmp_path: Path
+) -> None:
+    url = "https://www.zagreb.hr/natjecaj-za-zakup/1234"
+    d12 = (
+        "space_id;monthly_rent_eur;tender_url;checked_at;profile;tender_active;evidence_note\n"
+        f"4763;1.250,00;{url};2026-10-27;;da;Natječaj objavljen 17.02.2025., R.br. 27\n"
+        "4010;;;;;;\n"
+    ).encode()
+    imp = Importer(imported, fx.registry(), tmp_path / "raw")
+    import_ok(imp, "D12", write_file(tmp_path, "d12.csv", d12))
+    built = build_bundle(imported, "with-tenders")
+    assert built.report["spaces"]["with_tender_rent"] == 1
+    activate_bundle(imported, built.bundle_id)
+
+    cost = client.get("/api/v1/spaces/4763", params={"profile": "cafe"}).json()["metrics"]["cost"]
+    assert (cost["value"], cost["unit"], cost["reason"]) == (1250.0, "eur_month", None)
+    assert cost["detail"]["tender_url"] == url
+    assert cost["detail"]["note"] == "Natječaj objavljen 17.02.2025., R.br. 27"
+    assert cost["source_version_ids"]
+    other = client.get("/api/v1/spaces/4010", params={"profile": "office"}).json()
+    assert other["metrics"]["cost"]["reason"] == "cost_not_configured"
+
+    ranked = client.post("/api/v1/rankings", json=_request(client, ["4763", "4010"]))
+    assert ranked.status_code == 201, ranked.json()
+    for item in ranked.json()["items"]:
+        assert "cost" not in item["contributions"]

@@ -9,6 +9,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 CONDITIONS = ("physical_vacancy", "tender_active", "activity_allowed", "technical_suitable")
@@ -36,6 +37,11 @@ class Assessment:
     valid_until: datetime | None = None
     evidence_url: str | None = None
     tender_url: str | None = None
+    # D12: starting monthly rent stated in the tender (EUR); shown and compared, never scored.
+    monthly_rent_eur: Decimal | None = None
+    source_version_id: str | None = None
+    # The team's note on the tender (title, publication date, item number).
+    cost_note: str | None = None
 
 
 def evaluate(

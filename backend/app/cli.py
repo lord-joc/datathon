@@ -16,6 +16,8 @@ Commands
   import-coordinates --file F   D11 team-checked coordinates (CSV)
   geocode                 match D01/D02 addresses to D19 address points
   geocode-review          D11 template (';' CSV with BOM on stdout) for a manual check
+  tender-template         D12 template: every D01 space, to fill rents from city tenders
+  import-tenders --file F D12 rents and conditions read from zagreb.hr tenders (CSV)
   bundle-build [--label]  build and validate a dataset bundle with spatial metrics
   bundle-activate [--id]  make a valid bundle the active one (default: newest valid)
   bundles                 list bundles and the active one
@@ -41,6 +43,7 @@ from app.pipeline.geocode import geocode_spaces, review_csv
 from app.pipeline.importer import ImportBusyError, Importer, ImportOutcome, sync_sources
 from app.pipeline.profiles import ProfileVersionError, sync_profiles
 from app.pipeline.review import ReviewError, pending_reviews, review_import
+from app.pipeline.tenders import tender_template_csv
 from app.ranking.config import load_profiles
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
@@ -243,6 +246,21 @@ def cmd_import_coordinates(args: argparse.Namespace) -> int:
     return 0 if outcome.status in {"succeeded", "awaiting_review"} else 1
 
 
+def cmd_import_tenders(args: argparse.Namespace) -> int:
+    outcome = _local_import("D12", args.file, args.key)
+    if outcome is None:
+        return 1
+    _print_outcome(outcome)
+    if outcome.status == "succeeded":
+        print("Zatim: bundle-build pa bundle-activate, da cijene vidi aplikacija.")
+    return 0 if outcome.status in {"succeeded", "awaiting_review"} else 1
+
+
+def cmd_tender_template(_: argparse.Namespace) -> int:
+    sys.stdout.write("﻿" + tender_template_csv(_pipeline_engine()))
+    return 0
+
+
 def cmd_geocode(_: argparse.Namespace) -> int:
     try:
         report = geocode_spaces(_pipeline_engine())
@@ -415,6 +433,13 @@ def main(argv: list[str] | None = None) -> int:
     coords.add_argument("--file", required=True)
     coords.add_argument("--key")
     coords.set_defaults(func=cmd_import_coordinates)
+    tenders = sub.add_parser("import-tenders", help="Uvezi D12 zakupnine iz natječaja")
+    tenders.add_argument("--file", required=True)
+    tenders.add_argument("--key")
+    tenders.set_defaults(func=cmd_import_tenders)
+    sub.add_parser("tender-template", help="D12 predložak za upis zakupnina").set_defaults(
+        func=cmd_tender_template
+    )
     sub.add_parser("geocode", help="Geokodiraj prostore na D19").set_defaults(func=cmd_geocode)
     sub.add_parser("geocode-review", help="D11 predložak za ručnu provjeru").set_defaults(
         func=cmd_geocode_review

@@ -1,6 +1,7 @@
-"""Public read endpoints: profiles, districts, spaces, sources (active bundle only)."""
+"""Public read endpoints: profiles, districts, spaces, map layers, sources (active bundle only)."""
 
 import hashlib
+import json
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 from uuid import UUID
@@ -36,6 +37,10 @@ _LIMITATIONS = {
     "D02": ["Neuvjetni prostori nikad nisu u poretku."],
     "D08": ["Evidentirani objekti u OSM-u; popis možda nije potpun."],
     "D11": ["Ručna provjera tima; dio točaka je procjena na razini zgrade."],
+    "D12": [
+        "Početna zakupnina iz natječaja nije konačan ukupni trošak i ne boduje se.",
+        "Upisano je samo ono što tim pročita u natječaju na zagreb.hr.",
+    ],
     "D19": ["OSM adrese: točnost je razina zgrade, a ne ulaza."],
 }
 
@@ -195,6 +200,31 @@ def get_space(
         attribution=list(dict.fromkeys(attribution)),
         context_count=0,
     )
+
+
+LayerName = Literal["districts", "transit", "parking", "universities", "culture", "schools"]
+
+
+@router.get(
+    "/layers/{layer}",
+    summary="GeoJSON sloj za kartu",
+    responses={200: {"content": {"application/geo+json": {}}}},
+)
+def get_layer(request: Request, layer: LayerName) -> Response:
+    """Display only: district outlines (with a point inside each) or reference points."""
+    with get_engine().connect() as conn:
+        bundle = p.require_active(conn)
+        data = (
+            q.district_layer(conn, bundle)
+            if layer == "districts"
+            else q.point_layer(conn, bundle, layer)
+        )
+    body = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode()
+    etag = '"' + hashlib.sha256(body).hexdigest()[:32] + '"'
+    headers = {"ETag": etag, "Cache-Control": _REFERENCE_CACHE}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(body, media_type="application/geo+json", headers=headers)
 
 
 @router.get("/sources", response_model=SourceList, summary="Izvori, licence i datumi")

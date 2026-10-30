@@ -272,6 +272,8 @@ def create_ranking(body: RankingRequest) -> RankingResponse:
         expires_at=run["expires_at"],
         historical=False,
         token=token,
+        radius_m=body.radius_m,
+        target_area_m2=target,
     )
 
 
@@ -310,6 +312,8 @@ def get_ranking(
         expires_at=run["expires_at"],
         historical=active is None or active.bundle_id != run["bundle"],
         token=None,
+        radius_m=int(run["config_snapshot"]["radius_m"]),
+        target_area_m2=Decimal(str(run["config_snapshot"]["target_area_m2"])),
     )
 
 
@@ -331,6 +335,8 @@ def _response(
     expires_at: datetime,
     historical: bool,
     token: str | None,
+    radius_m: int,
+    target_area_m2: Decimal,
 ) -> RankingResponse:
     warnings = [p.TRUTH_BANNER, p.AIR_DISTANCE]
     if historical:
@@ -351,6 +357,8 @@ def _response(
             "excluded_criteria": excluded,
             "coverage_active": float(coverage_active),
             "coverage_default_profile": float(coverage_default),
+            "radius_m": radius_m,
+            "target_area_m2": float(target_area_m2),
             "items": [
                 {**i, "score": float(i["score"]) if i["score"] is not None else None} for i in items
             ],

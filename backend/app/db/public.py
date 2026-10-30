@@ -80,7 +80,9 @@ _SPACES = """
            g.checked_at AS geo_checked_at,
            a.assessment_id IS NOT NULL AS assessed, a.physical_vacancy, a.tender_active,
            a.activity_allowed, a.technical_suitable, a.checked_at, a.valid_until,
-           a.evidence_url, a.tender_url
+           a.evidence_url, a.tender_url, a.monthly_total_eur,
+           a.source_version_id::text AS assessment_version_id,
+           a.cost_evidence->>'note' AS cost_note
     FROM prostoriq.bundle_space bs
     JOIN prostoriq.space_revision r ON r.space_revision_id = bs.space_revision_id
     JOIN prostoriq.source_version sv ON sv.source_version_id = r.source_version_id
@@ -133,6 +135,9 @@ def load_spaces(
                     r["valid_until"],
                     r["evidence_url"],
                     r["tender_url"],
+                    r["monthly_total_eur"],
+                    r["assessment_version_id"],
+                    r["cost_note"],
                 )
                 if r["assessed"]
                 else None
@@ -308,3 +313,63 @@ def get_ranking(
         .all()
     )
     return dict(run), [dict(i) for i in items]
+
+
+# Point layers for the map: layer name -> spatial_feature category.
+LAYER_CATEGORIES = {
+    "transit": "transit",
+    "parking": "parking",
+    "universities": "university",
+    "culture": "culture",
+    "schools": "school",
+}
+# Display kind per source, so the map can draw tram and bus stops differently.
+_KIND = {"D03": "tram", "D14": "bus", "D17": "kindergarten", "D18": "school"}
+
+
+def district_layer(conn: Connection, bundle: ActiveBundle) -> dict[str, Any]:
+    """D07 outlines simplified to ~10 m, plus a point inside each (label, district-only spaces)."""
+    row = conn.execute(
+        text(
+            """
+            SELECT json_build_object('type', 'FeatureCollection', 'features',
+                   COALESCE(json_agg(json_build_object(
+                       'type', 'Feature', 'id', district_id,
+                       'geometry', ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom, 0.0001), 5)::json,
+                       'properties', json_build_object(
+                           'district_id', district_id, 'name', name,
+                           'label_point', json_build_array(
+                               round(ST_X(ST_PointOnSurface(geom))::numeric, 5),
+                               round(ST_Y(ST_PointOnSurface(geom))::numeric, 5)))
+                   ) ORDER BY name), '[]'::json))
+            FROM prostoriq.district WHERE source_version_id = CAST(:v AS uuid)
+            """
+        ),
+        {"v": bundle.versions.get("D07")},
+    ).scalar_one()
+    return dict(row)
+
+
+def point_layer(conn: Connection, bundle: ActiveBundle, layer: str) -> dict[str, Any]:
+    kinds = canonical(_KIND)
+    row = conn.execute(
+        text(
+            """
+            SELECT json_build_object('type', 'FeatureCollection', 'features',
+                   COALESCE(json_agg(json_build_object(
+                       'type', 'Feature',
+                       'geometry', ST_AsGeoJSON(f.geom, 5)::json,
+                       'properties', json_build_object(
+                           'name', f.name,
+                           'kind', COALESCE(f.properties->>'mode',
+                                            CAST(:kinds AS jsonb)->>b.source_code, f.category),
+                           'source_code', b.source_code)
+                   ) ORDER BY f.feature_key), '[]'::json))
+            FROM prostoriq.spatial_feature f
+            JOIN prostoriq.bundle_source b ON b.source_version_id = f.source_version_id
+            WHERE b.dataset_bundle_id = CAST(:b AS uuid) AND f.category = :c
+            """
+        ),
+        {"b": bundle.bundle_id, "c": LAYER_CATEGORIES[layer], "kinds": kinds},
+    ).scalar_one()
+    return dict(row)

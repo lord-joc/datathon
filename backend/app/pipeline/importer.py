@@ -32,6 +32,8 @@ from app.adapters.osm import OsmExtract, as_parse_result, extract_osm, extract_t
 from app.adapters.parsing import ParseIssue, ParseResult
 from app.adapters.registry import Registry, SourceSpec
 from app.adapters.spaces_csv import parse_spaces_csv
+from app.adapters.tender_csv import CONDITIONS as _CONDITIONS
+from app.adapters.tender_csv import COST_DEFINITION, parse_tender_csv
 
 logger = logging.getLogger("app.pipeline")
 
@@ -44,6 +46,7 @@ _EXT = {
     "osm_competitors": "osm.pbf",
     "osm_addresses": "osm.pbf",
     "coordinates_csv": "csv",
+    "tender_csv": "csv",
 }
 _OSM_KINDS = {"osm_competitors", "osm_addresses"}
 # One PBF feeds two sources (D08, D19); parse it once per process and content hash.
@@ -143,6 +146,8 @@ def _parse(spec: SourceSpec, content: bytes, raw_path: Path, sha: str) -> ParseR
         return as_parse_result(_OSM_CACHE[sha], spec.kind)
     if spec.kind == "coordinates_csv":
         return parse_coordinates_csv(content, spec)
+    if spec.kind == "tender_csv":
+        return parse_tender_csv(content, spec)
     if spec.kind == "spaces_csv":
         return parse_spaces_csv(content, spec)
     if spec.kind == "geojson_points":
@@ -544,6 +549,9 @@ class Importer:
         if spec.kind == "coordinates_csv":
             self._insert_coordinates(conn, version_id, parsed.records)
             return
+        if spec.kind == "tender_csv":
+            self._insert_assessments(conn, version_id, parsed.records)
+            return
         for rec in parsed.records:
             natural_key = rec.get("space_id") or rec.get("feature_key") or rec.get("district_id")
             record_id = conn.execute(
@@ -737,5 +745,56 @@ class Importer:
                     "url": r["evidence_url"],
                     "note": r["evidence_note"],
                     "at": r["checked_at"],
+                },
+            )
+
+    @staticmethod
+    def _insert_assessments(
+        conn: Connection, version_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        """D12: one status_assessment per space and profile. A 'yes' is valid for 168 hours."""
+        for r in records:
+            conn.execute(
+                text("INSERT INTO prostoriq.space (space_id) VALUES (:id) ON CONFLICT DO NOTHING"),
+                {"id": r["space_id"]},
+            )
+            has_yes = any(r[c] == "yes" for c in _CONDITIONS)
+            rent = r["monthly_rent_eur"]
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO prostoriq.status_assessment (space_id, source_version_id,
+                        profile_code, physical_vacancy, tender_active, activity_allowed,
+                        technical_suitable, tender_url, evidence_url, checked_at,
+                        monthly_total_eur, valid_until, cost_definition_version, cost_evidence)
+                    VALUES (:id, CAST(:v AS uuid), :p, :pv, :ta, :aa, :ts, :url, :url, :at,
+                        :rent,
+                        CASE WHEN :yes THEN CAST(:at AS timestamptz) + interval '168 hours' END,
+                        :def, CAST(:ev AS jsonb))
+                    """
+                ),
+                {
+                    "id": r["space_id"],
+                    "v": version_id,
+                    "p": r["profile"],
+                    "pv": r["physical_vacancy"],
+                    "ta": r["tender_active"],
+                    "aa": r["activity_allowed"],
+                    "ts": r["technical_suitable"],
+                    "url": r["tender_url"],
+                    "at": r["checked_at"],
+                    "rent": rent,
+                    "yes": has_yes,
+                    "def": COST_DEFINITION if rent is not None else None,
+                    "ev": _canonical(
+                        {
+                            "source": "D12",
+                            "basis": "početni mjesečni iznos zakupnine iz natječaja",
+                            "tender_url": r["tender_url"],
+                            "note": r["evidence_note"],
+                        }
+                    )
+                    if rent is not None
+                    else None,
                 },
             )

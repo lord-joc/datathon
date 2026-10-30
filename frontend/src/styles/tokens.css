@@ -17,16 +17,21 @@
   --danger: 240 113 103; /* #F07167 */
   --ok: 108 203 143; /* #6CCB8F */
 
-  /* Contribution bar: one shade per criterion, blue to grey, never a rainbow. */
-  --crit-transit: #7cc4fa;
-  --crit-area: #58a9e8;
-  --crit-street: #3d8fd1;
-  --crit-universities: #a9d6f7;
-  --crit-culture: #8aa6c1;
-  --crit-schools: #6f8aa6;
-  --crit-parking: #56708c;
-  --crit-competition: #3f5670;
-  --crit-cost: #2c3846;
+  /*
+   * Criterion colours (team decision ADR20, replaces the blue-grey bar of §7.2): eight hues in a
+   * fixed order, validated for colour-vision deficiency on the dark surface #12151A (adjacent
+   * CVD ΔE ≥ 8.4, contrast ≥ 3:1). The same criterion has the same colour everywhere; labels
+   * and legends always name it, so identity is never colour alone. Cost is never scored: grey.
+   */
+  --crit-transit: #3987e5;
+  --crit-universities: #d95926;
+  --crit-culture: #199e70;
+  --crit-parking: #c98500;
+  --crit-schools: #d55181;
+  --crit-area: #008300;
+  --crit-street: #9085e9;
+  --crit-competition: #e66767;
+  --crit-cost: #6b7584;
 
   --radius-card: 12px;
   --focus-ring: 0 0 0 2px rgb(var(--bg)), 0 0 0 4px rgb(var(--accent));

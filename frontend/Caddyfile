@@ -9,7 +9,9 @@
 }
 
 {$SITE_ADDRESS::80} {
-	encode zstd gzip
+	# The basemap is already compressed and is read with HTTP range requests: never re-encode it.
+	@compressible not path /tiles/*
+	encode @compressible zstd gzip
 
 	header {
 		# Master prompt §8. MapLibre needs blob: workers and data:/blob: images (sprites, icons);
@@ -28,6 +30,13 @@
 	# HSTS only when served over HTTPS (production domain).
 	@https protocol https
 	header @https Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+	# Protomaps PMTiles extract for Zagreb (mounted from data/basemap, not in the image).
+	handle /tiles/* {
+		root * /srv
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
 
 	handle /api/* {
 		reverse_proxy api:8000 {

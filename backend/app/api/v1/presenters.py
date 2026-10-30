@@ -67,6 +67,22 @@ def metric_out(
     bundle: ActiveBundle,
     other_position_utility: Decimal,
 ) -> dict[str, Any]:
+    rent = space.assessment.monthly_rent_eur if space.assessment else None
+    if criterion == "cost" and rent is not None and space.assessment is not None:
+        # The tender's own figure (D12). Displayed and compared with a budget, never scored.
+        a = space.assessment
+        return {
+            "value": float(rent),
+            "unit": "eur_month",
+            "reason": None,
+            "source_version_ids": [a.source_version_id] if a.source_version_id else [],
+            "detail": {
+                "basis": "tender_start_monthly",
+                "tender_url": a.tender_url,
+                "checked_at": a.checked_at.isoformat() if a.checked_at else None,
+                "note": a.cost_note,
+            },
+        }
     if row is None:
         return {
             "value": None,

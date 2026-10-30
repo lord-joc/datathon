@@ -194,6 +194,8 @@ class RankingResponse(Strict):
     excluded_criteria: list[ExcludedCriterion]
     coverage_active: float
     coverage_default_profile: float
+    radius_m: Literal[500, 1000]
+    target_area_m2: float
     items: list[RankingItem]
     created_at: datetime
     expires_at: datetime

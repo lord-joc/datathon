@@ -2,15 +2,20 @@
 
 import hashlib
 import json
+import math
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Path, Query, Request, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 
+from app.ai.tags import TAG_LABELS
 from app.api.v1 import presenters as p
 from app.api.v1.schemas import (
+    CompetitionResponse,
+    Competitor,
+    DescriptionTag,
     District,
     DistrictList,
     Metric,
@@ -29,6 +34,10 @@ from app.db.engine import get_engine
 from app.ranking.config import CRITERIA
 
 router = APIRouter(tags=["public"])
+
+# Query values arrive as text and Pydantic v2 does not coerce "500" into Literal[500]. Note: int("x")
+# raises ValueError, which FastAPI reports as 422 like any other invalid value.
+RadiusQuery = Annotated[Literal[500, 1000], BeforeValidator(int)]
 
 _REFERENCE_CACHE = "public, max-age=300"
 # Known, stable limitations shown on the Sources screen.
@@ -170,7 +179,7 @@ def get_space(
     space_id: Annotated[str, Path(pattern=r"^[0-9]{1,12}$")],
     profile: ProfileCode,
     dataset_bundle_id: UUID | None = None,
-    radius_m: Literal[500, 1000] = 500,
+    radius_m: RadiusQuery = 500,
 ) -> SpaceDetail:
     now = datetime.now(UTC)
     with get_engine().connect() as conn:
@@ -181,6 +190,7 @@ def get_space(
             raise ProblemError(404, "NOT_FOUND", "Prostor nije u aktivnom paketu.")
         metrics = q.load_metrics(conn, bundle.bundle_id, radius_m, [space_id]).get(space_id, {})
         source_rows = q.sources(conn, bundle)
+        approved_tags, pending_tags = q.description_tags(conn, bundle.bundle_id, space_id)
     space = rows[0]
     other = p.profiles().constants.other_position_utility
     attribution = sorted(
@@ -199,6 +209,101 @@ def get_space(
         source_versions={k: UUID(v) for k, v in bundle.versions.items()},
         attribution=list(dict.fromkeys(attribution)),
         context_count=0,
+        description_tags=[
+            DescriptionTag(
+                tag=t.tag,
+                label=TAG_LABELS[t.tag],
+                value=t.value,
+                method=t.method,
+                reviewed_at=t.reviewed_at,
+            )
+            for t in approved_tags
+        ],
+        description_tags_pending=pending_tags,
+    )
+
+
+_OSM_WARNING = "Evidentirani objekti u OSM-u; popis možda nije potpun. Udaljenosti su zračne."
+_LOCATED = {"entrance_confirmed", "building_approximate"}
+
+
+@router.get(
+    "/spaces/{space_id}/competitors",
+    response_model=CompetitionResponse,
+    summary="Broj i popis lokalno evidentirane konkurencije",
+)
+def list_competitors(
+    space_id: Annotated[str, Path(pattern=r"^[0-9]{1,12}$")],
+    dataset_bundle_id: UUID,
+    radius_m: RadiusQuery = 500,
+    profile: ProfileCode | None = None,
+    page: Annotated[int, Query(ge=1, le=1000)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> CompetitionResponse:
+    """Informative only (ADR21): OSM coverage is not reviewed, so competition is never scored.
+
+    With a profile that has competitor tags, only those categories are listed; otherwise every
+    mapped category is shown as nearby context.
+    """
+    categories: list[str] | None = None
+    if profile is not None:
+        tags = p.profiles().profiles[profile].competitor_tags or {}
+        categories = sorted({v for values in tags.values() for v in values}) or None
+    area_km2 = math.pi * (radius_m / 1000) ** 2
+    with get_engine().connect() as conn:
+        bundle = p.require_active(conn)
+        p.check_bundle(str(dataset_bundle_id), bundle)
+        rows = q.load_spaces(conn, bundle.bundle_id, profile or "cafe", [space_id])
+        if not rows:
+            raise ProblemError(404, "NOT_FOUND", "Prostor nije u aktivnom paketu.")
+        space = rows[0]
+        d08 = bundle.versions.get("D08")
+        located = space.geo_evidence_id is not None and space.precision_status in _LOCATED
+        found = (
+            q.competitors(conn, d08, space.geo_evidence_id, radius_m, categories)
+            if d08 and located and space.geo_evidence_id
+            else []
+        )
+    reason = (
+        "source_unavailable"
+        if d08 is None
+        else "missing_coordinate"
+        if not located
+        else "coverage_unchecked"
+    )
+    known = reason == "coverage_unchecked"
+    counts: dict[str, int | None] = {}
+    for r in found:
+        counts[str(r["category"])] = (counts.get(str(r["category"])) or 0) + 1
+    start = (page - 1) * page_size
+    return CompetitionResponse(
+        dataset_bundle_id=UUID(bundle.bundle_id),
+        space_id=space_id,
+        source_version_id=UUID(d08) if d08 else None,
+        radius_m=radius_m,
+        count=len(found) if known else None,
+        counts_by_category=counts,
+        area_km2=round(area_km2, 6),
+        density_per_km2=round(len(found) / area_km2, 4) if known else None,
+        coverage_status="unchecked" if known else "unavailable",
+        reason=reason,
+        checked_at=None,
+        items=[
+            Competitor(
+                osm_type=r["osm_type"],
+                osm_id=int(r["osm_id"]),
+                name=r["name"],
+                category=r["category"],
+                coordinate={"type": "Point", "coordinates": (float(r["lon"]), float(r["lat"]))},
+                distance_m=round(float(r["distance_m"]), 1),
+                lifecycle_status=r["lifecycle_status"],
+            )
+            for r in found[start : start + page_size]
+        ],
+        total=len(found),
+        page=page,
+        page_size=page_size,
+        warnings=[_OSM_WARNING],
     )
 
 

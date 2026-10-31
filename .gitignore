@@ -40,3 +40,6 @@ Thumbs.db
 
 # graphify knowledge graph output (local tool, regenerated on demand)
 graphify-out/
+
+# Local MiniLM files (ai-fetch-model, ADR21); pinned by hash in config/ai_config.json.
+data/models/

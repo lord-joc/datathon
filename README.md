@@ -2,7 +2,7 @@
 
 Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u Zagrebu na temelju otvorenih podataka (data.gov.hr, Geoportal Grada Zagreba, OpenStreetMap). Datathon Portala otvorenih podataka 2026, izazov C.
 
-**Stanje:** isječak 5.
+**Stanje:** isječak 6.
 
 - **Isječak 1:** Docker okruženje, baza, API skelet i prvi korak Vodiča.
 - **Isječak 2:** uvoz otvorenih podataka. D01/D02 dolaze preko CKAN API-ja data.gov.hr, uz prostorne slojeve D03–D07 te autobusna stajališta, vrtiće i škole (D14, D17, D18).
@@ -11,7 +11,9 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 - **Isječak 5:** sučelje: Vodič u četiri koraka (živi brojač, razine važnosti, dijalog 409), rezultati s kartom MapLibre, detalj prostora, usporedba do 3 prostora i izvori. Filtri su u URL-u, a pristupni ključ izračuna samo u `sessionStorage`.
 
-Sljedeći je isječak 6 (OSM konkurencija i AI). Odluke su u [`docs/adr/`](docs/adr/README.md).
+- **Isječak 6:** konkurencija iz OSM-a na detalju prostora (samo prikaz, ne boduje se) i lokalni AI: prijedlog djelatnosti iz slobodnog opisa te oznake iz „Opisa strukture” uz ljudsku potvrdu (ADR21).
+
+Sljedeći je isječak 7 (sigurnost, performanse, pristupačnost, e2e). Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
 
@@ -197,12 +199,44 @@ Formule su u `backend/app/ranking/` (čista funkcija, bez baze), težine u `conf
 | `GET /api/v1/districts` | 17 četvrti aktivnog paketa |
 | `GET /api/v1/spaces?profile=cafe` | filtri: `area_min_m2`, `area_max_m2`, `district_ids`, `include_conditional`, `include_excluded`, `page`, `page_size` (≤ 100) |
 | `GET /api/v1/spaces/{id}?profile=cafe&radius_m=500` | detalj s metrikama, izvorima i razlozima kad vrijednost nedostaje |
+| `GET /api/v1/spaces/{id}/competitors?dataset_bundle_id=…&profile=cafe&radius_m=500` | obližnji objekti iz OSM-a (D08) po kategorijama profila, najbliži prvi; samo prikaz, ne boduje se |
 | `POST /api/v1/rankings` | novi nepromjenjiv izračun (do 500 prostora): `201` + `access_token`, `409`, `422` |
 | `GET /api/v1/rankings/{id}` | spremljeni izračun, uz zaglavlje `X-Ranking-Token` |
 | `GET /api/v1/layers/{layer}` | GeoJSON za kartu: `districts`, `transit`, `parking`, `universities`, `culture`, `schools` (samo prikaz) |
 | `GET /api/v1/sources` | izvori, licence, datumi i ograničenja |
+| `POST /api/v1/profile-suggestions` | prijedlog djelatnosti iz opisa (5–500 znakova): tri najsličnija profila sa sličnošću; korisnik potvrđuje |
 
 Kad kriterij nedostaje samo dijelu prostora, `POST /rankings` vraća `409 COMPARISON_BASIS_CHANGED`, s popisom što nedostaje i potpisanim tokenom. Klijent ponavlja zahtjev s `comparison_basis_token` i `basis_choice`: `common_criteria` (svi prostori, manja pokrivenost) ili `remove_incomplete` (bez nepotpunih). Token vrijedi 10 minuta i samo za taj zahtjev. Interaktivna dokumentacija je na http://localhost:8000/api/docs (samo lokalno).
+
+## Lokalni AI (ADR21)
+
+Model je `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` na zaključanoj reviziji, a pokreće se lokalno preko `onnxruntime`, bez plaćenih API-ja i bez slanja podataka trećima. Jednom ga preuzmi (oko 480 MB, hash svake datoteke se provjerava) pa ponovno pokreni API:
+
+```cmd
+docker compose run --rm cli python -m app.cli ai-fetch-model
+docker compose up -d api
+```
+
+**Prijedlog djelatnosti.** Prvi korak Vodiča ima polje „Nešto drugo?”. Model uspoređuje opis s primjerima svake djelatnosti iz `config/ai_config.json` i vraća tri najsličnije, sa sličnošću. Prijedlog daje samo kad je dovoljno siguran, a korisnik uvijek sam bira. Pragove provjerava i kalibrira:
+
+```cmd
+docker compose run --rm cli python -m app.cli ai-calibrate-profiles
+```
+
+Skup od 36 tekstova (`config/ai_eval_profiles.json`) je mali i pragovi su podešeni na njemu, pa brojevi u ADR21 nisu točnost na stvarnim korisnicima.
+
+**Oznake iz „Opisa strukture”.** Pravila (ne model, vidi ADR21) predlažu oznake poput „Podrum”, „Ulična zgrada” ili „Broj prostorija: 2”. Javno se prikazuju tek kad ih potvrdi član tima:
+
+```cmd
+docker compose run --rm cli python -m app.cli ai-tag-descriptions
+docker compose run --rm -T cli python -m app.cli tag-review-template > data\manual\oznake-pregled.csv
+```
+
+U `oznake-pregled.csv` za svaki redak pročitaj stupac `description` (službeni tekst) i upiši `decision` (`da` ili `ne`), `reviewer` (svoje inicijale) i po želji `review_note`. Prazni redci se preskaču, a datoteka s greškom ne upisuje ništa.
+
+```cmd
+docker compose run --rm cli python -m app.cli import-tag-review --file /app/manual/oznake-pregled.csv
+```
 
 ## Razvoj frontenda s automatskim osvježavanjem
 

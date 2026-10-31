@@ -323,7 +323,57 @@ LAYER_CATEGORIES = {
     "culture": "culture",
     "schools": "school",
 }
+
+
 # Display kind per source, so the map can draw tram and bus stops differently.
+def competitors(
+    conn: Connection,
+    d08_version: str,
+    geo_evidence_id: str,
+    radius_m: int,
+    categories: list[str] | None,
+) -> list[dict[str, Any]]:
+    """Mapped-active D08 objects in the full circle around the space's location, nearest first."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT k.osm_type, k.osm_id, k.name, k.category, k.lifecycle_status,
+                   ST_X(k.geom) AS lon, ST_Y(k.geom) AS lat,
+                   ST_Distance(k.geom::geography, g.geom::geography) AS distance_m
+            FROM prostoriq.competitor k
+            JOIN prostoriq.geo_evidence g ON g.geo_evidence_id = CAST(:g AS uuid)
+            WHERE g.geom IS NOT NULL
+              AND k.source_version_id = CAST(:v AS uuid)
+              AND k.lifecycle_status = 'mapped_active'
+              AND (CAST(:cats AS text[]) IS NULL OR k.category = ANY(CAST(:cats AS text[])))
+              AND ST_DWithin(k.geom::geography, g.geom::geography, :r)
+            ORDER BY distance_m, k.osm_type, k.osm_id
+            """
+        ),
+        {"g": geo_evidence_id, "v": d08_version, "r": radius_m, "cats": categories},
+    ).mappings()
+    return [dict(r) for r in rows]
+
+
+def description_tags(conn: Connection, bundle_id: str, space_id: str) -> tuple[list[Any], int]:
+    """Approved tags for the bundle's revision of the space, and how many still wait."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT d.tag, d.value, d.method, d.status, d.reviewed_at
+            FROM prostoriq.description_tag d
+            JOIN prostoriq.bundle_space b ON b.space_revision_id = d.space_revision_id
+            WHERE b.dataset_bundle_id = CAST(:b AS uuid) AND b.space_id = :s
+              AND d.status IN ('approved', 'pending_review')
+            ORDER BY d.tag
+            """
+        ),
+        {"b": bundle_id, "s": space_id},
+    ).all()
+    approved = [r for r in rows if r.status == "approved"]
+    return approved, len(rows) - len(approved)
+
+
 _KIND = {"D03": "tram", "D14": "bus", "D17": "kindergarten", "D18": "school"}
 
 

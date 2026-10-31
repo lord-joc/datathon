@@ -5,6 +5,7 @@ import { fmt0 } from "@/lib/labels";
 import { useProfiles } from "@/lib/queries";
 
 import { profileIcon } from "./profiles";
+import { SuggestProfile } from "./SuggestProfile";
 import { useGuideStore } from "./store";
 
 export function ProfileStep() {
@@ -67,10 +68,11 @@ export function ProfileStep() {
         </div>
       )}
 
+      {profiles.data && <SuggestProfile profiles={profiles.data} onChoose={setProfile} />}
+
       <p className="flex items-start gap-2 text-sm text-subtle">
         <Info aria-hidden="true" size={16} className="mt-0.5 shrink-0" />
-        Ostale djelatnosti još nisu podržane jer nemaju provjerena pravila bodovanja. Polje „Nešto
-        drugo?” dolazi s AI prijedlogom profila.
+        Ostale djelatnosti još nisu podržane jer nemaju provjerena pravila bodovanja.
       </p>
     </fieldset>
   );

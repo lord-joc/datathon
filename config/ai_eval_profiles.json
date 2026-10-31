@@ -1,0 +1,149 @@
+{
+  "about": "Mali razvojni skup za kalibraciju prijedloga djelatnosti (ADR21). Napisali ga tim i Claude; nije uzorak stvarnih upita korisnika. Nijedan tekst nije kopiran iz primjera profila u ai_config.json.",
+  "items": [
+    {
+      "text": "Otvorio bih mali bar s craft pivom.",
+      "label": "cafe"
+    },
+    {
+      "text": "Kafeterija s doručkom i kavom za studente.",
+      "label": "cafe"
+    },
+    {
+      "text": "Lounge bar za večernje izlaske.",
+      "label": "cafe"
+    },
+    {
+      "text": "Espresso bar uz tramvajsku stanicu.",
+      "label": "cafe"
+    },
+    {
+      "text": "Arhitektonski studio s troje zaposlenih.",
+      "label": "office"
+    },
+    {
+      "text": "Ured udruge za savjetovanje građana.",
+      "label": "office"
+    },
+    {
+      "text": "Prostor za marketinšku agenciju.",
+      "label": "office"
+    },
+    {
+      "text": "Porezni savjetnik koji prima stranke.",
+      "label": "office"
+    },
+    {
+      "text": "Prodaja sportske opreme.",
+      "label": "retail"
+    },
+    {
+      "text": "Trgovina igračkama.",
+      "label": "retail"
+    },
+    {
+      "text": "Optika s prodajom naočala.",
+      "label": "retail"
+    },
+    {
+      "text": "Second hand trgovina.",
+      "label": "retail"
+    },
+    {
+      "text": "Pizza na komad za van.",
+      "label": "food_takeaway"
+    },
+    {
+      "text": "Prodaja kroasana i kave za van.",
+      "label": "food_takeaway"
+    },
+    {
+      "text": "Kebab i ćevapi za ponijeti.",
+      "label": "food_takeaway"
+    },
+    {
+      "text": "Mala pekarnica u kvartu.",
+      "label": "food_takeaway"
+    },
+    {
+      "text": "Studio za trajnu šminku.",
+      "label": "personal_care"
+    },
+    {
+      "text": "Pedikura i njega stopala.",
+      "label": "personal_care"
+    },
+    {
+      "text": "Barber shop.",
+      "label": "personal_care"
+    },
+    {
+      "text": "Salon za uređivanje obrva i trepavica.",
+      "label": "personal_care"
+    },
+    {
+      "text": "Montessori igraonica.",
+      "label": "education"
+    },
+    {
+      "text": "Glazbena škola za klavir i gitaru.",
+      "label": "education"
+    },
+    {
+      "text": "Pripreme za državnu maturu.",
+      "label": "education"
+    },
+    {
+      "text": "Robotika za djecu.",
+      "label": "education"
+    },
+    {
+      "text": "Popravak mobitela i računala.",
+      "label": "workshop"
+    },
+    {
+      "text": "Kiparski atelier.",
+      "label": "workshop"
+    },
+    {
+      "text": "Izrada nakita.",
+      "label": "workshop"
+    },
+    {
+      "text": "Tapetarska radionica.",
+      "label": "workshop"
+    },
+    {
+      "text": "Autopraonica.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Ljekarna.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Veterinarska ambulanta.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Stomatološka ordinacija.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Teretana i fitness.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Skladište građevinskog materijala.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Kladionica.",
+      "label": "unsupported"
+    },
+    {
+      "text": "Stan za život.",
+      "label": "unsupported"
+    }
+  ]
+}

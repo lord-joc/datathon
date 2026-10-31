@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     pipeline_database_url: str | None = Field(default=None, alias="PIPELINE_DATABASE_URL")
     config_dir: Path = _REPO_ROOT / "config"
     raw_storage_dir: Path = _REPO_ROOT / "data" / "raw"
+    # Local MiniLM files (ai-fetch-model). Read-only for the API; never downloaded on request.
+    model_dir: Path = _REPO_ROOT / "data" / "models"
+    # Load the model in a background thread at API start, so the first suggestion is fast.
+    ai_preload: bool = False
 
     # Used later for signing comparison-basis tokens (ADR03). Never logged.
     app_hmac_secret: SecretStr = SecretStr("")

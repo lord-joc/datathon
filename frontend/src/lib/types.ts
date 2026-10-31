@@ -119,6 +119,74 @@ export interface SpaceList {
   warnings: string[];
 }
 
+export type CompetitorCategory =
+  | "cafe"
+  | "bar"
+  | "pub"
+  | "fast_food"
+  | "bakery"
+  | "hairdresser"
+  | "beauty";
+
+export interface Competitor {
+  osm_type: "node" | "way" | "relation";
+  osm_id: number;
+  name: string | null;
+  category: CompetitorCategory;
+  coordinate: { type: "Point"; coordinates: [number, number] };
+  distance_m: number;
+  lifecycle_status: "mapped_active" | "unknown";
+}
+
+/** OSM objects near a space. Informative only: competition is never scored (ADR21). */
+export interface CompetitionResponse {
+  dataset_bundle_id: string;
+  space_id: string;
+  source_version_id: string | null;
+  radius_m: Radius;
+  count: number | null;
+  counts_by_category: Partial<Record<CompetitorCategory, number | null>>;
+  area_km2: number;
+  density_per_km2: number | null;
+  coverage_status: "unchecked" | "approved" | "partial" | "unavailable";
+  reason: string | null;
+  checked_at: string | null;
+  items: Competitor[];
+  total: number;
+  page: number;
+  page_size: number;
+  warnings: string[];
+}
+
+export interface ProfileCandidate {
+  profile: ProfileCode;
+  similarity: number;
+  matched_example: string;
+}
+
+/** Local MiniLM suggestion; the user always confirms (ADR21). */
+export interface ProfileSuggestion {
+  suggested_profile: ProfileCode | null;
+  status: "suggested" | "unsupported";
+  requires_confirmation: true;
+  candidates: ProfileCandidate[];
+  min_similarity: number;
+  min_margin: number;
+  method: string;
+  model_id: string;
+  model_revision: string;
+  config_sha256: string;
+}
+
+/** A tag from the official description that a team member approved (ADR21). Not scored. */
+export interface DescriptionTag {
+  tag: string;
+  label: string;
+  value: number | null;
+  method: "rule" | "model";
+  reviewed_at: string;
+}
+
 export interface SpaceDetail {
   dataset_bundle_id: string;
   space: SpaceSummary;
@@ -127,6 +195,8 @@ export interface SpaceDetail {
   source_versions: Record<string, string>;
   attribution: string[];
   context_count: number;
+  description_tags: DescriptionTag[];
+  description_tags_pending: number;
 }
 
 export type BasisChoice = "common_criteria" | "remove_incomplete";

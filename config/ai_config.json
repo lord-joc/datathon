@@ -43,5 +43,103 @@
     "held_out_per_class": 7,
     "target_macro_f1": 0.75,
     "status": "not_run"
+  },
+  "runtime": "onnxruntime",
+  "max_seq_length": 128,
+  "model_files": {
+    "onnx/model.onnx": {
+      "size": 470301610,
+      "sha256": "10f7a088420252b26caf819236ca2c9d2987afd0fc06fec7553b542a5655a05a"
+    },
+    "tokenizer.json": {
+      "size": 9081518,
+      "sha256": "2c3387be76557bd40970cec13153b3bbf80407865484b209e655e5e4729076b8"
+    },
+    "1_Pooling/config.json": {
+      "size": 190,
+      "git_sha1": "d1514c3162bbe87b343f565fadc62e6c06f04f03"
+    },
+    "sentence_bert_config.json": {
+      "size": 53,
+      "git_sha1": "5fd10429389515d3e5cccdeda08cae5fea1ae82e"
+    }
+  },
+  "profile_suggestion": {
+    "method": "maximum_cosine_over_profile_examples",
+    "min_similarity": 0.34,
+    "min_margin": 0.14,
+    "max_candidates": 3,
+    "examples": {
+      "cafe": [
+        "Želim otvoriti kafić.",
+        "Caffe bar s terasom za goste.",
+        "Pub ili noćni bar s pićem i glazbom.",
+        "Kavana u kojoj se poslužuje kava i sokovi.",
+        "Mali bar u susjedstvu za jutarnju kavu.",
+        "Bistro s kavom, pićem i malim zalogajima."
+      ],
+      "office": [
+        "Trebam uredski prostor za tvrtku.",
+        "Ured za knjigovodstveni servis.",
+        "Odvjetnički ili računovodstveni ured s nekoliko zaposlenika.",
+        "Prostor za IT tvrtku i rad zaposlenika za računalom.",
+        "Agencija koja prima klijente na sastanke.",
+        "Coworking prostor s radnim stolovima."
+      ],
+      "retail": [
+        "Otvaram trgovinu odjećom.",
+        "Mala prodavaonica s izlogom na ulici.",
+        "Butik s obućom i modnim dodacima.",
+        "Trgovina mješovitom robom.",
+        "Prodaja cvijeća, cvjećarnica.",
+        "Knjižara ili prodaja suvenira."
+      ],
+      "food_takeaway": [
+        "Pekara s prodajom kruha i peciva.",
+        "Brza hrana za van, sendviči i pizza.",
+        "Burek i pite za ponijeti.",
+        "Fast food s hamburgerima.",
+        "Slastičarnica i prodaja kolača za van.",
+        "Kuhinja s dostavom hrane."
+      ],
+      "personal_care": [
+        "Frizerski salon.",
+        "Kozmetički salon za njegu lica i tijela.",
+        "Salon za nokte i manikuru.",
+        "Brijačnica za muškarce.",
+        "Masaža i wellness tretmani.",
+        "Salon ljepote s depilacijom i šminkanjem."
+      ],
+      "education": [
+        "Igraonica za djecu.",
+        "Škola stranih jezika.",
+        "Instrukcije iz matematike za učenike.",
+        "Dječji vrtić ili čuvanje djece.",
+        "Plesna škola i tečajevi.",
+        "Edukacijski centar s radionicama za djecu."
+      ],
+      "workshop": [
+        "Radionica za popravak bicikala.",
+        "Umjetnički atelier za slikanje.",
+        "Stolarska radionica.",
+        "Keramička radionica s peći.",
+        "Servis kućanskih aparata.",
+        "Krojačka radionica i popravak odjeće."
+      ]
+    },
+    "evaluation": {
+      "dataset": "config/ai_eval_profiles.json",
+      "texts": 36,
+      "supported_texts": 28,
+      "unsupported_texts": 8,
+      "tuned_on_same_set": true,
+      "supported_correct": 15,
+      "supported_refused": 12,
+      "supported_wrong": 1,
+      "unsupported_refused": 8,
+      "evaluated_at": "2026-10-30",
+      "command": "python -m app.cli ai-calibrate-profiles",
+      "note": "Mali skup koji su napisali tim i Claude; pragovi su odabrani na istom skupu, pa brojevi nisu procjena točnosti na stvarnim upitima."
+    }
   }
 }

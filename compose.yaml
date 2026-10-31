@@ -49,8 +49,12 @@ services:
       APP_HMAC_SECRET: ${APP_HMAC_SECRET:?Postavi APP_HMAC_SECRET u .env}
       # Profiles and formula constants (read-only); their versions must match the database.
       CONFIG_DIR: /app/config
+      # Local MiniLM for profile suggestions (ADR21); files come from "cli ai-fetch-model".
+      MODEL_DIR: /app/models
+      AI_PRELOAD: "true"
     volumes:
       - ./config:/app/config:ro
+      - ./data/models:/app/models:ro
     depends_on:
       db:
         condition: service_healthy
@@ -81,12 +85,15 @@ services:
       MIGRATION_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-prostoriq_owner}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-prostoriq}
       PIPELINE_DATABASE_URL: postgresql+psycopg://prostoriq_pipeline:${PIPELINE_DB_PASSWORD}@db:5432/${POSTGRES_DB:-prostoriq}
       CONFIG_DIR: /app/config
+      MODEL_DIR: /app/models
       RAW_STORAGE_DIR: /var/lib/prostoriq/raw
     volumes:
       - ./config:/app/config:ro
       - raw_data:/var/lib/prostoriq/raw
       # Manually downloaded files for "import CODE --file /app/manual/<name>".
       - ./data/manual:/app/manual:ro
+      # Writable only here: ai-fetch-model downloads the pinned model files into it.
+      - ./data/models:/app/models
     depends_on:
       db:
         condition: service_healthy

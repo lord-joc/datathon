@@ -7,6 +7,7 @@
 | [ADR18](ADR18-geokodiranje-osm.md) | Geokodiranje prostora: OSM adrese (D19) + timska provjera (D11) | prihvaćeno; dopunjeno 30. 10. 2026. |
 | [ADR19](ADR19-rangiranje-i-javni-api.md) | Rangiranje i javni API (isječak 4) | prihvaćeno |
 | [ADR20](ADR20-priblizna-lokacija-i-karta.md) | Približna lokacija i karta (isječak 5) | prihvaćeno |
+| [ADR21](ADR21-lokalni-ai-i-konkurencija.md) | Lokalni AI i konkurencija iz OSM-a (isječak 6) | prihvaćeno |
 
 ADR01–ADR15 dio su timske dokumentacije v3 (27. 10. 2026.) i nisu u ovom repozitoriju. Tamo su i master prompt te oznake zahtjeva (FZ, NF). Strojno čitljivi zahtjevi i sljedivost su u [`docs/contracts/`](../contracts/): `requirements.json` i `traceability.csv`.
 

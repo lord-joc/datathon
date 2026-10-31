@@ -4,6 +4,8 @@ Builds the slice-3 fixture bundle (3 regular spaces + 1 unfit), activates it and
 routes through FastAPI. The API role can read and insert ranking snapshots, nothing else.
 """
 
+import csv
+import io
 import uuid
 from collections.abc import Iterator
 from pathlib import Path
@@ -13,10 +15,12 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import ProgrammingError
 
 from app.api.v1 import presenters, public, rankings, system
 from app.main import create_app
 from app.pipeline.bundle import activate_bundle, build_bundle
+from app.pipeline.description_tags import import_review, review_template_csv, tag_descriptions
 from app.pipeline.geocode import geocode_spaces
 from app.pipeline.importer import Importer
 from app.pipeline.profiles import sync_profiles
@@ -341,3 +345,98 @@ def test_d12_tender_rent_reaches_the_cost_metric_but_is_never_scored(
     assert ranked.status_code == 201, ranked.json()
     for item in ranked.json()["items"]:
         assert "cost" not in item["contributions"]
+
+
+def test_competitors_are_listed_by_profile_but_never_scored(client: TestClient) -> None:
+    bundle = client.get("/api/v1/status").json()["active_bundle_id"]
+    url = "/api/v1/spaces/4763/competitors"
+    cafe = client.get(url, params={"dataset_bundle_id": bundle, "profile": "cafe"}).json()
+    assert [i["name"] for i in cafe["items"]] == ["Kavana Trg"]
+    assert (cafe["count"], cafe["coverage_status"], cafe["reason"]) == (
+        1,
+        "unchecked",
+        "coverage_unchecked",
+    )
+    assert cafe["counts_by_category"] == {"cafe": 1}
+    assert 0 < cafe["items"][0]["distance_m"] < 100
+    assert "OSM" in cafe["warnings"][0]
+
+    bakery = client.get(url, params={"dataset_bundle_id": bundle, "profile": "food_takeaway"})
+    assert [i["name"] for i in bakery.json()["items"]] == ["Pekara"]
+    nearby = client.get(url, params={"dataset_bundle_id": bundle}).json()
+    assert {i["name"] for i in nearby["items"]} == {"Kavana Trg", "Pekara"}, "disused is left out"
+    distances = [i["distance_m"] for i in nearby["items"]]
+    assert distances == sorted(distances)
+
+    detail = client.get("/api/v1/spaces/4763", params={"profile": "cafe"}).json()
+    assert detail["metrics"]["competition"]["value"] is None
+
+    missing = client.get(
+        "/api/v1/spaces/10422/competitors", params={"dataset_bundle_id": bundle}
+    ).json()
+    assert (missing["count"], missing["reason"], missing["items"]) == (
+        None,
+        "missing_coordinate",
+        [],
+    )
+    stale = client.get(url, params={"dataset_bundle_id": str(uuid.uuid4())})
+    assert stale.status_code == 409
+
+
+@pytest.mark.parametrize("radius", ["500", "1000"])
+def test_radius_query_is_accepted_as_text(client: TestClient, radius: str) -> None:
+    bundle = client.get("/api/v1/status").json()["active_bundle_id"]
+    detail = client.get("/api/v1/spaces/4763", params={"profile": "cafe", "radius_m": radius})
+    assert detail.status_code == 200 and detail.json()["radius_m"] == int(radius)
+    nearby = client.get(
+        "/api/v1/spaces/4763/competitors",
+        params={"dataset_bundle_id": bundle, "radius_m": radius},
+    )
+    assert nearby.status_code == 200 and nearby.json()["radius_m"] == int(radius)
+    bad = client.get("/api/v1/spaces/4763", params={"profile": "cafe", "radius_m": "750"})
+    assert bad.status_code == 422
+
+
+def test_description_tags_need_review_and_only_approved_are_public(
+    client: TestClient, imported: Engine, owner: Engine
+) -> None:
+    first = tag_descriptions(imported)
+    assert first["proposed"] > 0
+    assert tag_descriptions(imported)["proposed"] == 0, "re-running keeps existing rows"
+
+    before = client.get("/api/v1/spaces/4763", params={"profile": "cafe"}).json()
+    assert before["description_tags"] == []
+    assert before["description_tags_pending"] == 2  # basement + room_count
+
+    rows = list(csv.DictReader(io.StringIO(review_template_csv(imported)), delimiter=";"))
+    mine = {r["tag"]: r for r in rows if r["space_id"] == "4763"}
+    assert mine["basement"]["evidence"] == "podzemnom"
+    assert mine["basement"]["description"] == "dvije prostorije u podzemnom objektu"
+
+    bad = f"description_tag_id;decision;reviewer\n{mine['basement']['description_tag_id']};da;\n"
+    assert import_review(imported, bad.encode()).errors, "reviewer initials are required"
+    assert (
+        client.get("/api/v1/spaces/4763", params={"profile": "cafe"}).json()[
+            "description_tags_pending"
+        ]
+        == 2
+    ), "an invalid file writes nothing"
+
+    decisions = (
+        "description_tag_id;decision;reviewer;review_note\n"
+        f"{mine['basement']['description_tag_id']};da;LM;\n"
+        f"{mine['room_count']['description_tag_id']};ne;LM;dvije prostorije su jedna cjelina\n"
+    )
+    outcome = import_review(imported, decisions.encode())
+    assert (outcome.approved, outcome.rejected, outcome.errors) == (1, 1, [])
+    assert import_review(imported, decisions.encode()).not_pending == 2
+
+    after = client.get("/api/v1/spaces/4763", params={"profile": "cafe"}).json()
+    assert [(t["tag"], t["label"], t["method"]) for t in after["description_tags"]] == [
+        ("basement", "Podrum ili suteren", "rule")
+    ]
+    assert after["description_tags_pending"] == 0
+    assert "evidence" not in after["description_tags"][0]
+
+    with pytest.raises(ProgrammingError, match="permission denied"), imported.begin() as conn:
+        conn.execute(text("UPDATE prostoriq.description_tag SET evidence = 'x'"))

@@ -37,6 +37,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     install_error_handlers(app)
     app.include_router(api_router)
+    if settings.ai_preload:
+        from app.api.v1.ai import preload
+
+        preload()
     return app
 
 

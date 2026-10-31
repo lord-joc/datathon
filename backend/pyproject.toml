@@ -17,6 +17,9 @@ dependencies = [
     "shapely>=2.0,<3",
     "pyproj>=3.6,<4",
     "osmium==4.3.1",
+    "onnxruntime>=1.20,<2",
+    "tokenizers>=0.20,<1",
+    "numpy>=2,<3",
 ]
 
 [dependency-groups]
@@ -57,7 +60,7 @@ plugins = ["pydantic.mypy"]
 files = ["app", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["shapefile", "shapely", "shapely.*"]
+module = ["shapefile", "shapely", "shapely.*", "onnxruntime", "onnxruntime.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

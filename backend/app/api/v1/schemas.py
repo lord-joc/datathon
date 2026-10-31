@@ -131,6 +131,16 @@ class SpaceList(Strict):
     warnings: list[str]
 
 
+class DescriptionTag(Strict):
+    """A tag from the official description that a team member approved. Not scored."""
+
+    tag: str
+    label: str
+    value: int | None
+    method: Literal["rule", "model"]
+    reviewed_at: datetime
+
+
 class SpaceDetail(Strict):
     dataset_bundle_id: UUID
     space: SpaceSummary
@@ -139,6 +149,75 @@ class SpaceDetail(Strict):
     source_versions: dict[str, UUID]
     attribution: list[str]
     context_count: int
+    description_tags: list[DescriptionTag]
+    description_tags_pending: int = Field(ge=0)
+
+
+CompetitorCategory = Literal["cafe", "bar", "pub", "fast_food", "bakery", "hairdresser", "beauty"]
+
+
+class Competitor(Strict):
+    osm_type: Literal["node", "way", "relation"]
+    osm_id: int = Field(ge=1)
+    name: str | None
+    category: CompetitorCategory
+    coordinate: Point
+    distance_m: float = Field(ge=0)
+    lifecycle_status: Literal["mapped_active", "unknown"]
+
+
+class CompetitionResponse(Strict):
+    """OSM objects near a space: informative only, never scored until coverage is approved."""
+
+    dataset_bundle_id: UUID
+    space_id: str
+    source_version_id: UUID | None
+    radius_m: Literal[500, 1000]
+    count: int | None = Field(ge=0)
+    counts_by_category: dict[str, int | None]
+    area_km2: float = Field(gt=0)
+    density_per_km2: float | None = Field(ge=0)
+    coverage_status: Literal["unchecked", "approved", "partial", "unavailable"]
+    reason: str | None
+    checked_at: datetime | None
+    items: list[Competitor]
+    total: int = Field(ge=0)
+    page: int = Field(ge=1)
+    page_size: int = Field(ge=1, le=100)
+    warnings: list[str]
+
+
+class ProfileSuggestionRequest(Strict):
+    description: str = Field(min_length=5, max_length=500)
+
+    @field_validator("description")
+    @classmethod
+    def _plain_text(cls, value: str) -> str:
+        text = " ".join(value.split())
+        if len(text) < 5:
+            raise ValueError("Opis mora imati barem 5 znakova.")
+        return text
+
+
+class ProfileCandidate(Strict):
+    profile: ProfileCode
+    similarity: float = Field(ge=-1, le=1)
+    matched_example: str
+
+
+class ProfileSuggestion(Strict):
+    """A suggestion only; the user always confirms (FZ25). Never changes any score."""
+
+    suggested_profile: ProfileCode | None
+    status: Literal["suggested", "unsupported"]
+    requires_confirmation: Literal[True] = True
+    candidates: list[ProfileCandidate]
+    min_similarity: float
+    min_margin: float
+    method: str
+    model_id: str
+    model_revision: str
+    config_sha256: str
 
 
 class RankingRequest(Strict):

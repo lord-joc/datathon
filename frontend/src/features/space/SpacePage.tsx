@@ -7,7 +7,7 @@ import {
   MapPin,
   MapPinOff,
 } from "lucide-react";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import { Checklist } from "@/components/Checklist";
@@ -17,11 +17,13 @@ import { ErrorState, Skeleton } from "@/components/ui/States";
 import { ContributionBar } from "@/features/results/ContributionBar";
 import { orderedCriteria, strengths } from "@/features/results/model";
 import {
+  COMPETITOR_LABEL,
   CONDITION_LABEL,
   CRITERION_LABEL,
   fmt0,
   fmt2,
   fmtDate,
+  fmtDistance,
   fmtScore,
   metricValue,
   PRECISION_LABEL,
@@ -29,9 +31,16 @@ import {
   reasonText,
   TRI_LABEL,
 } from "@/lib/labels";
-import { useDistrictLayer, useProfiles, useRanking, useSpaceDetail } from "@/lib/queries";
+import {
+  useCompetitors,
+  useDistrictLayer,
+  useProfiles,
+  useRanking,
+  useSpaceDetail,
+} from "@/lib/queries";
 import {
   CRITERIA,
+  type CompetitorCategory,
   type Criterion,
   type Metric,
   type ProfileCode,
@@ -198,7 +207,17 @@ function Detail({
         <div className="grid content-start gap-5">
           <Explanation detail={detail} item={item} criteriaUsed={run?.criteria_used} />
           <Conditions detail={detail} />
-          <Surroundings detail={detail} radius={radius} onRadius={onRadius} />
+          <DescriptionTags detail={detail} />
+          <Surroundings
+            detail={detail}
+            profile={profile}
+            hasCompetitors={
+              (profiles.data?.find((p) => p.profile === profile)?.competitor_categories.length ??
+                0) > 0
+            }
+            radius={radius}
+            onRadius={onRadius}
+          />
         </div>
         <div className="grid content-start gap-5">
           <section className="card grid gap-2 p-2" aria-label="Lokacija na karti">
@@ -377,6 +396,40 @@ function Conditions({ detail }: { detail: SpaceDetail }) {
   );
 }
 
+function DescriptionTags({ detail }: { detail: SpaceDetail }) {
+  const tags = detail.description_tags;
+  const pending = detail.description_tags_pending;
+  const latest = tags.reduce<string | null>(
+    (acc, t) => (acc === null || t.reviewed_at > acc ? t.reviewed_at : acc),
+    null,
+  );
+  return (
+    <section className="card grid gap-3 p-5" aria-labelledby="description-tags">
+      <h2 id="description-tags" className="text-lg font-semibold">
+        Iz opisa prostora
+      </h2>
+      {tags.length > 0 ? (
+        <ul className="flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <li key={t.tag} className="rounded-full border border-border px-3 py-1 text-sm">
+              {t.label}
+              {t.value !== null && `: ${fmt0(t.value)}`}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted">Nema potvrđenih oznaka.</p>
+      )}
+      <p className="text-xs text-subtle">
+        Oznake se izvlače pravilima iz polja „Opis strukture” u službenom popisu (D01), a prikazuju
+        se tek kad ih potvrdi član tima
+        {latest && ` (zadnja potvrda ${fmtDate(latest)})`}. Ne ulaze u bodove.
+        {pending > 0 && ` Oznake koje još čekaju potvrdu (nisu prikazane): ${fmt0(pending)}.`}
+      </p>
+    </section>
+  );
+}
+
 function isCityLink(url: string | undefined): url is string {
   if (!url) return false;
   try {
@@ -426,10 +479,14 @@ function TenderRent({ metric }: { metric: Metric }) {
 
 function Surroundings({
   detail,
+  profile,
+  hasCompetitors,
   radius,
   onRadius,
 }: {
   detail: SpaceDetail;
+  profile: ProfileCode;
+  hasCompetitors: boolean;
   radius: Radius;
   onRadius: (r: Radius) => void;
 }) {
@@ -492,19 +549,88 @@ function Surroundings({
         <dd>{counted("culture")}</dd>
         <dt className="text-muted">Škole i vrtići</dt>
         <dd>{counted("schools")}</dd>
-        <dt className="text-muted">Konkurencija ({fmt0(radius)} m)</dt>
+        <dt className="text-muted">
+          {hasCompetitors ? "Konkurencija" : "Ugostiteljstvo i usluge"} ({fmt0(radius)} m)
+        </dt>
         <dd>
-          {m.competition.value !== null ? (
-            metricValue("competition", m.competition)
-          ) : (
-            <span className="text-muted">{reasonText(m.competition.reason)}</span>
-          )}
-          <span className="block text-xs text-subtle">
-            Evidentirani objekti u OSM-u; popis možda nije potpun.
-          </span>
+          <Competitors
+            spaceId={detail.space.space_id}
+            bundleId={detail.dataset_bundle_id}
+            profile={profile}
+            radius={radius}
+          />
         </dd>
       </dl>
     </section>
+  );
+}
+
+const COMPETITORS_SHOWN = 8;
+
+function Competitors({
+  spaceId,
+  bundleId,
+  profile,
+  radius,
+}: {
+  spaceId: string;
+  bundleId: string;
+  profile: ProfileCode;
+  radius: Radius;
+}) {
+  const query = useCompetitors(spaceId, bundleId, profile, radius);
+  const [all, setAll] = useState(false);
+  if (query.isPending) return <Skeleton className="h-10" />;
+  if (query.isError) return <span className="text-muted">Popis trenutno nije dostupan.</span>;
+  const data = query.data;
+  if (data.count === null) {
+    return <span className="text-muted">{reasonText(data.reason ?? "data_not_available")}</span>;
+  }
+  const byCategory = Object.entries(data.counts_by_category)
+    .map(([c, n]) => `${COMPETITOR_LABEL[c as CompetitorCategory] ?? c} ${fmt0(n ?? 0)}`)
+    .join(" · ");
+  const items = all ? data.items : data.items.slice(0, COMPETITORS_SHOWN);
+  return (
+    <div className="grid gap-2">
+      <p>
+        {data.count === 0 ? "Nema evidentiranih objekata" : `${fmt0(data.count)} u krugu`}
+        {byCategory && <span className="text-subtle"> ({byCategory})</span>}
+      </p>
+      {items.length > 0 && (
+        <ul className="grid gap-1 text-xs">
+          {items.map((c) => (
+            <li key={`${c.osm_type}/${c.osm_id}`} className="flex justify-between gap-3">
+              <a
+                href={`https://www.openstreetmap.org/${c.osm_type}/${c.osm_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-w-0 truncate text-accent hover:underline"
+              >
+                {c.name ?? "Bez naziva"}
+                <span className="sr-only"> (OpenStreetMap, otvara se u novoj kartici)</span>
+              </a>
+              <span className="shrink-0 text-subtle">
+                {COMPETITOR_LABEL[c.category]} · {fmtDistance(c.distance_m)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {data.items.length > COMPETITORS_SHOWN && (
+        <button
+          type="button"
+          className="min-h-touch w-fit text-xs text-accent hover:underline"
+          onClick={() => setAll((v) => !v)}
+          aria-expanded={all}
+        >
+          {all ? "Prikaži manje" : `Prikaži sve (${fmt0(data.items.length)})`}
+        </button>
+      )}
+      <p className="text-xs text-subtle">
+        Evidentirani objekti u OSM-u; popis možda nije potpun. Udaljenosti su zračne. Konkurencija
+        se ne boduje.
+      </p>
+    </div>
   );
 }
 

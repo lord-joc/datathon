@@ -102,6 +102,22 @@ export function SourcesPage() {
       )}
 
       <section className="card grid gap-2 p-5 text-sm text-muted">
+        <h2 className="text-base font-semibold text-text">AI u aplikaciji</h2>
+        <p>
+          Prijedlog djelatnosti iz slobodnog opisa radi lokalni model
+          paraphrase-multilingual-MiniLM-L12-v2 (Apache-2.0), na našem poslužitelju i bez slanja
+          podataka trećima. Opis se ne sprema. Model predlaže, a vi birate. Kalibriran je na malom
+          skupu primjera, pa može pogriješiti.
+        </p>
+        <p>
+          Oznake iz službenog „Opisa strukture” (npr. podrum, ulična zgrada, broj prostorija)
+          izvlače pravila, a prikazuju se tek kad ih potvrdi član tima. Ni prijedlog ni oznake ne
+          mijenjaju bodove. Konkurencija iz OpenStreetMapa samo se prikazuje i ne boduje se, jer
+          popis možda nije potpun.
+        </p>
+      </section>
+
+      <section className="card grid gap-2 p-5 text-sm text-muted">
         <h2 className="text-base font-semibold text-text">Karta i privatnost</h2>
         <p>
           Podloga karte je Protomaps izvadak podataka © OpenStreetMap contributors (ODbL), a

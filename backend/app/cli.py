@@ -17,6 +17,11 @@ Commands
   geocode                 match D01/D02 addresses to D19 address points
   geocode-review          D11 template (';' CSV with BOM on stdout) for a manual check
   tender-template         D12 template: every D01 space, to fill rents from city tenders
+  ai-fetch-model          download the pinned MiniLM files once and verify their hashes
+  ai-calibrate-profiles   thresholds for profile suggestions on config/ai_eval_profiles.json
+  ai-tag-descriptions     tags from 'Opis strukture' (rules) for the active bundle, pending
+  tag-review-template     ';' CSV with BOM of pending tags for a team member to decide
+  import-tag-review --file F  da/ne decisions with reviewer initials
   import-tenders --file F D12 rents and conditions read from zagreb.hr tenders (CSV)
   bundle-build [--label]  build and validate a dataset bundle with spatial metrics
   bundle-activate [--id]  make a valid bundle the active one (default: newest valid)
@@ -39,6 +44,11 @@ from app.adapters.http import FetchError, SafeFetcher
 from app.adapters.registry import Registry, load_registry
 from app.core.config import get_settings
 from app.pipeline.bundle import BundleError, activate_bundle, build_bundle
+from app.pipeline.description_tags import (
+    import_review,
+    review_template_csv,
+    tag_descriptions,
+)
 from app.pipeline.geocode import geocode_spaces, review_csv
 from app.pipeline.importer import ImportBusyError, Importer, ImportOutcome, sync_sources
 from app.pipeline.profiles import ProfileVersionError, sync_profiles
@@ -261,6 +271,78 @@ def cmd_tender_template(_: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ai_fetch_model(_: argparse.Namespace) -> int:
+    from app.ai.model import ModelError, fetch_model, load_ai_config, load_embedder
+
+    config = load_ai_config()
+    print(f"Model {config['model_id']} @ {config['model_revision']}")
+    try:
+        for line in fetch_model(config):
+            print(line)
+        load_embedder(config)
+    except ModelError as exc:
+        print(f"Greška: {exc}", file=sys.stderr)
+        return 1
+    print("Model je spreman (onnxruntime, CPU).")
+    return 0
+
+
+def cmd_ai_calibrate_profiles(_: argparse.Namespace) -> int:
+    import json
+
+    from app.ai.model import load_ai_config, shared_embedder
+    from app.ai.profiles import ProfileMatcher, calibrate
+
+    config = load_ai_config()
+    path = get_settings().config_dir / "ai_eval_profiles.json"
+    items = json.loads(path.read_text(encoding="utf-8"))["items"]
+    matcher = ProfileMatcher(shared_embedder(), config["profile_suggestion"])
+    result = calibrate(matcher, items)
+    print(f"Skup: {path.name}, {len(items)} tekstova (pragovi se biraju na istom skupu).")
+    print(f"min_similarity={result.min_similarity} min_margin={result.min_margin}")
+    print(
+        f"Profili: {result.supported_correct}/{result.supported_total} točno, "
+        f"{result.supported_wrong} krivo, ostalo odbijeno kao nesigurno."
+    )
+    print(
+        f"Bez profila: {result.unsupported_rejected}/{result.unsupported_total} pošteno odbijeno."
+    )
+    print("Upiši vrijednosti u config/ai_config.json (profile_suggestion) ako ih prihvaćaš.")
+    return 0
+
+
+def cmd_ai_tag_descriptions(_: argparse.Namespace) -> int:
+    counts = tag_descriptions(_pipeline_engine())
+    print(
+        f"Prostora: {counts['spaces']}, novih oznaka: {counts['proposed']}, "
+        f"već poznatih: {counts['already_known']}. Nove oznake čekaju potvrdu (tag-review-template)."
+    )
+    return 0
+
+
+def cmd_tag_review_template(_: argparse.Namespace) -> int:
+    sys.stdout.write("\ufeff" + review_template_csv(_pipeline_engine()))
+    return 0
+
+
+def cmd_import_tag_review(args: argparse.Namespace) -> int:
+    path = Path(args.file)
+    if not path.is_file():
+        print(f"Datoteka ne postoji: {path}", file=sys.stderr)
+        return 1
+    outcome = import_review(_pipeline_engine(), path.read_bytes())
+    if outcome.errors:
+        print("Ništa nije upisano. Ispravi retke:", file=sys.stderr)
+        for line in outcome.errors:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+    print(
+        f"Potvrđeno: {outcome.approved}, odbijeno: {outcome.rejected}, bez odluke: "
+        f"{outcome.skipped_empty}, već odlučeno ranije: {outcome.not_pending}."
+    )
+    return 0
+
+
 def cmd_geocode(_: argparse.Namespace) -> int:
     try:
         report = geocode_spaces(_pipeline_engine())
@@ -440,6 +522,21 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("tender-template", help="D12 predložak za upis zakupnina").set_defaults(
         func=cmd_tender_template
     )
+    sub.add_parser("ai-fetch-model", help="Preuzmi i provjeri lokalni MiniLM").set_defaults(
+        func=cmd_ai_fetch_model
+    )
+    sub.add_parser(
+        "ai-calibrate-profiles", help="Kalibriraj pragove prijedloga djelatnosti"
+    ).set_defaults(func=cmd_ai_calibrate_profiles)
+    sub.add_parser(
+        "ai-tag-descriptions", help="Oznake iz opisa strukture (čekaju potvrdu)"
+    ).set_defaults(func=cmd_ai_tag_descriptions)
+    sub.add_parser("tag-review-template", help="CSV oznaka koje čekaju potvrdu").set_defaults(
+        func=cmd_tag_review_template
+    )
+    review = sub.add_parser("import-tag-review", help="Uvezi odluke da/ne za oznake")
+    review.add_argument("--file", required=True)
+    review.set_defaults(func=cmd_import_tag_review)
     sub.add_parser("geocode", help="Geokodiraj prostore na D19").set_defaults(func=cmd_geocode)
     sub.add_parser("geocode-review", help="D11 predložak za ručnu provjeru").set_defaults(
         func=cmd_geocode_review

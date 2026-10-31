@@ -1,5 +1,12 @@
 /** User-facing Croatian texts for API codes, and number/address formatting. */
-import type { CandidateStatus, Criterion, Metric, Precision, Tri } from "./types";
+import type {
+  CandidateStatus,
+  CompetitorCategory,
+  Criterion,
+  Metric,
+  Precision,
+  Tri,
+} from "./types";
 
 export const CRITERION_LABEL: Record<Criterion, string> = {
   transit: "Javni prijevoz",
@@ -50,6 +57,16 @@ export const CRITERION_COLOR: Record<Criterion, string> = {
   street: "#9085e9",
   competition: "#e66767",
   cost: "#6b7584",
+};
+
+export const COMPETITOR_LABEL: Record<CompetitorCategory, string> = {
+  cafe: "kafić",
+  bar: "bar",
+  pub: "pub",
+  fast_food: "brza hrana",
+  bakery: "pekara",
+  hairdresser: "frizer",
+  beauty: "kozmetički salon",
 };
 
 export const IMPORTANCE_LABEL = ["Nevažno", "Malo važno", "Važno", "Vrlo važno"] as const;

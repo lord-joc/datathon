@@ -555,6 +555,21 @@ paths:
           - 500
           - 1000
           default: 500
+      - name: profile
+        in: query
+        required: false
+        description: Kategorije konkurencije tog profila; bez profila ili za profil bez
+          konkurencije prikazuju se svi evidentirani objekti kao okolina.
+        schema:
+          type: string
+          enum:
+          - cafe
+          - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
       - *id001
       - *id002
   /api/v1/spaces/{id}/context:
@@ -2590,9 +2605,13 @@ paths:
     post:
       operationId: createProfileSuggestion
       summary: Predloži podržani profil
+      description: Lokalni MiniLM (ADR21) uspoređuje opis s primjerima svakog profila. Vraća
+        tri najsličnija profila sa sličnošću i primjerom; prijedlog samo iznad praga i uz
+        razliku do drugog. Korisnik uvijek potvrđuje. Opis se ne sprema i ne bilježi u log.
+        Bodovi se nikad ne mijenjaju.
       tags:
       - Public
-      x-phase: Pilot dodatak
+      x-phase: MVP
       responses:
         '200':
           description: Uspješan odgovor
@@ -3042,6 +3061,16 @@ components:
         context_count:
           type: integer
           minimum: 0
+        description_tags:
+          type: array
+          description: Oznake iz polja „Opis strukture” (D01) koje je potvrdio član tima
+            (ADR21). Izvorni tekst se ne vraća. Ne ulaze u bodove.
+          items:
+            $ref: '#/components/schemas/DescriptionTag'
+        description_tags_pending:
+          type: integer
+          minimum: 0
+          description: Broj predloženih oznaka koje još čekaju ljudsku potvrdu.
       required:
       - dataset_bundle_id
       - space
@@ -3050,6 +3079,35 @@ components:
       - source_versions
       - attribution
       - context_count
+      - description_tags
+      - description_tags_pending
+    DescriptionTag:
+      type: object
+      additionalProperties: false
+      properties:
+        tag:
+          type: string
+        label:
+          type: string
+        value:
+          type:
+          - integer
+          - 'null'
+          description: Samo za room_count (broj prostorija).
+        method:
+          type: string
+          enum:
+          - rule
+          - model
+        reviewed_at:
+          type: string
+          format: date-time
+      required:
+      - tag
+      - label
+      - value
+      - method
+      - reviewed_at
     Weights:
       type: object
       additionalProperties: false
@@ -3495,6 +3553,10 @@ components:
           - cafe
           - bar
           - pub
+          - fast_food
+          - bakery
+          - hairdresser
+          - beauty
         coordinate:
           $ref: '#/components/schemas/Point'
         distance_m:
@@ -4857,7 +4919,58 @@ components:
           - unsupported
         requires_confirmation:
           const: true
+        candidates:
+          type: array
+          maxItems: 7
+          items:
+            $ref: '#/components/schemas/ProfileCandidate'
+        min_similarity:
+          type: number
+        min_margin:
+          type: number
+        method:
+          type: string
+          example: maximum_cosine_over_profile_examples
+        model_id:
+          type: string
+        model_revision:
+          type: string
+        config_sha256:
+          type: string
+          pattern: ^[0-9a-f]{64}$
       required:
       - suggested_profile
       - status
       - requires_confirmation
+      - candidates
+      - min_similarity
+      - min_margin
+      - method
+      - model_id
+      - model_revision
+      - config_sha256
+    ProfileCandidate:
+      type: object
+      additionalProperties: false
+      properties:
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
+        similarity:
+          type: number
+          minimum: -1
+          maximum: 1
+          description: Kosinusna sličnost s najbližim primjerom tog profila.
+        matched_example:
+          type: string
+      required:
+      - profile
+      - similarity
+      - matched_example

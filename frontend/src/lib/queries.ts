@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { apiGet } from "./api";
 import type {
+  CompetitionResponse,
   District,
   DistrictLayer,
   PointLayerName,
@@ -123,6 +124,25 @@ export function useSpaceDetail(spaceId: string, profile: ProfileCode, radius: Ra
       apiGet<SpaceDetail>(`/api/v1/spaces/${spaceId}?profile=${profile}&radius_m=${radius}`, {
         signal,
       }),
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useCompetitors(
+  spaceId: string,
+  bundleId: string,
+  profile: ProfileCode,
+  radius: Radius,
+) {
+  return useQuery({
+    queryKey: ["competitors", spaceId, bundleId, profile, radius],
+    queryFn: ({ signal }) =>
+      apiGet<CompetitionResponse>(
+        `/api/v1/spaces/${spaceId}/competitors?dataset_bundle_id=${bundleId}` +
+          `&profile=${profile}&radius_m=${radius}&page_size=100`,
+        { signal },
+      ),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
   });

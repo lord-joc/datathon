@@ -1,0 +1,22 @@
+# Production overrides for the public server (isječak 8, docs/deploy.md).
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d
+# .env on the server sets APP_ENV=production and SITE_ADDRESS=<domain>; Caddy then obtains the
+# TLS certificate itself and sends HSTS. Only ports 80 and 443 are public.
+services:
+  db:
+    # No published port at all on the server; use "docker compose exec db psql" for maintenance.
+    ports: !reset []
+    restart: unless-stopped
+
+  api:
+    environment:
+      APP_ENV: production
+      RATE_LIMIT_ENABLED: "true"
+    restart: unless-stopped
+
+  web:
+    ports: !override
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    restart: unless-stopped

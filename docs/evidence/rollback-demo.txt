@@ -1,0 +1,23 @@
+# Demonstracija: neuspjeli uvoz i rollback paketa (lokalni stack, 2026-10-31T17:12Z)
+
+## 1. Stanje prije
+API status: ok | aktivni paket: 44d0afa4-99d9-4ed0-8375-3af66480c9c1 | aktiviran: 2026-10-30T18:06:54.853469Z
+
+## 2. Uvoz neispravne D12 datoteke (krivo zaglavlje)
+$ docker compose run --rm cli python -m app.cli import-tenders --file /app/manual/_demo_neispravan_d12.csv
+[D12] NEUSPJEH: kod schema_changed  job=8063de9a-689c-4edd-8e71-469f91d62796
+    greška: Nedostaju stupci: space_id, monthly_rent_eur, tender_url, checked_at.
+(izlazni kod 1)
+
+## 3. Stanje nakon neuspjelog uvoza (aktivni paket isti)
+API status: ok | aktivni paket: 44d0afa4-99d9-4ed0-8375-3af66480c9c1 | aktiviran: 2026-10-30T18:06:54.853469Z
+
+## 4. Rollback: aktivira se raniji paket
+$ docker compose run --rm cli python -m app.cli bundle-activate --id 20f5815c-f8a0-4947-aaea-d54e84bcc808
+Aktivni paket: 20f5815c-f8a0-4947-aaea-d54e84bcc808
+API status: ok | aktivni paket: 20f5815c-f8a0-4947-aaea-d54e84bcc808 | aktiviran: 2026-10-31T17:12:49.096134Z
+
+## 5. Povratak na paket od prije demonstracije
+$ docker compose run --rm cli python -m app.cli bundle-activate --id 44d0afa4-99d9-4ed0-8375-3af66480c9c1
+Aktivni paket: 44d0afa4-99d9-4ed0-8375-3af66480c9c1
+API status: ok | aktivni paket: 44d0afa4-99d9-4ed0-8375-3af66480c9c1 | aktiviran: 2026-10-31T17:12:52.555146Z

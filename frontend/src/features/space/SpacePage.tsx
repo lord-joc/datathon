@@ -424,7 +424,9 @@ function DescriptionTags({ detail }: { detail: SpaceDetail }) {
       <p className="text-xs text-subtle">
         Oznake se izvlače pravilima iz polja „Opis strukture” u službenom popisu (D01), a prikazuju
         se tek kad ih potvrdi član tima
-        {latest && ` (zadnja potvrda ${fmtDate(latest)})`}. Ne ulaze u bodove.
+        {latest && ` (zadnja potvrda ${fmtDate(latest)})`}. Pregled je napravljen uz pomoć AI-ja
+        (Claude), koji je svaku oznaku usporedio sa službenim tekstom, a odluku je potvrdio član
+        tima. Ne ulaze u bodove.
         {pending > 0 && ` Oznake koje još čekaju potvrdu (nisu prikazane): ${fmt0(pending)}.`}
       </p>
     </section>

@@ -111,9 +111,10 @@ export function SourcesPage() {
         </p>
         <p>
           Oznake iz službenog „Opisa strukture” (npr. podrum, ulična zgrada, broj prostorija)
-          izvlače pravila, a prikazuju se tek kad ih potvrdi član tima. Ni prijedlog ni oznake ne
-          mijenjaju bodove. Konkurencija iz OpenStreetMapa samo se prikazuje i ne boduje se, jer
-          popis možda nije potpun.
+          izvlače pravila, a prikazuju se tek kad ih potvrdi član tima. Pregled 531 oznake (31. 10.
+          2026.) napravljen je uz pomoć AI-ja (Claude) prema službenom tekstu, a potvrdio ga je član
+          tima; 13 oznaka je odbijeno. Ni prijedlog ni oznake ne mijenjaju bodove. Konkurencija iz
+          OpenStreetMapa samo se prikazuje i ne boduje se, jer popis možda nije potpun.
         </p>
       </section>
 

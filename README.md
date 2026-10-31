@@ -15,7 +15,7 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 - **Isječak 7:** ograničenje broja zahtjeva, API bez izlaza na internet, kontrast prema WCAG AA, e2e testovi na desktopu, Androidu i iPhoneu s axe-coreom (ADR22).
 
-Sljedeći je isječak 8 (objava na javnoj adresi). Odluke su u [`docs/adr/`](docs/adr/README.md).
+Isječak 8 (objava na javnoj adresi) je pripremljen: upute su u [`docs/deploy.md`](docs/deploy.md), a `compose.prod.yaml` i `scripts/db-export.sh`, `db-import.sh` i `backup.sh` su isprobani lokalno. Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
 

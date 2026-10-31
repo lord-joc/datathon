@@ -23,7 +23,7 @@ export default {
       },
       fontFamily: {
         display: ["'Fraunces Variable'", "Georgia", "serif"],
-        sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
+        sans: ["Inter Variable", "Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "Menlo", "monospace"],
       },
       fontSize: {

@@ -10,7 +10,7 @@
   --border: 38 44 53; /* #262C35 */
   --text: 231 234 238; /* #E7EAEE */
   --text-muted: 154 164 178; /* #9AA4B2 */
-  --text-subtle: 107 117 132; /* #6B7584 */
+  --text-subtle: 128 138 154; /* #808A9A: 4.5:1 on every surface (axe, 2026-10-31); §7.2 had #6B7584 at 3.9:1 */
   --accent: 124 196 250; /* #7CC4FA */
   --accent-strong: 58 160 240; /* #3AA0F0 */
   --warn: 227 179 65; /* #E3B341 */

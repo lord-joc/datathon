@@ -20,4 +20,5 @@ Master prompt traži lokalni `paraphrase-multilingual-MiniLM-L12-v2` za (a) ozna
 ## Posljedice
 - Definicija gotovog, stavka AI: prijedlog djelatnosti radi s lokalnim modelom. Oznake iz opisa trebaju barem jednu ljudski potvrđenu stavku (`import-tag-review`) prije predaje.
 - Novi profil treba primjere u `ai_config.json`, a promjena primjera traži ponovno pokretanje `ai-calibrate-profiles` i ažuriranje brojeva u ovom ADR-u.
+- onnxruntime otvara telemetrijsku vezu prema Microsoftu, pa API nema izlaz na internet ([ADR22](ADR22-sigurnost-pristupacnost-e2e.md) §2).
 - Slika API-ja sadrži `onnxruntime` (oko 15 MB), a model zauzima oko 0,5 GB RAM-a nakon prvog učitavanja (`AI_PRELOAD`).

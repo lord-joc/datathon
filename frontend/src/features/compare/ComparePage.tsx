@@ -83,7 +83,12 @@ export function ComparePage() {
           U rezultatima označite „Usporedi” kod 2 ili 3 prostora.
         </EmptyState>
       ) : (
-        <div className="card overflow-x-auto p-0">
+        <div
+          className="card overflow-x-auto p-0"
+          tabIndex={0}
+          role="region"
+          aria-label="Usporedna tablica"
+        >
           <table className="w-full min-w-[40rem] text-sm">
             <caption className="sr-only">Usporedba prostora po kriterijima</caption>
             <thead>

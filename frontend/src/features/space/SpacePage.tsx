@@ -285,7 +285,8 @@ function Explanation({
           ? "Vrijednost iz podataka, korisnost (0–1) i bodovi koje kriterij donosi u ovom izračunu."
           : "Vrijednosti iz podataka. Bodovi se prikazuju kad prostor otvorite iz rezultata."}
       </p>
-      <div className="overflow-x-auto">
+      {/* Focusable so the table can be scrolled with the keyboard on narrow screens. */}
+      <div className="overflow-x-auto rounded-md" tabIndex={0} role="region" aria-labelledby="why">
         <table className="w-full min-w-[28rem] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-xs text-subtle">
@@ -604,7 +605,7 @@ function Competitors({
                 href={`https://www.openstreetmap.org/${c.osm_type}/${c.osm_id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="min-w-0 truncate text-accent hover:underline"
+                className="inline-flex min-h-[28px] min-w-0 items-center truncate text-accent hover:underline"
               >
                 {c.name ?? "Bez naziva"}
                 <span className="sr-only"> (OpenStreetMap, otvara se u novoj kartici)</span>

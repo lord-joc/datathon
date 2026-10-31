@@ -264,9 +264,12 @@ export default function SpaceMap({
       const el = document.createElement("button");
       el.type = "button";
       el.className = `map-marker map-marker--${s.kind}`;
-      el.textContent = s.rank !== null ? String(s.rank) : "";
-      el.setAttribute("aria-label", s.label);
-      el.title = s.label;
+      const rank = s.rank !== null ? String(s.rank) : "";
+      el.textContent = rank;
+      // WCAG 2.5.3: the accessible name starts with the visible rank number.
+      const name = rank && !s.label.startsWith(`${rank}.`) ? `${rank}. ${s.label}` : s.label;
+      el.setAttribute("aria-label", name);
+      el.title = name;
       el.addEventListener("click", (e) => {
         e.stopPropagation();
         onSelectRef.current(s.id);

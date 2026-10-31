@@ -45,7 +45,10 @@ class Settings(BaseSettings):
     # Only used in development (Vite dev server). Production is same-origin, no CORS.
     allowed_origins: list[str] = ["http://localhost:5173"]
 
+    rate_limit_enabled: bool = True
     public_rate_limit_per_minute: int = 30
+    # Rankings and AI suggestions do real work per call, so they get a smaller budget.
+    heavy_rate_limit_per_minute: int = 10
     max_json_body_bytes: int = 64 * 1024
 
     @computed_field  # type: ignore[prop-decorator]

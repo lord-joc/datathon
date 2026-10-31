@@ -1,3 +1,6 @@
+import io
+import stat
+import zipfile
 from decimal import Decimal
 
 import pytest
@@ -182,6 +185,24 @@ def test_districts_wrong_crs_is_rejected(reg) -> None:  # type: ignore[no-untype
 def test_zip_path_traversal_is_rejected(reg) -> None:  # type: ignore[no-untyped-def]
     content = fx.districts_zip(extra_member=("../evil.txt", b"x"))
     assert parse_districts_shp(content, reg.get("D07")).first_blocking_code == "zip_unsafe"
+
+
+def test_zip_bomb_over_100_mib_is_rejected(reg) -> None:  # type: ignore[no-untyped-def]
+    # TS02: 101 MiB of zeros compresses to ~100 KiB; the declared size is checked before reading.
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("big.dbf", b"0" * (101 * 1024 * 1024))
+    result = parse_districts_shp(buf.getvalue(), reg.get("D07"))
+    assert result.first_blocking_code == "zip_unsafe"
+
+
+def test_zip_symlink_is_rejected(reg) -> None:  # type: ignore[no-untyped-def]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        info = zipfile.ZipInfo("link.shp")
+        info.external_attr = (stat.S_IFLNK | 0o777) << 16
+        zf.writestr(info, "/etc/passwd")
+    assert parse_districts_shp(buf.getvalue(), reg.get("D07")).first_blocking_code == "zip_unsafe"
 
 
 def test_not_a_zip(reg) -> None:  # type: ignore[no-untyped-def]

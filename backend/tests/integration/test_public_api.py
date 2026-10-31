@@ -18,6 +18,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import ProgrammingError
 
 from app.api.v1 import presenters, public, rankings, system
+from app.core.config import Settings
 from app.main import create_app
 from app.pipeline.bundle import activate_bundle, build_bundle
 from app.pipeline.description_tags import import_review, review_template_csv, tag_descriptions
@@ -57,7 +58,8 @@ def client(
     )
     for module in (public, rankings, system):
         monkeypatch.setattr(module, "get_engine", lambda: api_engine)
-    yield TestClient(create_app())
+    # These tests call the API many times on purpose; limits have their own unit tests.
+    yield TestClient(create_app(Settings(rate_limit_enabled=False)))
     api_engine.dispose()
 
 
@@ -124,10 +126,33 @@ def test_space_list_filters_and_never_lists_unfit_by_default(client: TestClient)
 
     bad = client.get("/api/v1/spaces", params={"profile": "cafe", "page_size": 101})
     assert bad.status_code == 422
+    # TF01: a reversed range is refused before anything is computed.
+    reversed_range = client.get(
+        "/api/v1/spaces", params={"profile": "cafe", "area_min_m2": 70, "area_max_m2": 40}
+    )
+    assert reversed_range.status_code == 422 and reversed_range.json()["code"] == "INVALID_RANGE"
     stale = client.get(
         "/api/v1/spaces", params={"profile": "cafe", "dataset_bundle_id": str(uuid.uuid4())}
     )
     assert stale.status_code == 409 and stale.json()["code"] == "DATASET_CHANGED"
+
+
+def test_sql_and_script_text_in_input_stays_data(client: TestClient) -> None:
+    # TN03: metacharacters are rejected by validation or matched as plain values.
+    injected = "4763' OR '1'='1"
+    assert client.get(f"/api/v1/spaces/{injected}").status_code in (404, 422)
+    assert client.get(f"/api/v1/spaces/{injected}/competitors").status_code in (404, 422)
+    profile = client.get("/api/v1/spaces", params={"profile": "cafe'; DROP TABLE x;--"})
+    assert profile.status_code in (404, 422)
+    district = client.get("/api/v1/spaces", params={"profile": "cafe", "district_ids": "1 OR 1=1"})
+    assert district.status_code in (200, 422)
+    if district.status_code == 200:
+        assert district.json()["total"] == 0
+    script = client.post(
+        "/api/v1/profile-suggestions", json={"description": "<script>alert(1)</script> kafić"}
+    )
+    assert "<script>" not in script.text
+    assert client.get("/api/v1/spaces", params={"profile": "cafe"}).json()["total"] == 3
 
 
 def test_space_detail_has_metrics_with_sources_and_reasons(client: TestClient) -> None:

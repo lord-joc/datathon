@@ -9,6 +9,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
+from app.core.rate_limit import Rule
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -24,7 +25,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url=None if settings.is_production else "/api/openapi.json",
     )
 
-    app.add_middleware(RequestContextMiddleware, max_body_bytes=settings.max_json_body_bytes)
+    public = settings.public_rate_limit_per_minute
+    heavy = settings.heavy_rate_limit_per_minute
+    rules = (
+        (Rule("public", public, 2 * public), Rule("heavy", heavy, heavy))
+        if settings.rate_limit_enabled
+        else None
+    )
+    app.add_middleware(
+        RequestContextMiddleware, max_body_bytes=settings.max_json_body_bytes, rules=rules
+    )
     if not settings.is_production:
         # Production is same-origin behind Caddy, so CORS is not enabled there at all.
         app.add_middleware(

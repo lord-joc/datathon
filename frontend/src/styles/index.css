@@ -86,7 +86,7 @@
   background: rgb(var(--surface));
   color: rgb(var(--text));
   font:
-    600 12px/1 Inter,
+    600 12px/1 "Inter Variable",
     system-ui,
     sans-serif;
   font-variant-numeric: tabular-nums;

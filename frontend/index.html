@@ -12,6 +12,9 @@
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- The first step needs these two answers; start them with the scripts, not after. -->
+    <link rel="preload" href="/api/v1/profiles" as="fetch" crossorigin="anonymous" />
+    <link rel="preload" href="/api/v1/status" as="fetch" crossorigin="anonymous" />
     <title>ProstorIQ</title>
   </head>
   <body>

@@ -73,6 +73,25 @@ def test_redirect_to_disallowed_host_is_rejected() -> None:
     assert exc.value.code == "host_not_allowed"
 
 
+def test_redirect_to_allowed_host_with_private_address_is_rejected() -> None:
+    # TS01: the host is on the allowlist, but its DNS answer points inside the network.
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.host)
+        if request.url.host == "data.gov.hr":
+            return httpx.Response(302, headers={"location": "https://data.zagreb.hr/x"})
+        return httpx.Response(200, content=b"secret")
+
+    def resolver(host: str) -> list[str]:
+        return ["10.0.0.7"] if host == "data.zagreb.hr" else ["93.184.216.34"]
+
+    with pytest.raises(FetchError) as exc:
+        make(handler, resolver=resolver).get("https://data.gov.hr/x", max_bytes=100)
+    assert exc.value.code == "private_address"
+    assert seen == ["data.gov.hr"]
+
+
 def test_allowed_redirect_is_followed_and_recorded() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.host == "data.gov.hr":

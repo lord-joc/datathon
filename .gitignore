@@ -43,3 +43,7 @@ graphify-out/
 
 # Local MiniLM files (ai-fetch-model, ADR21); pinned by hash in config/ai_config.json.
 data/models/
+
+# Playwright output
+frontend/test-results/
+frontend/playwright-report/

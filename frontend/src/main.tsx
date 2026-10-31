@@ -1,6 +1,5 @@
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/600.css";
+// One variable file per subset instead of three weights x two subsets (Lighthouse, 2026-10-31).
+import "@fontsource-variable/inter/index.css";
 import "@fontsource-variable/fraunces/index.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "./styles/index.css";

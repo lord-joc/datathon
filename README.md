@@ -2,7 +2,7 @@
 
 Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u Zagrebu na temelju otvorenih podataka (data.gov.hr, Geoportal Grada Zagreba, OpenStreetMap). Datathon Portala otvorenih podataka 2026, izazov C.
 
-**Stanje:** isječak 6.
+**Stanje:** isječak 7.
 
 - **Isječak 1:** Docker okruženje, baza, API skelet i prvi korak Vodiča.
 - **Isječak 2:** uvoz otvorenih podataka. D01/D02 dolaze preko CKAN API-ja data.gov.hr, uz prostorne slojeve D03–D07 te autobusna stajališta, vrtiće i škole (D14, D17, D18).
@@ -13,7 +13,9 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 - **Isječak 6:** konkurencija iz OSM-a na detalju prostora (samo prikaz, ne boduje se) i lokalni AI: prijedlog djelatnosti iz slobodnog opisa te oznake iz „Opisa strukture” uz ljudsku potvrdu (ADR21).
 
-Sljedeći je isječak 7 (sigurnost, performanse, pristupačnost, e2e). Odluke su u [`docs/adr/`](docs/adr/README.md).
+- **Isječak 7:** ograničenje broja zahtjeva, API bez izlaza na internet, kontrast prema WCAG AA, e2e testovi na desktopu, Androidu i iPhoneu s axe-coreom (ADR22).
+
+Sljedeći je isječak 8 (objava na javnoj adresi). Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
 
@@ -67,7 +69,7 @@ Očekivano: `Spojen kao: prostoriq_api` i verzija PostGIS-a.
 
 - aplikacija: http://localhost:8080
 - status: http://localhost:8080/api/v1/status (očekivano `"database": "up"`, `"dataset_ready": false`)
-- API dokumentacija (samo lokalno): http://localhost:8000/api/docs
+- API dokumentacija (samo lokalno): http://localhost:8080/api/docs
 
 ## Uvoz otvorenih podataka
 
@@ -206,7 +208,7 @@ Formule su u `backend/app/ranking/` (čista funkcija, bez baze), težine u `conf
 | `GET /api/v1/sources` | izvori, licence, datumi i ograničenja |
 | `POST /api/v1/profile-suggestions` | prijedlog djelatnosti iz opisa (5–500 znakova): tri najsličnija profila sa sličnošću; korisnik potvrđuje |
 
-Kad kriterij nedostaje samo dijelu prostora, `POST /rankings` vraća `409 COMPARISON_BASIS_CHANGED`, s popisom što nedostaje i potpisanim tokenom. Klijent ponavlja zahtjev s `comparison_basis_token` i `basis_choice`: `common_criteria` (svi prostori, manja pokrivenost) ili `remove_incomplete` (bez nepotpunih). Token vrijedi 10 minuta i samo za taj zahtjev. Interaktivna dokumentacija je na http://localhost:8000/api/docs (samo lokalno).
+Kad kriterij nedostaje samo dijelu prostora, `POST /rankings` vraća `409 COMPARISON_BASIS_CHANGED`, s popisom što nedostaje i potpisanim tokenom. Klijent ponavlja zahtjev s `comparison_basis_token` i `basis_choice`: `common_criteria` (svi prostori, manja pokrivenost) ili `remove_incomplete` (bez nepotpunih). Token vrijedi 10 minuta i samo za taj zahtjev. Interaktivna dokumentacija je na http://localhost:8080/api/docs (samo lokalno).
 
 ## Lokalni AI (ADR21)
 
@@ -238,6 +240,25 @@ U `oznake-pregled.csv` za svaki redak pročitaj stupac `description` (službeni 
 docker compose run --rm cli python -m app.cli import-tag-review --file /app/manual/oznake-pregled.csv
 ```
 
+## E2E testovi (Playwright + axe)
+
+Testovi rade nad pravim stackom na http://localhost:8080 (ili `E2E_BASE_URL`). Jednom instaliraj preglednike, pa pokreni. Ograničenje zahtjeva se isključuje samo za taj lokalni prolaz, jer testovi ponavljaju mnogo posjeta s jedne adrese:
+
+```cmd
+cd frontend
+npx playwright install chromium webkit
+cd ..
+set RATE_LIMIT_ENABLED=false
+docker compose up -d api web
+cd frontend
+npx playwright test
+cd ..
+set RATE_LIMIT_ENABLED=
+docker compose up -d api
+```
+
+Izvještaj je u `frontend/playwright-report/index.html`. Projekti su `desktop-chromium`, `android-chromium` (Pixel 7) i `iphone-webkit` (iPhone 13).
+
 ## Razvoj frontenda s automatskim osvježavanjem
 
 Docker drži bazu i API, a Vite poslužuje frontend:
@@ -248,7 +269,7 @@ npm ci
 npm run dev
 ```
 
-Otvori http://localhost:5173. Zahtjevi na `/api` idu na API na portu 8000.
+Otvori http://localhost:5173. Zahtjevi na `/api` idu preko Caddyja na portu 8080, jer API nema vlastiti port ni izlaz na internet (ADR21).
 
 Stranice sučelja:
 
@@ -307,7 +328,7 @@ Iste provjere, uz stvarne migracije na PostGIS-u, pokreće GitHub Actions na sva
   docker compose up -d --build
   docker compose run --rm cli python -m app.cli migrate
   ```
-- **Port 8080, 8000 ili 5432 je zauzet**: zaustavi drugu aplikaciju na tom portu ili promijeni lijevi broj u `compose.yaml` (npr. `"8081:80"`).
+- **Port 8080 ili 5432 je zauzet**: zaustavi drugu aplikaciju na tom portu ili promijeni lijevi broj u `compose.yaml` (npr. `"8081:80"`).
 
 ## Sigurnost (sažetak)
 

@@ -15,6 +15,7 @@ services:
     # Digest verified in documentation v3 (amd64). On Apple Silicon this runs under emulation.
     image: postgis/postgis:16-3.5@sha256:94146ac37bc61e2322f88016056c5920729cb8c64c8542ed590af8fc2abdac07
     platform: linux/amd64
+    networks: [internal, default]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-prostoriq}
       POSTGRES_USER: ${POSTGRES_USER:-prostoriq_owner}
@@ -52,15 +53,18 @@ services:
       # Local MiniLM for profile suggestions (ADR21); files come from "cli ai-fetch-model".
       MODEL_DIR: /app/models
       AI_PRELOAD: "true"
+      # Leave on; only a local e2e run that replays many visits from one address turns it off.
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
     volumes:
       - ./config:/app/config:ro
       - ./data/models:/app/models:ro
     depends_on:
       db:
         condition: service_healthy
-    # Exposed on localhost for the Vite dev server proxy (npm run dev).
-    ports:
-      - "127.0.0.1:8000:8000"
+    # No route to the internet (ADR21): onnxruntime opens telemetry connections to Microsoft
+    # even after disable_telemetry_events(), so the API sits only on the internal network.
+    # Reach it through Caddy on :8080 (the Vite dev server proxies there too).
+    networks: [internal]
     read_only: true
     tmpfs:
       - /tmp
@@ -72,6 +76,8 @@ services:
     build:
       context: ./backend
     profiles: [tools]
+    # Imports and ai-fetch-model need the internet; the CLI never serves requests.
+    networks: [internal, default]
     security_opt:
       - no-new-privileges:true
     environment:
@@ -107,6 +113,7 @@ services:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     depends_on:
       - api
+    networks: [internal, default]
     ports:
       - "8080:80"
     volumes:
@@ -114,6 +121,11 @@ services:
       - caddy_config:/config
       # Basemap extract (see README "Podloga karte"); the map falls back to districts without it.
       - ./data/basemap:/srv/tiles:ro
+
+networks:
+  default:
+  internal:
+    internal: true
 
 volumes:
   pg_data:

@@ -163,6 +163,8 @@ def load_embedder(config: dict[str, Any], model_dir: Path | None = None) -> Embe
     tokenizer = Tokenizer.from_file(str(root / "tokenizer.json"))
     tokenizer.enable_truncation(max_length=int(config["max_seq_length"]))
     tokenizer.enable_padding()
+    # ORT can send platform telemetry (1DS). We promise no data to third parties: switch it off.
+    ort.disable_telemetry_events()
     options = ort.SessionOptions()
     options.intra_op_num_threads = 2
     session = ort.InferenceSession(

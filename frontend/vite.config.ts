@@ -9,8 +9,9 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    // In development the API runs on :8000 (docker compose). Same-origin in production.
-    proxy: { "/api": { target: "http://localhost:8000", changeOrigin: false } },
+    // In development the API is reached through Caddy on :8080 (docker compose); the API itself
+    // has no published port. Same-origin in production.
+    proxy: { "/api": { target: "http://localhost:8080", changeOrigin: false } },
   },
   build: {
     target: "es2020",
@@ -29,6 +30,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // Playwright specs in tests/e2e run against a live stack, not in Vitest.
+    include: ["src/**/*.test.{ts,tsx}"],
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     css: false,

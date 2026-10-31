@@ -1,0 +1,20 @@
+# ADR22 Sigurnost, pristupačnost i e2e (isječak 7)
+
+Datum: 31. 10. 2026.
+Status: prihvaćeno; mijenja §7.2 (`--text-subtle`), dopunjuje §8 (rate limit, izlaz API-ja na internet) i ADR21
+
+## Kontekst
+Isječak 7 traži provjerena sigurnosna zaglavlja, ograničenje zahtjeva, e2e testove na desktopu, Androidu i iPhoneu s axe-core te Lighthouse na mobitelu. E2E i provjere su pronašle pet stvarnih problema koje ovaj ADR rješava.
+
+## Odluke
+1. **Ograničenje zahtjeva (NF18).** Svaki klijent ima token bucket po pravilu: javni API 30 zahtjeva u minuti uz prasak do 60, a `POST /rankings` i `POST /profile-suggestions` 10 u minuti. Prasak postoji jer jedan korak Vodiča šalje nekoliko poziva odjednom. Izmjereno: jedan posjet s dva cijela prolaza Vodičem napravi 23 poziva. Klijent se prepoznaje po 16 znakova SHA-256 hasha IP adrese sa slučajnom soli koja se mijenja svaka 24 sata, pa se IP nigdje ne sprema. Odgovor je `429 RATE_LIMITED` (problem+json) s `Retry-After`. `/api/v1/health` je izuzet. Stanje je u memoriji jer API radi kao jedan proces. `RATE_LIMIT_ENABLED=false` služi samo za lokalni e2e koji ponavlja mnogo posjeta s jedne adrese.
+2. **API nema izlaz na internet.** U logu API-ja pojavio se `telemetry_1ds` iz onnxruntimea 1.31.1. Provjera u kontejneru pokazala je otvorenu HTTPS vezu prema 20.184.175.8 (Microsoft Azure), i to iako se prije sesije poziva `ort.disable_telemetry_events()`. Ne znamo što ta veza šalje. Tekst korisnika ne bi trebao biti u njoj, ali tvrdnja „bez slanja podataka trećima” mora biti istinita. Zato je `api` samo na Compose mreži `internal` (`internal: true`). Provjereno: spajanje na tu adresu daje „Network is unreachable”, a DNS ne radi. Na internet smiju samo `web` (Caddy, zbog TLS certifikata), `cli` (uvozi i `ai-fetch-model`) i `db`. API zato nema objavljen port, a Vite dev server i `/api/docs` idu preko Caddyja na :8080.
+3. **`upgrade-insecure-requests` samo preko HTTPS-a.** S tom direktivom na lokalnom HTTP-u WebKit (iPhone) je sve datoteke tražio na `https://localhost` i aplikacija se nije učitala. Caddy je sada dodaje preko `map {scheme}` samo kad je zahtjev HTTPS. Ostatak CSP-a je nepromijenjen.
+4. **`--text-subtle` je #808A9A umjesto #6B7584.** Stara boja ima kontrast 3,92:1 na karticama (#12151A), a WCAG AA traži 4,5:1 (axe je našao 600 elemenata). Nova ima 5,24:1 na `--surface` i 4,84:1 na `--surface-2`, i ostaje tamnija od `--text-muted`.
+5. **Ostali nalazi axe-corea.** Brojevi na markerima karte su dio pristupačnog imena (WCAG 2.5.3). Poveznice na OSM objekte visoke su najmanje 28 px. Tablice s vodoravnim pomicanjem dostupne su tipkovnicom (`tabIndex=0`, `role=region`). Markeri karte isključeni su iz provjere veličine mete (2.5.8): mogu se preklapati kad je više prostora u istoj zgradi, a svaki ima istovrijednu poveznicu „Detalj” u popisu, koja se provjerava.
+6. **E2E testovi** (`frontend/tests/e2e`, Playwright 1.64.1, @axe-core/playwright 4.14.0) rade nad pravim stackom, nikad nad mockom. Pokrivaju kafić i ured s različitim poretkom, dijalog 409 bez unaprijed odabrane opcije, detalj s OSM upozorenjem i zračnim udaljenostima, usporedbu s najviše 3 prostora, AI prijedlog i izvore. Pokreću se na Chromiumu (desktop, Pixel 7) i WebKitu (iPhone 13). Rezultat 31. 10. 2026.: 15 od 15 prolazi, a axe nema serious ni critical nalaza.
+7. **Lighthouse (mobile, simulirani Slow 4G, 4× CPU)** na lokalnom računalu (benchmarkIndex 1488, uz Docker): Accessibility 100, Best Practices 100, Performance 72 do 87 uz veliku varijaciju. Inter je zamijenjen varijabilnim fontom (2 datoteke umjesto 6), a `/api/v1/profiles` i `/api/v1/status` učitavaju se odmah (`preload`). Cilj ≥ 90 provjerava se ponovno na javnoj adresi. Dok se ne izmjeri tamo, ne tvrdimo da je postignut.
+
+## Posljedice
+- `test_cases.csv`: 21 slučaj ima `pass` s točnim testom. TN12, TN13 i TN18 ostaju `not_run` uz opis onoga što je stvarno napravljeno: nema ručnog prolaza čitačem zaslona, Firefoxa ni testa opterećenja.
+- Svaka nova ovisnost u API-ju koja otvara mrežne veze ne radi. To je namjerno.

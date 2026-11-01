@@ -2,7 +2,7 @@
 
 Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u Zagrebu na temelju otvorenih podataka (data.gov.hr, Geoportal Grada Zagreba, OpenStreetMap). Datathon Portala otvorenih podataka 2026, izazov C.
 
-**Stanje:** isječak 7.
+**Stanje:** isječak 8. Javna adresa: https://68-210-100-237.sslip.io
 
 - **Isječak 1:** Docker okruženje, baza, API skelet i prvi korak Vodiča.
 - **Isječak 2:** uvoz otvorenih podataka. D01/D02 dolaze preko CKAN API-ja data.gov.hr, uz prostorne slojeve D03–D07 te autobusna stajališta, vrtiće i škole (D14, D17, D18).
@@ -15,7 +15,9 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 - **Isječak 7:** ograničenje broja zahtjeva, API bez izlaza na internet, kontrast prema WCAG AA, e2e testovi na desktopu, Androidu i iPhoneu s axe-coreom (ADR22).
 
-Isječak 8 (objava na javnoj adresi) je pripremljen: upute su u [`docs/deploy.md`](docs/deploy.md), a `compose.prod.yaml` i `scripts/db-export.sh`, `db-import.sh` i `backup.sh` su isprobani lokalno. Odluke su u [`docs/adr/`](docs/adr/README.md).
+- **Isječak 8:** objava na javnoj adresi (Azure for Students, Austria East, 2 vCPU / 4 GB) prema [`docs/deploy.md`](docs/deploy.md): isti paket podataka kao lokalno, HTTPS (Let's Encrypt), dnevna kopija baze. Provjera je u [`docs/evidence/deploy-check.txt`](docs/evidence/deploy-check.txt).
+
+Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
 

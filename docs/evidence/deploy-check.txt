@@ -1,0 +1,47 @@
+Provjera javne instance (isječak 8), 31. 10. – 1. 11. 2026.
+Adresa: https://68-210-100-237.sslip.io
+Server: Azure for Students, Standard_B2als_v2 (2 vCPU, 3,8 GB RAM, x86_64), Austria East, Ubuntu 24.04.5 LTS
+Kod: commit 8ead62a (grana luka/pocetak), prenesen kao git bundle
+Docker 29.9.2, Docker Compose v5.6.1, COMPOSE_FILE=compose.yaml:compose.prod.yaml
+
+1. Prijenos baze
+   prostoriq.dump sha256 e72d7190dbe8fcf10883dba75ccf7dc7a3e908720b62670f223e62ed04ed8a66 (lokalno i na serveru isti)
+   db-import.sh: Migracija 0008_description_tags, aktivni paket 44d0afa4-99d9-4ed0-8375-3af66480c9c1, 262 prostora
+
+2. Model (ai-fetch-model)
+   sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2 @ e8f8c211226b894fcb81acc59f3b34ba3efd5f42
+   onnx/model.onnx 470301610 B, tokenizer.json 9081518 B, 1_Pooling/config.json, sentence_bert_config.json: hash odgovara
+   Prvi pokušaj pao je na PermissionError (data/models pripada azureuser, kontejner radi kao 10001); riješeno s chown, dodano u docs/deploy.md.
+
+3. HTTPS i zaglavlja (curl -sI /)
+   Certifikat: Let's Encrypt (acme-v02), izdao ga Caddy sam
+   HTTP/1.1 200 OK
+   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+   Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()
+   Referrer-Policy: strict-origin-when-cross-origin
+   Strict-Transport-Security: max-age=31536000; includeSubDomains
+   X-Content-Type-Options: nosniff
+   http:// -> 308 na https://
+   /api/docs 404, /api/openapi.json 404 (produkcija)
+   Portovi 5432 i 8000 izvana: veza ne uspijeva (nisu objavljeni)
+
+4. /api/v1/status
+   {"status":"ok","version":"0.1.0","database":"up","postgis_version":"3.5.2","dataset_ready":true,"active_bundle_id":"44d0afa4-99d9-4ed0-8375-3af66480c9c1","activated_at":"2026-10-31T17:12:52.555146Z","message":"Podaci su spremni."}
+
+5. E2E (Playwright, E2E_BASE_URL=javna adresa, rate limit uključen)
+   Prvi prolaz: 12 od 15 prošlo. Tri pada nisu greške aplikacije, nego odgovori 429 našeg ograničenja
+   (24 odgovora 429 u logu API-ja; 15 testova s jedne IP adrese u 2,2 minute premašuje 30 zahtjeva u minuti).
+   Ponovljeni pojedinačno: android-chromium "compare", iphone-webkit "compare" i "different orders" prošli.
+   Ukupno: svih 15 testova (3 uređaja x 5) prolazi na javnoj adresi, uključujući axe (WCAG 2.2 AA).
+
+6. Lighthouse 13.6.0 (mobile, s lokalnog računala, benchmarkIndex 1137)
+   Mjerenje 1: Performance 89, Accessibility 100, Best Practices 100, SEO 100; FCP 0,8 s, LCP 2,3 s, TBT 400 ms, CLS 0,01
+   Mjerenje 2: prekinuo Lighthouse (NO_NAVSTART), nije uračunato
+   Mjerenje 3: Performance 95; LCP 2,3 s, TBT 220 ms
+   Izvještaji: lighthouse-mobile-public.json (1), lighthouse-mobile-public-perf.json (3)
+
+7. Dnevna kopija (NF09)
+   Ručno pokrenut backup.sh: /var/backups/prostoriq/prostoriq-20261101T0002Z.dump (6028270 B)
+   root crontab: 30 3 * * * cd /opt/prostoriq && sh scripts/backup.sh >> /var/log/prostoriq-backup.log 2>&1
+
+Nije napravljeno: kopija izvan servera (backup je na istom disku).

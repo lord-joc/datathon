@@ -4,8 +4,9 @@ Jedan VPS s Docker Composeom: Caddy (HTTPS i statički frontend), API i PostGIS.
 
 ## Što treba
 
-- VPS: Ubuntu 24.04, najmanje 2 vCPU i 4 GB RAM-a (npr. Hetzner CX22). Model zauzima oko 0,5 GB RAM-a.
-- Domena s A zapisom koji pokazuje na IP servera. Bez domene nema TLS certifikata ni HSTS-a.
+- VPS: Ubuntu 24.04 na x64 procesoru (slika `postgis/postgis` nema ARM inačicu), najmanje 2 vCPU i 4 GB RAM-a. Model zauzima oko 0,5 GB RAM-a. Javna instanca radi na Azure for Students, `Standard_B2als_v2` u Austria East; studentska pretplata dopušta samo neke regije (`az policy assignment list --disable-scope-strict-match`).
+- Domena s A zapisom koji pokazuje na IP servera, ili besplatno `<ip-s-crticama>.sslip.io`, koji se sam razrješava u taj IP.
+  Bez domene nema TLS certifikata ni HSTS-a.
 - SSH pristup kao `root` ili korisnik sa `sudo`.
 
 ## 1. Lokalno: pripremi datoteke
@@ -27,6 +28,8 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/doc
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
 apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw allow 443/udp && ufw --force enable
+# 2 GB swapa kao rezerva za build na 4 GB RAM-a:
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
 Docker objavljene portove otvara mimo `ufw`-a. Zato `compose.prod.yaml` objavljuje samo 80 i 443, a baza i API nemaju objavljen port.
@@ -39,6 +42,8 @@ cd /opt/prostoriq
 cp .env.example .env
 chmod 600 .env
 ```
+
+Bez pristupa GitHubu kod se prenosi kao paket: lokalno `git bundle create prostoriq.bundle luka/pocetak`, `scp` u `/opt/prostoriq`, pa na serveru `git init && git fetch prostoriq.bundle luka/pocetak:luka/pocetak && git checkout luka/pocetak`.
 
 U `.env` postavi `APP_ENV=production`, `SITE_ADDRESS=<domena>` i nove lozinke za `POSTGRES_PASSWORD`, `API_DB_PASSWORD`, `PIPELINE_DB_PASSWORD` i `APP_HMAC_SECRET`. Lozinke ne kopiraj s lokalnog računala. Generiraj ih ovako:
 
@@ -63,6 +68,8 @@ docker compose up -d db
 until [ "$(docker compose logs db 2>&1 | grep -c 'ready to accept connections')" -ge 2 ]; do sleep 2; done
 sh scripts/db-import.sh prostoriq.dump
 docker compose build
+# Kontejner radi kao korisnik 10001, pa mu treba pravo pisanja u mapu modela:
+sudo chown -R 10001:10001 data/models
 docker compose run --rm cli python -m app.cli ai-fetch-model
 docker compose up -d
 ```
@@ -84,12 +91,14 @@ set E2E_BASE_URL=https://<domena>
 npx playwright test
 ```
 
-Lighthouse izmjeri na https://pagespeed.web.dev s adresom stranice i rezultat upiši u ADR22.
+Rate limit je na serveru uključen, pa svih 15 testova odjednom s jedne adrese dobiva odgovore 429. To je očekivano. Pale testove ponovi pojedinačno (`--project=… -g "…"`).
+
+Lighthouse izmjeri na https://pagespeed.web.dev ili `npx lighthouse@13.6.0 <adresa>` i rezultat upiši u ADR22.
 
 ## 7. Dnevna kopija baze (NF09)
 
 ```sh
-crontab -e
+sudo crontab -e
 # 30 3 * * * cd /opt/prostoriq && sh scripts/backup.sh >> /var/log/prostoriq-backup.log 2>&1
 ```
 

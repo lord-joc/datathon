@@ -25,14 +25,26 @@
   "topic_profiles": {
     "traffic_works": [
       "cafe",
-      "office"
+      "office",
+      "retail",
+      "food_takeaway",
+      "personal_care",
+      "education",
+      "workshop"
     ],
     "public_projects_services": [
       "cafe",
-      "office"
+      "office",
+      "retail",
+      "food_takeaway",
+      "personal_care",
+      "education",
+      "workshop"
     ],
     "events": [
-      "cafe"
+      "cafe",
+      "retail",
+      "food_takeaway"
     ],
     "irrelevant": []
   },
@@ -141,5 +153,10 @@
       "command": "python -m app.cli ai-calibrate-profiles",
       "note": "Mali skup koji su napisali tim i Claude; pragovi su odabrani na istom skupu, pa brojevi nisu procjena točnosti na stvarnim upitima."
     }
+  },
+  "business_brief": {
+    "notice_min_similarity": 0.35,
+    "max_notices": 3,
+    "min_contracts_for_median": 5
   }
 }

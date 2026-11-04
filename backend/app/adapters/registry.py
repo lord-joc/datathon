@@ -18,6 +18,8 @@ Kind = Literal[
     "osm_addresses",
     "coordinates_csv",
     "tender_csv",
+    "notices_html",
+    "lease_csv",
     "unsupported",
 ]
 
@@ -31,12 +33,14 @@ _KIND: dict[str, Kind] = {
     "D06": "geojson_points",
     "D07": "districts_shp",
     "D08": "osm_competitors",
+    "D09": "notices_html",
     "D11": "coordinates_csv",
     "D12": "tender_csv",
     "D14": "geojson_points",
     "D17": "geojson_points",
     "D18": "geojson_points",
     "D19": "osm_addresses",
+    "D20": "lease_csv",
 }
 _CATEGORY: dict[str, str] = {
     "D03": "transit",

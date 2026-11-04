@@ -55,6 +55,12 @@ def test_every_implemented_route_is_in_the_contract(contract: dict[str, Any]) ->
         (schemas.ProfileSuggestion, "ProfileSuggestion"),
         (schemas.ProfileCandidate, "ProfileCandidate"),
         (schemas.DescriptionTag, "DescriptionTag"),
+        (schemas.ContextCard, "ContextCard"),
+        (schemas.ContextList, "ContextList"),
+        (schemas.BusinessBrief, "BusinessBrief"),
+        (schemas.MarketSummary, "MarketSummary"),
+        (schemas.MarketDistrict, "MarketDistrict"),
+        (schemas.RentStats, "RentStats"),
     ],
 )
 def test_model_fields_match_contract(

@@ -1,6 +1,6 @@
 {
   "$comment": "Team additions after documentation v3 (ADR16). Dataset pages confirmed by catalogue search on 2026-10-27; resource_id confirmed with 'python -m app.cli source-resources <code>' on 2026-10-28. With resource_id null the importer picks the single resource with resource_format, or stops and asks.",
-  "version": "2026-10-28.2",
+  "version": "2026-11-04.1",
   "sources": [
     {
       "source_code": "D14",
@@ -79,12 +79,30 @@
       "refresh": "weekly",
       "limitations": "Adresa zgrade iz OSM-a (addr:street + addr:housenumber); nije potvrđen ulaz u poslovni prostor. Isti PBF kao D08.",
       "note": "Imported together with D08 by 'osm-import --file'. DGU INSPIRE addresses (Otvorena dozvola) remain a pilot option: GML via WFS/Atom for all of Croatia."
+    },
+    {
+      "source_code": "D20",
+      "name": "Registar ugovora o zakupu poslovnih prostora",
+      "publisher": "Grad Zagreb",
+      "catalog_url": "https://data.gov.hr/ckan/hr/dataset/registar-ugovora-o-zakupu-koristenju-poslovnih-prostora",
+      "metadata_endpoint": "https://data.gov.hr/ckan/api/3/action/package_show?id=registar-ugovora-o-zakupu-koristenju-poslovnih-prostora",
+      "resource_id": "d88c285f-2bfc-4789-8d5b-375f8951c3f6",
+      "resource_format": "CSV",
+      "resource_note": "Confirmed 2026-11-04: contracts signed in 2024, Windows-1250, ';'. Tenant names are in the file and are never stored (ADR24).",
+      "license_id": "OD",
+      "attribution": "Grad Zagreb, naziv skupa i poveznica na izvor",
+      "format": "CSV",
+      "encoding": "Windows-1250",
+      "reference_period": "2024",
+      "refresh": "weekly",
+      "limitations": "Zakupnine u gradskim prostorima iz ugovora potpisanih 2024. Nisu tržišne cijene privatnih prostora ni ponuda za pojedini prostor. Ne bodu se."
     }
   ],
   "allowed_hosts": [
     "data.gov.hr",
     "data.zagreb.hr",
-    "opendata.arcgis.com"
+    "opendata.arcgis.com",
+    "www.zagreb.hr"
   ],
-  "$comment_hosts": "Exact host names, or a leading dot for a domain and its subdomains. Every redirect is re-checked. Checked 2026-10-28: all D03-D07, D14, D17, D18 downloads are served by opendata.arcgis.com without a redirect. Do not allow '.arcgis.com': anyone can publish content on its subdomains. Add a host only after reviewing where it points."
+  "$comment_hosts": "Exact host names, or a leading dot for a domain and its subdomains. Every redirect is re-checked. Checked 2026-10-28: all D03-D07, D14, D17, D18 downloads are served by opendata.arcgis.com without a redirect. Do not allow '.arcgis.com': anyone can publish content on its subdomains. Add a host only after reviewing where it points. Added 2026-11-04: www.zagreb.hr for D09 (original city notices; terms allow reuse with a link)."
 }

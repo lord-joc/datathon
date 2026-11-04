@@ -22,6 +22,9 @@ Commands
   ai-tag-descriptions     tags from 'Opis strukture' (rules) for the active bundle, pending
   tag-review-template     ';' CSV with BOM of pending tags for a team member to decide
   import-tag-review --file F  da/ne decisions with reviewer initials
+  news-classify           D09 notices -> topic proposals and pending cards (local model)
+  news-review-template    pending cards as CSV for a team member
+  import-news-review --file F  da/ne decisions for cards; only these make a card public
   import-tenders --file F D12 rents and conditions read from zagreb.hr tenders (CSV)
   bundle-build [--label]  build and validate a dataset bundle with spatial metrics
   bundle-activate [--id]  make a valid bundle the active one (default: newest valid)
@@ -43,6 +46,7 @@ from app.adapters.ckan import fetch_package
 from app.adapters.http import FetchError, SafeFetcher
 from app.adapters.registry import Registry, load_registry
 from app.core.config import get_settings
+from app.pipeline import news as news_pipeline
 from app.pipeline.bundle import BundleError, activate_bundle, build_bundle
 from app.pipeline.description_tags import (
     import_review,
@@ -57,7 +61,19 @@ from app.pipeline.tenders import tender_template_csv
 from app.ranking.config import load_profiles
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_IMPORT_ORDER = ("D07", "D01", "D02", "D03", "D04", "D05", "D06", "D14", "D17", "D18")
+DEFAULT_IMPORT_ORDER = (
+    "D07",
+    "D01",
+    "D02",
+    "D03",
+    "D04",
+    "D05",
+    "D06",
+    "D14",
+    "D17",
+    "D18",
+    "D20",
+)
 
 
 def _owner_url() -> str:
@@ -343,6 +359,47 @@ def cmd_import_tag_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_news_classify(_: argparse.Namespace) -> int:
+    from app.ai.model import ModelError, load_ai_config, load_embedder
+
+    config = load_ai_config()
+    try:
+        embedder = load_embedder(config)
+    except ModelError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    counts = news_pipeline.classify_notices(_pipeline_engine(), embedder, config)
+    print(
+        f"Obavijesti: {counts['revisions']}, razvrstano: {counts['classified']}, "
+        f"nesigurno: {counts['uncertain']}, nebitno: {counts['irrelevant']}, "
+        f"kartica na čekanju: {counts['cards']} (news-review-template)."
+    )
+    return 0
+
+
+def cmd_news_review_template(_: argparse.Namespace) -> int:
+    sys.stdout.write("\ufeff" + news_pipeline.review_template_csv(_pipeline_engine()))
+    return 0
+
+
+def cmd_import_news_review(args: argparse.Namespace) -> int:
+    path = Path(args.file)
+    if not path.is_file():
+        print(f"Datoteka ne postoji: {path}", file=sys.stderr)
+        return 1
+    outcome = news_pipeline.import_review(_pipeline_engine(), path.read_bytes())
+    if outcome.errors:
+        print("Ništa nije upisano. Ispravi retke:", file=sys.stderr)
+        for line in outcome.errors:
+            print(f"  {line}", file=sys.stderr)
+        return 1
+    print(
+        f"Odobreno: {outcome.approved}, odbijeno: {outcome.rejected}, bez odluke: "
+        f"{outcome.skipped_empty}, već odlučeno ranije: {outcome.not_pending}."
+    )
+    return 0
+
+
 def cmd_geocode(_: argparse.Namespace) -> int:
     try:
         report = geocode_spaces(_pipeline_engine())
@@ -537,6 +594,15 @@ def main(argv: list[str] | None = None) -> int:
     review = sub.add_parser("import-tag-review", help="Uvezi odluke da/ne za oznake")
     review.add_argument("--file", required=True)
     review.set_defaults(func=cmd_import_tag_review)
+    sub.add_parser("news-classify", help="Razvrstaj D09 obavijesti lokalnim modelom").set_defaults(
+        func=cmd_news_classify
+    )
+    sub.add_parser(
+        "news-review-template", help="CSV kartica obavijesti koje čekaju potvrdu"
+    ).set_defaults(func=cmd_news_review_template)
+    news_review = sub.add_parser("import-news-review", help="Uvezi odluke da/ne za kartice")
+    news_review.add_argument("--file", required=True)
+    news_review.set_defaults(func=cmd_import_news_review)
     sub.add_parser("geocode", help="Geokodiraj prostore na D19").set_defaults(func=cmd_geocode)
     sub.add_parser("geocode-review", help="D11 predložak za ručnu provjeru").set_defaults(
         func=cmd_geocode_review

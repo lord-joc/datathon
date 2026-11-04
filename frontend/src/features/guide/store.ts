@@ -1,6 +1,13 @@
 import { create } from "zustand";
 
-import { CRITERIA, type Criterion, type ProfileCode, type Radius, type Weights } from "@/lib/types";
+import {
+  CRITERIA,
+  type BusinessBrief,
+  type Criterion,
+  type ProfileCode,
+  type Radius,
+  type Weights,
+} from "@/lib/types";
 
 export const STEPS = [
   { id: "djelatnost", label: "Djelatnost" },
@@ -43,7 +50,11 @@ export interface GuideFilters {
 
 interface GuideState extends GuideFilters {
   step: StepIndex;
+  /** The user's own words behind proposed levels, shown in step 3. Never leaves the browser. */
+  briefWords: Partial<Record<Criterion, string>>;
   setProfile: (code: ProfileCode) => void;
+  /** The user chose a profile from the brief: its proposals become ordinary, editable settings. */
+  applyBrief: (code: ProfileCode, brief: BusinessBrief, defaults: Weights) => void;
   set: (patch: Partial<GuideFilters>) => void;
   setLevel: (criterion: Criterion, level: Level, defaults: Weights) => void;
   resetLevels: () => void;
@@ -67,18 +78,45 @@ export const INITIAL: GuideFilters = {
 
 export const useGuideStore = create<GuideState>((set, get) => ({
   step: 0,
+  briefWords: {},
   ...INITIAL,
   // A new profile starts from its own recommended area and weights.
   setProfile: (code) =>
     set((s) =>
       s.profile === code
         ? {}
-        : { profile: code, targetArea: null, areaMin: null, areaMax: null, levels: null },
+        : {
+            profile: code,
+            targetArea: null,
+            areaMin: null,
+            areaMax: null,
+            levels: null,
+            briefWords: {},
+          },
     ),
+  applyBrief: (code, brief, defaults) => {
+    const levels = levelsFromWeights(defaults);
+    const briefWords: Partial<Record<Criterion, string>> = {};
+    for (const p of brief.priorities) {
+      levels[p.criterion] = p.level;
+      briefWords[p.criterion] = p.words;
+    }
+    set({
+      profile: code,
+      targetArea: brief.area_m2,
+      areaMin: null,
+      areaMax: null,
+      limitRange: false,
+      budget: brief.budget_eur,
+      districtIds: brief.districts.map((d) => d.district_id),
+      levels: brief.priorities.length > 0 ? levels : null,
+      briefWords,
+    });
+  },
   set: (patch) => set(patch),
   setLevel: (criterion, level, defaults) =>
     set((s) => ({ levels: { ...(s.levels ?? levelsFromWeights(defaults)), [criterion]: level } })),
-  resetLevels: () => set({ levels: null }),
+  resetLevels: () => set({ levels: null, briefWords: {} }),
   toggleDistrict: (id) =>
     set((s) => ({
       districtIds: s.districtIds.includes(id)

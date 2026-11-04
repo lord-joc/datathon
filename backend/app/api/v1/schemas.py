@@ -1,6 +1,6 @@
 """Public API request and response models (docs/contracts/openapi.yaml)."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -218,6 +218,92 @@ class ProfileSuggestion(Strict):
     model_id: str
     model_revision: str
     config_sha256: str
+
+
+class BriefDistrict(Strict):
+    district_id: str
+    name: str
+    words: str
+
+
+class BriefPriority(Strict):
+    criterion: Literal["transit", "universities", "culture", "parking", "schools", "area", "street"]
+    level: Literal[0, 3]
+    words: str
+
+
+class ContextLocation(Strict):
+    kind: Literal["district", "street", "stop", "point", "area"]
+    label: str
+    district_ids: list[str]
+
+
+class ContextCard(Strict):
+    """Reviewed by a person (FZ17). Context only: it never changes any score (FZ16)."""
+
+    card_id: UUID
+    version: int
+    status: Literal["approved"] = "approved"
+    topic: Literal["traffic_works", "public_projects_services", "events"]
+    summary: str
+    location: ContextLocation
+    source_url: str
+    publisher: str
+    published_date: date | None
+    valid_from: datetime | None
+    valid_to: datetime | None
+    review_due_at: datetime | None
+    temporal_label: Literal["announced", "current", "date_not_confirmed"]
+    approved_at: datetime
+
+
+class ContextList(Strict):
+    dataset_bundle_id: UUID
+    space_id: str
+    profile: ProfileCode
+    items: list[ContextCard]
+    total: int
+    pending_review: int
+
+
+class BusinessBrief(Strict):
+    """Proposals from the user's description. Nothing applies until the user confirms it."""
+
+    suggestion: ProfileSuggestion
+    area_m2: float | None
+    budget_eur: float | None
+    districts: list[BriefDistrict]
+    priorities: list[BriefPriority]
+    notices: list[ContextCard]
+
+
+class RentStats(Strict):
+    contracts: int
+    median_eur_per_m2: float | None
+    p25_eur_per_m2: float | None
+    p75_eur_per_m2: float | None
+
+
+class MarketDistrict(Strict):
+    district_id: str
+    name: str
+    competitors: int | None
+    competitors_per_km2: float | None
+    rent: RentStats
+
+
+class MarketSummary(Strict):
+    """Context only (ADR24). Not scored and not a price offer for any space."""
+
+    dataset_bundle_id: UUID
+    profile: ProfileCode
+    competitor_categories: list[str]
+    city_rent: RentStats
+    districts: list[MarketDistrict]
+    lease_source_version_id: UUID | None
+    lease_reference_period: str | None
+    pending_notices: int
+    warnings: list[str]
 
 
 class RankingRequest(Strict):

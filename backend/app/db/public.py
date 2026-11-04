@@ -189,7 +189,15 @@ def sources(conn: Connection, bundle: ActiveBundle) -> list[dict[str, Any]]:
                 FROM prostoriq.source s
                 LEFT JOIN prostoriq.bundle_source b
                     ON b.source_code = s.source_code AND b.dataset_bundle_id = CAST(:b AS uuid)
-                LEFT JOIN prostoriq.source_version v ON v.source_version_id = b.source_version_id
+                -- Notices and leases are context outside the bundle: their latest valid version.
+                LEFT JOIN LATERAL (
+                    SELECT x.source_version_id FROM prostoriq.source_version x
+                    WHERE x.source_code = s.source_code AND x.quality_status = 'valid'
+                      AND s.source_code IN ('D09', 'D20')
+                    ORDER BY x.fetched_at DESC LIMIT 1
+                ) c ON true
+                LEFT JOIN prostoriq.source_version v
+                    ON v.source_version_id = COALESCE(b.source_version_id, c.source_version_id)
                 ORDER BY s.source_code
                 """
             ),
@@ -423,3 +431,101 @@ def point_layer(conn: Connection, bundle: ActiveBundle, layer: str) -> dict[str,
         {"b": bundle.bundle_id, "c": LAYER_CATEGORIES[layer], "kinds": kinds},
     ).scalar_one()
     return dict(row)
+
+
+_PUBLIC_CARD = """
+    SELECT c.card_id::text AS card_id, c.version, c.topic, c.summary, c.location_kind,
+           c.location_label, c.district_ids, c.valid_from, c.valid_to, c.review_due_at,
+           c.approved_at, r.published_date, n.canonical_url, s.publisher
+    FROM prostoriq.context_card c
+    JOIN prostoriq.notice_revision r ON r.notice_revision_id = c.notice_revision_id
+    JOIN prostoriq.notice n ON n.notice_id = r.notice_id
+    JOIN prostoriq.source s ON s.source_code = n.source_code
+    WHERE c.status = 'approved'
+      AND jsonb_exists(c.profile_codes, :p)
+      AND (c.valid_to IS NULL OR c.valid_to > :now)
+      AND (c.review_due_at IS NULL OR c.review_due_at > :now)
+      AND (CAST(:d AS text) IS NULL OR jsonb_exists(c.district_ids, :d))
+    ORDER BY c.valid_from NULLS LAST, c.card_id
+"""
+
+
+def context_cards(
+    conn: Connection, profile: str, now: datetime, district_id: str | None = None
+) -> list[dict[str, Any]]:
+    """Approved cards still in date, checked at read time so a late job cannot keep them (ADR11)."""
+    rows = conn.execute(
+        text(_PUBLIC_CARD),
+        {"p": profile, "now": now, "d": district_id},
+    ).mappings()
+    return [dict(r) for r in rows]
+
+
+def pending_cards(conn: Connection, district_id: str | None = None) -> int:
+    value = conn.execute(
+        text(
+            "SELECT count(*) FROM prostoriq.context_card "
+            "WHERE status IN ('pending_review', 'needs_review') "
+            "AND (CAST(:d AS text) IS NULL OR jsonb_exists(district_ids, :d))"
+        ),
+        {"d": district_id},
+    ).scalar_one()
+    return int(value)
+
+
+def market_competitors(
+    conn: Connection, d07_version: str, d08_version: str | None, categories: list[str]
+) -> list[dict[str, Any]]:
+    """Per district: mapped-active D08 objects of these categories, and the district's area."""
+    rows = conn.execute(
+        text(
+            """
+            SELECT d.district_id, d.name, ST_Area(d.geom::geography) / 1000000.0 AS area_km2,
+                   count(k.geom) AS competitors
+            FROM prostoriq.district d
+            LEFT JOIN prostoriq.competitor k
+                ON k.source_version_id = CAST(:d08 AS uuid)
+               AND k.lifecycle_status = 'mapped_active'
+               AND k.category = ANY(CAST(:cats AS text[]))
+               AND ST_Covers(d.geom, k.geom)
+            WHERE d.source_version_id = CAST(:d07 AS uuid)
+            GROUP BY d.district_id, d.name, d.geom
+            ORDER BY d.name
+            """
+        ),
+        {"d07": d07_version, "d08": d08_version, "cats": categories},
+    ).mappings()
+    return [dict(r) for r in rows]
+
+
+def market_leases(
+    conn: Connection, d07_version: str, d19_version: str | None
+) -> tuple[list[dict[str, Any]], str | None, str | None]:
+    """Contracts of the latest valid D20 with the district of their address, when it is known."""
+    version = conn.execute(
+        text(
+            "SELECT source_version_id::text, reference_period FROM prostoriq.source_version "
+            "WHERE source_code = 'D20' AND quality_status = 'valid' "
+            "ORDER BY fetched_at DESC LIMIT 1"
+        )
+    ).first()
+    if version is None:
+        return [], None, None
+    rows = conn.execute(
+        text(
+            """
+            SELECT l.area_m2, l.monthly_rent_eur, l.activity,
+                   (SELECT d.district_id
+                    FROM prostoriq.osm_address o
+                    JOIN prostoriq.district d
+                        ON d.source_version_id = CAST(:d07 AS uuid) AND ST_Covers(d.geom, o.geom)
+                    WHERE o.source_version_id = CAST(:d19 AS uuid)
+                      AND o.street_key = l.street_key AND o.number = l.house_number
+                    LIMIT 1) AS district_id
+            FROM prostoriq.market_lease l
+            WHERE l.source_version_id = CAST(:v AS uuid)
+            """
+        ),
+        {"v": version[0], "d07": d07_version, "d19": d19_version},
+    ).mappings()
+    return [dict(r) for r in rows], str(version[0]), version[1]

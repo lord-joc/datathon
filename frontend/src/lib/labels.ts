@@ -69,6 +69,12 @@ export const COMPETITOR_LABEL: Record<CompetitorCategory, string> = {
   beauty: "kozmetički salon",
 };
 
+export const TOPIC_LABEL = {
+  traffic_works: "Promet i radovi",
+  public_projects_services: "Javni projekti i usluge",
+  events: "Događanja",
+} as const;
+
 export const IMPORTANCE_LABEL = ["Nevažno", "Malo važno", "Važno", "Vrlo važno"] as const;
 
 const REASON: Record<string, string> = {

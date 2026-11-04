@@ -66,7 +66,7 @@ export function ProfileStep() {
         </div>
       )}
 
-      {profiles.data && <SuggestProfile profiles={profiles.data} onChoose={setProfile} />}
+      {profiles.data && <SuggestProfile profiles={profiles.data} />}
 
       <p className="flex items-start gap-2 text-sm text-subtle">
         <Info aria-hidden="true" size={16} className="mt-0.5 shrink-0" />

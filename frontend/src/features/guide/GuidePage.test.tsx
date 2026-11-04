@@ -6,6 +6,29 @@ import { mockApi, PROFILES, renderApp } from "@/test/utils";
 import { GuidePage } from "./GuidePage";
 import { INITIAL, useGuideStore } from "./store";
 
+const BRIEF = {
+  suggestion: {
+    suggested_profile: null,
+    status: "unsupported",
+    requires_confirmation: true,
+    candidates: [
+      { profile: "workshop", similarity: 0.55, matched_example: "Servis kućanskih aparata." },
+      { profile: "retail", similarity: 0.52, matched_example: "Trgovina mješovitom robom." },
+    ],
+    min_similarity: 0.34,
+    min_margin: 0.14,
+    method: "maximum_cosine_over_profile_examples",
+    model_id: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    model_revision: "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
+    config_sha256: "0".repeat(64),
+  },
+  area_m2: null,
+  budget_eur: null,
+  districts: [],
+  priorities: [],
+  notices: [],
+};
+
 describe("GuidePage", () => {
   beforeEach(() => {
     useGuideStore.setState({ step: 0, ...INITIAL });
@@ -34,21 +57,7 @@ describe("GuidePage", () => {
   it("suggests a profile from free text but lets the user choose", async () => {
     mockApi({
       "/api/v1/profiles": PROFILES,
-      "/api/v1/profile-suggestions": {
-        suggested_profile: null,
-        status: "unsupported",
-        requires_confirmation: true,
-        candidates: [
-          { profile: "workshop", similarity: 0.55, matched_example: "Servis kućanskih aparata." },
-          { profile: "retail", similarity: 0.52, matched_example: "Trgovina mješovitom robom." },
-        ],
-        min_similarity: 0.34,
-        min_margin: 0.14,
-        method: "maximum_cosine_over_profile_examples",
-        model_id: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-        model_revision: "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
-        config_sha256: "0".repeat(64),
-      },
+      "/api/v1/business-brief": BRIEF,
     });
     renderApp(<GuidePage />);
     await screen.findAllByRole("radio");
@@ -65,6 +74,47 @@ describe("GuidePage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /odaberi radionica/i }));
     expect(useGuideStore.getState().profile).toBe("workshop");
+  });
+
+  it("applies proposals from the description only when the user chooses a profile", async () => {
+    mockApi({
+      "/api/v1/profiles": PROFILES,
+      "/api/v1/business-brief": {
+        ...BRIEF,
+        area_m2: 45,
+        budget_eur: 800,
+        districts: [{ district_id: "00680", name: "Trnje", words: "trnju" }],
+        priorities: [
+          { criterion: "universities", level: 3, words: "studente" },
+          { criterion: "parking", level: 0, words: "parking" },
+        ],
+      },
+    });
+    renderApp(<GuidePage />);
+    await screen.findAllByRole("radio");
+    fireEvent.change(screen.getByLabelText(/opišite djelatnost/i), {
+      target: { value: "Radionica u Trnju za studente, parking nije bitan" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /predloži djelatnost/i }));
+
+    expect(await screen.findByText(/jer ste napisali „studente”/)).toBeInTheDocument();
+    expect(screen.getByText(/ciljna površina 45 m²/i)).toBeInTheDocument();
+    expect(useGuideStore.getState().targetArea).toBeNull();
+    expect(useGuideStore.getState().districtIds).toEqual([]);
+
+    fireEvent.click(screen.getByRole("button", { name: /odaberi radionica/i }));
+    const s = useGuideStore.getState();
+    expect(s.profile).toBe("workshop");
+    expect(s.targetArea).toBe(45);
+    expect(s.budget).toBe(800);
+    expect(s.districtIds).toEqual(["00680"]);
+    expect(s.levels?.universities).toBe(3);
+    expect(s.levels?.parking).toBe(0);
+    expect(s.briefWords.universities).toBe("studente");
+
+    useGuideStore.getState().resetLevels();
+    expect(useGuideStore.getState().levels).toBeNull();
+    expect(useGuideStore.getState().briefWords).toEqual({});
   });
 
   it("marks the current step for assistive technology", () => {

@@ -11,13 +11,16 @@ from fastapi import APIRouter, Path, Query, Request, Response
 from pydantic import BaseModel, BeforeValidator
 
 from app.ai.tags import TAG_LABELS
+from app.api.v1 import market
 from app.api.v1 import presenters as p
 from app.api.v1.schemas import (
     CompetitionResponse,
     Competitor,
+    ContextList,
     DescriptionTag,
     District,
     DistrictList,
+    MarketSummary,
     Metric,
     Profile,
     ProfileCode,
@@ -50,7 +53,12 @@ _LIMITATIONS = {
         "Početna zakupnina iz natječaja nije konačan ukupni trošak i ne boduje se.",
         "Upisano je samo ono što tim pročita u natječaju na zagreb.hr.",
     ],
+    "D09": ["Javno se prikazuju samo obavijesti koje je potvrdio član tima; ne mijenjaju bodove."],
     "D19": ["OSM adrese: točnost je razina zgrade, a ne ulaza."],
+    "D20": [
+        "Zakupnine u gradskim prostorima, nisu tržišne cijene privatnih prostora.",
+        "Imena zakupnika se ne spremaju. Ne boduje se.",
+    ],
 }
 
 
@@ -305,6 +313,53 @@ def list_competitors(
         page_size=page_size,
         warnings=[_OSM_WARNING],
     )
+
+
+@router.get(
+    "/spaces/{space_id}/context",
+    response_model=ContextList,
+    summary="Potvrđene obavijesti Grada za četvrt prostora",
+)
+def list_context(
+    space_id: Annotated[str, Path(pattern=r"^[0-9]{1,12}$")],
+    profile: ProfileCode,
+    dataset_bundle_id: UUID | None = None,
+) -> ContextList:
+    """Only cards a person approved and that are still in date; they never change a score."""
+    with get_engine().connect() as conn:
+        bundle = p.require_active(conn)
+        p.check_bundle(str(dataset_bundle_id) if dataset_bundle_id else None, bundle)
+        rows = q.load_spaces(conn, bundle.bundle_id, profile, [space_id])
+        if not rows:
+            raise ProblemError(404, "NOT_FOUND", "Prostor nije u aktivnom paketu.")
+        district = rows[0].district_id
+        cards = q.context_cards(conn, profile, datetime.now(UTC), district) if district else []
+        pending = q.pending_cards(conn, district) if district else 0
+    return ContextList(
+        dataset_bundle_id=UUID(bundle.bundle_id),
+        space_id=space_id,
+        profile=profile,
+        items=[market.card(r) for r in cards],
+        total=len(cards),
+        pending_review=pending,
+    )
+
+
+@router.get(
+    "/market",
+    response_model=MarketSummary,
+    summary="Stanje tržišta po četvrtima (samo prikaz, ne boduje se)",
+)
+def get_market(profile: ProfileCode) -> MarketSummary:
+    """Mapped competition (D08) and city lease contracts (D20) for one activity."""
+    tags = p.profiles().profiles[profile].competitor_tags or {}
+    categories = sorted({v for values in tags.values() for v in values})
+    with get_engine().connect() as conn:
+        bundle = p.require_active(conn)
+        d07 = bundle.versions.get("D07")
+        if d07 is None:
+            raise ProblemError(503, "DATASET_NOT_READY", "Četvrti još nisu u aktivnom paketu.")
+        return market.summary(conn, bundle, d07, profile, categories)
 
 
 LayerName = Literal["districts", "transit", "parking", "universities", "culture", "schools"]

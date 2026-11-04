@@ -178,6 +178,74 @@ export interface ProfileSuggestion {
   config_sha256: string;
 }
 
+/** A city notice a team member approved (FZ17). Context only: it never changes a score. */
+export interface ContextCard {
+  card_id: string;
+  version: number;
+  status: "approved";
+  topic: "traffic_works" | "public_projects_services" | "events";
+  summary: string;
+  location: {
+    kind: "district" | "street" | "stop" | "point" | "area";
+    label: string;
+    district_ids: string[];
+  };
+  source_url: string;
+  publisher: string;
+  published_date: string | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  review_due_at: string | null;
+  temporal_label: "announced" | "current" | "date_not_confirmed";
+  approved_at: string;
+}
+
+export interface ContextList {
+  dataset_bundle_id: string;
+  space_id: string;
+  profile: ProfileCode;
+  items: ContextCard[];
+  total: number;
+  pending_review: number;
+}
+
+/** Proposals from a free-text description (ADR24). Nothing applies until the user chooses. */
+export interface BusinessBrief {
+  suggestion: ProfileSuggestion;
+  area_m2: number | null;
+  budget_eur: number | null;
+  districts: { district_id: string; name: string; words: string }[];
+  priorities: { criterion: Criterion; level: 0 | 3; words: string }[];
+  notices: ContextCard[];
+}
+
+export interface RentStats {
+  contracts: number;
+  median_eur_per_m2: number | null;
+  p25_eur_per_m2: number | null;
+  p75_eur_per_m2: number | null;
+}
+
+export interface MarketDistrict {
+  district_id: string;
+  name: string;
+  competitors: number | null;
+  competitors_per_km2: number | null;
+  rent: RentStats;
+}
+
+export interface MarketSummary {
+  dataset_bundle_id: string;
+  profile: ProfileCode;
+  competitor_categories: string[];
+  city_rent: RentStats;
+  districts: MarketDistrict[];
+  lease_source_version_id: string | null;
+  lease_reference_period: string | null;
+  pending_notices: number;
+  warnings: string[];
+}
+
 /** A tag from the official description that a team member approved (ADR21). Not scored. */
 export interface DescriptionTag {
   tag: string;

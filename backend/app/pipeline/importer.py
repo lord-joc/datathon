@@ -28,6 +28,8 @@ from app.adapters.coordinates_csv import parse_coordinates_csv
 from app.adapters.districts_shp import parse_districts_shp
 from app.adapters.geojson_points import parse_geojson_points
 from app.adapters.http import FetchError, SafeFetcher
+from app.adapters.lease_csv import parse_lease_csv
+from app.adapters.notices_html import fetch_notices, list_urls, parse_notices
 from app.adapters.osm import OsmExtract, as_parse_result, extract_osm, extract_timestamp
 from app.adapters.parsing import ParseIssue, ParseResult
 from app.adapters.registry import Registry, SourceSpec
@@ -47,8 +49,12 @@ _EXT = {
     "osm_addresses": "osm.pbf",
     "coordinates_csv": "csv",
     "tender_csv": "csv",
+    "notices_html": "json",
+    "lease_csv": "csv",
 }
 _OSM_KINDS = {"osm_competitors", "osm_addresses"}
+# A rolling list of recent notices changes size by nature; that alone is no reason for review.
+_ROLLING_KINDS = {"notices_html"}
 # One PBF feeds two sources (D08, D19); parse it once per process and content hash.
 _OSM_CACHE: dict[str, OsmExtract] = {}
 BATCH = 2000
@@ -154,6 +160,10 @@ def _parse(spec: SourceSpec, content: bytes, raw_path: Path, sha: str) -> ParseR
         return parse_geojson_points(content, spec)
     if spec.kind == "districts_shp":
         return parse_districts_shp(content, spec)
+    if spec.kind == "notices_html":
+        return parse_notices(content, spec)
+    if spec.kind == "lease_csv":
+        return parse_lease_csv(content, spec)
     result = ParseResult()
     result.block("adapter_missing", f"Za izvor {spec.code} još ne postoji adapter.")
     return result
@@ -162,6 +172,8 @@ def _parse(spec: SourceSpec, content: bytes, raw_path: Path, sha: str) -> ParseR
 def download(spec: SourceSpec, fetcher: SafeFetcher) -> Download:
     """Resolve the resource through CKAN metadata when available, then download it."""
     metadata: dict[str, Any] = {"source_code": spec.code}
+    if spec.kind == "notices_html":
+        return _download_notices(spec, fetcher, metadata)
     resource_id = spec.resource_id
     license_open = True
     modified: datetime | None = None
@@ -213,6 +225,21 @@ def download(spec: SourceSpec, fetcher: SafeFetcher) -> Download:
         metadata_sha256=_sha(_canonical(identity).encode("utf-8")),
         license_open=license_open,
         source_modified_at=modified,
+    )
+
+
+def _download_notices(spec: SourceSpec, fetcher: SafeFetcher, metadata: dict[str, Any]) -> Download:
+    """Lists and articles become one canonical file: same notices, same hash, no new version."""
+    content = fetch_notices(spec, fetcher)
+    metadata["resource"] = {"from": "registry_links", "pages": list_urls(spec)}
+    return Download(
+        content=content,
+        download_url=list_urls(spec)[0],
+        resource_id=None,
+        metadata=metadata,
+        metadata_sha256=_sha(_canonical(metadata).encode("utf-8")),
+        license_open=True,
+        source_modified_at=None,
     )
 
 
@@ -444,7 +471,12 @@ class Importer:
                 {"c": code},
             ).scalar_one_or_none()
             count = len(parsed.records)
-            if previous and abs(count - previous) / previous > COUNT_CHANGE_REVIEW_RATIO:
+            changed_too_much = (
+                previous
+                and spec.kind not in _ROLLING_KINDS
+                and abs(count - previous) / previous > COUNT_CHANGE_REVIEW_RATIO
+            )
+            if changed_too_much:
                 warnings.append(
                     ParseIssue(
                         "count_changed",
@@ -551,6 +583,12 @@ class Importer:
             return
         if spec.kind == "tender_csv":
             self._insert_assessments(conn, version_id, parsed.records)
+            return
+        if spec.kind == "notices_html":
+            self._insert_notices(conn, spec, version_id, parsed.records)
+            return
+        if spec.kind == "lease_csv":
+            self._insert_leases(conn, version_id, parsed.records)
             return
         for rec in parsed.records:
             natural_key = rec.get("space_id") or rec.get("feature_key") or rec.get("district_id")
@@ -715,6 +753,77 @@ class Importer:
             )
         for start in range(0, len(rows), BATCH):
             conn.execute(sql, rows[start : start + BATCH])
+
+    @staticmethod
+    def _insert_notices(
+        conn: Connection, spec: SourceSpec, version_id: str, records: list[dict[str, Any]]
+    ) -> None:
+        """A known text under the same terms is not a new revision (FZ13)."""
+        for r in records:
+            # Insert-only role: the pipeline may add a notice but never change a known one.
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO prostoriq.notice (source_code, canonical_url)
+                    VALUES (:c, :u)
+                    ON CONFLICT (canonical_url) DO NOTHING
+                    """
+                ),
+                {"c": spec.code, "u": r["url"]},
+            )
+            notice_id = conn.execute(
+                text("SELECT notice_id::text FROM prostoriq.notice WHERE canonical_url = :u"),
+                {"u": r["url"]},
+            ).scalar_one()
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO prostoriq.notice_revision (notice_id, source_version_id, title,
+                        published_date, clean_text, content_sha256, extraction_evidence,
+                        reuse_policy_sha256)
+                    VALUES (CAST(:n AS uuid), CAST(:v AS uuid), :t, CAST(:d AS date), :b, :s,
+                        CAST(:e AS jsonb), :p)
+                    ON CONFLICT (notice_id, content_sha256, reuse_policy_sha256) DO NOTHING
+                    """
+                ),
+                {
+                    "n": notice_id,
+                    "v": version_id,
+                    "t": r["title"],
+                    "d": r["published_date"],
+                    "b": r["clean_text"],
+                    "s": r["sha256"],
+                    "e": _canonical({"url": r["url"], "selectors": "#clanak_container #opis"}),
+                    "p": spec.policy_sha256,
+                },
+            )
+
+    @staticmethod
+    def _insert_leases(conn: Connection, version_id: str, records: list[dict[str, Any]]) -> None:
+        from app.gis.addresses import parse_city_address
+
+        for r in records:
+            address = parse_city_address(r["address"])
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO prostoriq.market_lease (source_version_id, contract_key, space_id,
+                        street_key, house_number, area_m2, monthly_rent_eur, signed_date, activity)
+                    VALUES (CAST(:v AS uuid), :k, :s, :st, :n, :a, :m, CAST(:d AS date), :act)
+                    """
+                ),
+                {
+                    "v": version_id,
+                    "k": r["contract_key"],
+                    "s": r["space_id"],
+                    "st": address.street_key if address else None,
+                    "n": address.house.number if address else None,
+                    "a": r["area_m2"],
+                    "m": r["monthly_rent_eur"],
+                    "d": r["signed_date"],
+                    "act": r["activity"],
+                },
+            )
 
     @staticmethod
     def _insert_coordinates(

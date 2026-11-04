@@ -96,7 +96,7 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         return self.limiter.check(key, public)
 
 
-_HEAVY_PATHS = {"/api/v1/rankings", "/api/v1/profile-suggestions"}
+_HEAVY_PATHS = {"/api/v1/rankings", "/api/v1/profile-suggestions", "/api/v1/business-brief"}
 
 
 def _is_uuid(value: str) -> bool:

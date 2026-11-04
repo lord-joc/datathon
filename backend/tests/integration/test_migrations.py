@@ -46,7 +46,9 @@ def test_migrate_creates_schema_roles_and_profiles() -> None:
                 "WHERE conname = 'criteria_profile_profile_code_check'"
             )
         ).scalar_one()
-    assert tables == 33  # 31 in 0001 + osm_address (0006) + description_tag (0008)
+    assert (
+        tables == 34
+    )  # 31 in 0001 + osm_address (0006), description_tag (0008), market_lease (0009)
     assert roles == {"app_read", "app_ranking_write", "pipeline"}
     assert api_can_update_history is False
     assert api_reads_admin is False

@@ -19,6 +19,8 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 - **Redizajn (ADR23):** svijetli prikaz kao zadani uz automatski tamni, crvena traka s tražilicom prostora i djelatnosti, crveni rub koji prati miš na karticama.
 
+- **Osobni prijedlog i tržište (ADR24):** „Nešto drugo?” iz opisa predlaže djelatnost, površinu, budžet, četvrti i važnost kriterija. Rezultati prikazuju stanje tržišta (OSM i gradske zakupnine), a detalj prostora obavijesti Grada koje je potvrdio član tima. Ništa od toga ne boduje se samo od sebe.
+
 Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack
@@ -211,6 +213,9 @@ Formule su u `backend/app/ranking/` (čista funkcija, bez baze), težine u `conf
 | `GET /api/v1/layers/{layer}` | GeoJSON za kartu: `districts`, `transit`, `parking`, `universities`, `culture`, `schools` (samo prikaz) |
 | `GET /api/v1/sources` | izvori, licence, datumi i ograničenja |
 | `POST /api/v1/profile-suggestions` | prijedlog djelatnosti iz opisa (5–500 znakova): tri najsličnija profila sa sličnošću; korisnik potvrđuje |
+| `POST /api/v1/business-brief` | isto, uz površinu, budžet, četvrti i važnost kriterija iz korisnikovih riječi te bliske potvrđene obavijesti; ništa se ne primjenjuje bez korisnikova izbora |
+| `GET /api/v1/market?profile=cafe` | po četvrtima: evidentirani slični objekti (D08) i gradske zakupnine (D20); samo prikaz, ne boduje se |
+| `GET /api/v1/spaces/{id}/context?profile=cafe` | obavijesti Grada za četvrt prostora koje je potvrdio član tima i koje su u roku; ne mijenjaju bodove |
 
 Kad kriterij nedostaje samo dijelu prostora, `POST /rankings` vraća `409 COMPARISON_BASIS_CHANGED`, s popisom što nedostaje i potpisanim tokenom. Klijent ponavlja zahtjev s `comparison_basis_token` i `basis_choice`: `common_criteria` (svi prostori, manja pokrivenost) ili `remove_incomplete` (bez nepotpunih). Token vrijedi 10 minuta i samo za taj zahtjev. Interaktivna dokumentacija je na http://localhost:8080/api/docs (samo lokalno).
 
@@ -243,6 +248,22 @@ U `oznake-pregled.csv` za svaki redak pročitaj stupac `description` (službeni 
 ```cmd
 docker compose run --rm cli python -m app.cli import-tag-review --file /app/manual/oznake-pregled.csv
 ```
+
+**Obavijesti Grada i tržište (ADR24).** `import-all` uvozi i registar ugovora o zakupu (D20). Imena zakupnika se ne spremaju. Obavijesti se uvoze zasebno jer dohvat traje nekoliko minuta (jedan zahtjev u 5 sekundi):
+
+```cmd
+docker compose run --rm cli python -m app.cli import D09
+docker compose run --rm cli python -m app.cli news-classify
+docker compose run --rm -T cli python -m app.cli news-review-template > data\manual\obavijesti-pregled.csv
+```
+
+U CSV-u pročitaj stupce `title`, `url` i `text`. Za svaki redak upiši `decision` (`da` ili `ne`) i `reviewer` (svoje inicijale). Za odobrenje provjeri ili ispravi `summary` (do 60 riječi), `location_label`, `district_ids` (šifre četvrti odvojene razmakom), `valid_from` i `valid_to` (ISO datum). Bez `valid_to` obavijest vrijedi 30 dana. Neispravna datoteka ne upisuje ništa.
+
+```cmd
+docker compose run --rm cli python -m app.cli import-news-review --file /app/manual/obavijesti-pregled.csv
+```
+
+Novi izvor, primjerice portal ili oglasnik, dodaje se tek nakon provjere prava (ADR24 §8).
 
 ## E2E testovi (Playwright + axe)
 

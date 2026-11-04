@@ -29,10 +29,13 @@ import {
   PRECISION_LABEL,
   prettyAddress,
   reasonText,
+  TOPIC_LABEL,
   TRI_LABEL,
 } from "@/lib/labels";
+import { pendingNotices } from "@/features/results/market";
 import {
   useCompetitors,
+  useContextCards,
   useDistrictLayer,
   useProfiles,
   useRanking,
@@ -258,6 +261,7 @@ function Detail({
                 : "Točna lokacija nepoznata, prikazana je samo četvrt. Udaljenosti se zato ne računaju."}
             </p>
           </section>
+          <Notices spaceId={space.space_id} profile={profile} />
           <Checklist />
           <Sources detail={detail} />
         </div>
@@ -634,6 +638,50 @@ function Competitors({
         se ne boduje.
       </p>
     </div>
+  );
+}
+
+/** City notices a person approved. Failure here never hides the rest of the page (FZ06). */
+function Notices({ spaceId, profile }: { spaceId: string; profile: ProfileCode }) {
+  const query = useContextCards(spaceId, profile);
+  if (query.isPending || query.isError) return null;
+  const { items, pending_review: pending } = query.data;
+  return (
+    <section className="card grid gap-2 p-5" aria-labelledby="notices">
+      <h2 id="notices" className="text-lg font-semibold">
+        Obavijesti Grada u četvrti
+      </h2>
+      {items.length === 0 ? (
+        <p className="text-sm text-muted">
+          Nema potvrđenih obavijesti za ovu četvrt. To ne znači da promjena nema.
+          {pending > 0 && ` ${pendingNotices(pending)}`}
+        </p>
+      ) : (
+        <ul className="grid gap-3 text-sm">
+          {items.map((card) => (
+            <li key={card.card_id} className="grid gap-1">
+              <span className="text-xs text-subtle">
+                {TOPIC_LABEL[card.topic]}
+                {card.temporal_label === "announced" && " · Najavljeno"}
+                {card.temporal_label === "current" && " · Aktualno"} · {card.location.label}
+              </span>
+              <span>{card.summary}</span>
+              <a
+                href={card.source_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-accent hover:underline"
+              >
+                Izvorna obavijest ({card.publisher})
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-xs text-subtle">
+        Lokalni AI predlaže temu, a član tima potvrđuje. Obavijesti ne mijenjaju bodove.
+      </p>
+    </section>
   );
 }
 

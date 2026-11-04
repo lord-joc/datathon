@@ -15,6 +15,7 @@ export function PriorityStep() {
   const levels = useGuideStore((s) => s.levels);
   const setLevel = useGuideStore((s) => s.setLevel);
   const resetLevels = useGuideStore((s) => s.resetLevels);
+  const briefWords = useGuideStore((s) => s.briefWords);
 
   if (!profile) return <Skeleton className="h-96" />;
   const shown = levels ?? levelsFromWeights(profile.weights);
@@ -58,6 +59,11 @@ export function PriorityStep() {
                 {CRITERION_LABEL[c]}
               </span>
               <span className="text-sm text-muted">{CRITERION_FORMULA[c]}</span>
+              {briefWords[c] && (
+                <span className="text-sm text-accent">
+                  Predloženo iz vašeg opisa: „{briefWords[c]}”
+                </span>
+              )}
             </div>
             <Segmented<Level>
               label={`Važnost: ${CRITERION_LABEL[c]}`}

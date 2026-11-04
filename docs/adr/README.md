@@ -10,6 +10,7 @@
 | [ADR21](ADR21-lokalni-ai-i-konkurencija.md) | Lokalni AI i konkurencija iz OSM-a (isječak 6) | prihvaćeno, dopunjeno ADR22 |
 | [ADR22](ADR22-sigurnost-pristupacnost-e2e.md) | Sigurnost, pristupačnost i e2e (isječak 7) | prihvaćeno |
 | [ADR23](ADR23-svijetli-prikaz-i-trazilica.md) | Svijetli prikaz, crvena traka i tražilica | prihvaćeno |
+| [ADR24](ADR24-osobni-prijedlog-i-trzisni-kontekst.md) | Osobni prijedlog, obavijesti Grada i stanje tržišta | prihvaćeno |
 
 ADR01–ADR15 dio su timske dokumentacije v3 (27. 10. 2026.) i nisu u ovom repozitoriju. Tamo su i master prompt te oznake zahtjeva (FZ, NF). Strojno čitljivi zahtjevi i sljedivost su u [`docs/contracts/`](../contracts/): `requirements.json` i `traceability.csv`.
 

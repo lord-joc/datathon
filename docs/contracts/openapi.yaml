@@ -650,8 +650,6 @@ paths:
           - personal_care
           - education
           - workshop
-      - *id001
-      - *id002
   /api/v1/layers/{layer}:
     get:
       operationId: getMapLayer
@@ -2601,6 +2599,85 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorReportRequest'
+  /api/v1/market:
+    get:
+      operationId: getMarket
+      summary: Stanje tržišta po četvrtima (samo prikaz, ne boduje se)
+      description: Evidentirani slični objekti iz D08 i gradske zakupnine iz D20 za jednu
+        djelatnost (ADR24). Medijan tek od 5 ugovora. Nisu tržišne cijene privatnih prostora.
+      tags:
+      - Public
+      x-phase: MVP
+      security: []
+      parameters:
+      - name: profile
+        in: query
+        required: true
+        schema:
+          type: string
+          enum:
+          - cafe
+          - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketSummary'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Podaci još nisu spremni
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/business-brief:
+    post:
+      operationId: createBusinessBrief
+      summary: Osobni polazni prijedlog iz opisa djelatnosti
+      description: Lokalni model predlaže djelatnost, a pravila iz korisnikovih riječi čitaju
+        površinu, budžet, četvrti i važnost kriterija (ADR24). Ništa se ne primjenjuje bez
+        korisnikova izbora. Opis se ne sprema i ne bilježi u log.
+      tags:
+      - Public
+      x-phase: MVP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileSuggestionRequest'
+      responses:
+        '200':
+          description: Uspješan odgovor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BusinessBrief'
+        '422':
+          description: Ulaz ili poslovno pravilo nije valjano
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: Lokalni model nije dostupan
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /api/v1/profile-suggestions:
     post:
       operationId: createProfileSuggestion
@@ -3736,6 +3813,7 @@ components:
       - evidence_end
     ContextCard:
       type: object
+      description: Obavijest koju je potvrdio član tima (FZ17). Ne mijenja bodove (FZ16).
       additionalProperties: false
       properties:
         card_id:
@@ -3756,22 +3834,29 @@ components:
           type: string
           minLength: 1
           maxLength: 2000
-        profile_codes:
-          type: array
-          items:
-            type: string
-            enum:
-            - cafe
-            - office
-            - retail
-            - food_takeaway
-            - personal_care
-            - education
-            - workshop
-          minItems: 1
-          maxItems: 2
         location:
-          $ref: '#/components/schemas/LocationEvidence'
+          type: object
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              enum:
+              - district
+              - street
+              - stop
+              - point
+              - area
+            label:
+              type: string
+              minLength: 1
+            district_ids:
+              type: array
+              items:
+                type: string
+          required:
+          - kind
+          - label
+          - district_ids
         source_url:
           type: string
           format: uri
@@ -3782,11 +3867,6 @@ components:
           - string
           - 'null'
           format: date
-        published_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
         valid_from:
           type:
           - string
@@ -3817,12 +3897,10 @@ components:
       - status
       - topic
       - summary
-      - profile_codes
       - location
       - source_url
       - publisher
       - published_date
-      - published_at
       - valid_from
       - valid_to
       - review_due_at
@@ -3851,36 +3929,181 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ContextCard'
-          minItems: 0
         total:
           type: integer
           minimum: 0
-        page:
+        pending_review:
           type: integer
-          minimum: 1
-        page_size:
-          type: integer
-          minimum: 1
-          maximum: 100
-        last_processed_at:
-          type:
-          - string
-          - 'null'
-          format: date-time
-        warnings:
-          type: array
-          items:
-            type: string
-          minItems: 0
+          minimum: 0
       required:
       - dataset_bundle_id
       - space_id
       - profile
       - items
       - total
-      - page
-      - page_size
-      - last_processed_at
+      - pending_review
+    BusinessBrief:
+      type: object
+      description: Prijedlozi iz opisa korisnika (ADR24). Ništa se ne primjenjuje bez njegova izbora.
+      additionalProperties: false
+      properties:
+        suggestion:
+          $ref: '#/components/schemas/ProfileSuggestion'
+        area_m2:
+          type:
+          - number
+          - 'null'
+        budget_eur:
+          type:
+          - number
+          - 'null'
+        districts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              district_id:
+                type: string
+              name:
+                type: string
+              words:
+                type: string
+            required:
+            - district_id
+            - name
+            - words
+        priorities:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              criterion:
+                type: string
+              level:
+                type: integer
+                enum:
+                - 0
+                - 3
+              words:
+                type: string
+            required:
+            - criterion
+            - level
+            - words
+        notices:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContextCard'
+      required:
+      - suggestion
+      - area_m2
+      - budget_eur
+      - districts
+      - priorities
+      - notices
+    RentStats:
+      type: object
+      additionalProperties: false
+      properties:
+        contracts:
+          type: integer
+          minimum: 0
+        median_eur_per_m2:
+          type:
+          - number
+          - 'null'
+        p25_eur_per_m2:
+          type:
+          - number
+          - 'null'
+        p75_eur_per_m2:
+          type:
+          - number
+          - 'null'
+      required:
+      - contracts
+      - median_eur_per_m2
+      - p25_eur_per_m2
+      - p75_eur_per_m2
+    MarketDistrict:
+      type: object
+      additionalProperties: false
+      properties:
+        district_id:
+          type: string
+        name:
+          type: string
+        competitors:
+          type:
+          - integer
+          - 'null'
+        competitors_per_km2:
+          type:
+          - number
+          - 'null'
+        rent:
+          $ref: '#/components/schemas/RentStats'
+      required:
+      - district_id
+      - name
+      - competitors
+      - competitors_per_km2
+      - rent
+    MarketSummary:
+      type: object
+      description: Samo za orijentaciju (ADR24). Ne boduje se i nije ponuda za pojedini prostor.
+      additionalProperties: false
+      properties:
+        dataset_bundle_id:
+          type: string
+          format: uuid
+        profile:
+          type: string
+          enum:
+          - cafe
+          - office
+          - retail
+          - food_takeaway
+          - personal_care
+          - education
+          - workshop
+        competitor_categories:
+          type: array
+          items:
+            type: string
+        city_rent:
+          $ref: '#/components/schemas/RentStats'
+        districts:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketDistrict'
+        lease_source_version_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        lease_reference_period:
+          type:
+          - string
+          - 'null'
+        pending_notices:
+          type: integer
+          minimum: 0
+        warnings:
+          type: array
+          items:
+            type: string
+      required:
+      - dataset_bundle_id
+      - profile
+      - competitor_categories
+      - city_rent
+      - districts
+      - lease_source_version_id
+      - lease_reference_period
+      - pending_notices
       - warnings
     SourcePublic:
       type: object

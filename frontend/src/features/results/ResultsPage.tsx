@@ -20,6 +20,7 @@ import { useDistrictLayer, useProfiles, useRanking } from "@/lib/queries";
 import type { PointLayerName, RankingItem, RankingResponse } from "@/lib/types";
 
 import { ContributionLegend } from "./ContributionBar";
+import { MarketPanel } from "./MarketPanel";
 import { budgetFit, groupItems, mapSpaces, orderedCriteria, useSpaceIndex } from "./model";
 import { ResultCard } from "./ResultCard";
 
@@ -226,6 +227,12 @@ function Results({ run }: { run: RankingResponse }) {
             ))}
           </ul>
         )}
+
+        <MarketPanel
+          profile={run.profile}
+          name={profile?.name ?? run.profile}
+          districtIds={guide.profile === run.profile ? guide.districtIds : []}
+        />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ContributionLegend criteria={criteria} />

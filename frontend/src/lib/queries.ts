@@ -4,8 +4,10 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiGet } from "./api";
 import type {
   CompetitionResponse,
+  ContextList,
   District,
   DistrictLayer,
+  MarketSummary,
   PointLayerName,
   Profile,
   ProfileCode,
@@ -126,6 +128,23 @@ export function useSpaceDetail(spaceId: string, profile: ProfileCode, radius: Ra
       }),
     staleTime: 5 * 60_000,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useMarket(profile: ProfileCode) {
+  return useQuery({
+    queryKey: ["market", profile],
+    queryFn: ({ signal }) => apiGet<MarketSummary>(`/api/v1/market?profile=${profile}`, { signal }),
+    ...REFERENCE,
+  });
+}
+
+export function useContextCards(spaceId: string, profile: ProfileCode) {
+  return useQuery({
+    queryKey: ["context", spaceId, profile],
+    queryFn: ({ signal }) =>
+      apiGet<ContextList>(`/api/v1/spaces/${spaceId}/context?profile=${profile}`, { signal }),
+    staleTime: 5 * 60_000,
   });
 }
 

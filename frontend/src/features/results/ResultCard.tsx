@@ -51,8 +51,8 @@ export const ResultCard = forwardRef<HTMLLIElement, ResultCardProps>(function Re
       ref={ref}
       onMouseEnter={onSelect}
       className={[
-        "card grid gap-3 p-4 transition-colors",
-        selected ? "border-accent/70 bg-surface-2" : "",
+        "card spot grid gap-3 p-4 transition-colors",
+        selected ? "border-accent/70" : "",
       ].join(" ")}
     >
       <div className="flex items-start gap-3">
@@ -60,7 +60,7 @@ export const ResultCard = forwardRef<HTMLLIElement, ResultCardProps>(function Re
           aria-hidden="true"
           className={[
             "grid h-8 w-8 shrink-0 place-items-center rounded-full border text-sm font-semibold",
-            selected ? "border-accent bg-accent text-bg" : "border-border text-muted",
+            selected ? "border-accent bg-accent text-on-accent" : "border-border text-muted",
           ].join(" ")}
         >
           {item.rank ?? "–"}

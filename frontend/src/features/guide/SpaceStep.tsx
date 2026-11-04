@@ -120,7 +120,7 @@ export function SpaceStep() {
                     className={[
                       "inline-flex min-h-touch items-center gap-1.5 rounded-full border px-3 text-sm transition-colors",
                       on
-                        ? "border-accent bg-accent/15 text-accent"
+                        ? "border-accent bg-accent/10 text-accent-strong"
                         : "border-border text-muted hover:bg-surface-2 hover:text-text",
                     ].join(" ")}
                   >

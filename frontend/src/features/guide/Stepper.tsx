@@ -40,7 +40,7 @@ export function Stepper({ current, canOpen, onSelect }: StepperProps) {
                     className={[
                       "grid h-5 w-5 place-items-center rounded-full text-xs font-semibold",
                       active
-                        ? "bg-accent text-bg"
+                        ? "bg-accent text-on-accent"
                         : done
                           ? "bg-accent/20 text-accent"
                           : "bg-surface-2 text-subtle",

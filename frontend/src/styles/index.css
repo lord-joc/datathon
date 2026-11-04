@@ -24,6 +24,12 @@
     box-shadow: var(--focus-ring);
     border-radius: 6px;
   }
+  /* On the red header bar the ring is white, so it stays visible. */
+  header :focus-visible {
+    box-shadow:
+      0 0 0 2px rgb(var(--bar)),
+      0 0 0 4px #fff;
+  }
   /* iOS Safari zooms into inputs smaller than 16px. */
   input,
   select,
@@ -49,9 +55,72 @@
   }
   .card {
     @apply rounded-card border border-border bg-surface;
+    box-shadow: var(--shadow-card);
   }
+  /* Small context line above a heading: sentence case, quiet (no tracked capitals). */
   .eyebrow {
-    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
+    @apply text-sm font-medium text-muted;
+  }
+
+  /*
+   * Interactive card with a red light on its border that follows the mouse (lib/spotlight.ts).
+   * ::before draws only the 1px ring (mask), ::after a faint glow inside the card.
+   */
+  .spot {
+    position: relative;
+    isolation: isolate;
+  }
+  .spot::before,
+  .spot::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+  .spot::before {
+    inset: -1px;
+    padding: 1px;
+    background: radial-gradient(
+      200px circle at var(--mx, 50%) var(--my, 50%),
+      rgb(var(--spot)),
+      rgb(var(--spot) / 0.35) 45%,
+      transparent 75%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+  .spot::after {
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(
+      260px circle at var(--mx, 50%) var(--my, 50%),
+      rgb(var(--spot) / 0.07),
+      transparent 70%
+    );
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .spot:hover::before,
+    .spot:hover::after {
+      opacity: 1;
+    }
+  }
+  /* Touch, pen and reduced motion: a still, thin red border. */
+  @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+    .spot::before,
+    .spot::after {
+      display: none;
+    }
+    .spot:hover {
+      border-color: rgb(var(--accent) / 0.6);
+    }
   }
 }
 
@@ -67,10 +136,10 @@
     @apply h-1.5 rounded-full bg-surface-2;
   }
   .range::-webkit-slider-thumb {
-    @apply -mt-[9px] h-6 w-6 appearance-none rounded-full border-2 border-bg bg-accent;
+    @apply -mt-[9px] h-6 w-6 appearance-none rounded-full border-2 border-surface bg-accent;
   }
   .range::-moz-range-thumb {
-    @apply h-6 w-6 rounded-full border-2 border-bg bg-accent;
+    @apply h-6 w-6 rounded-full border-2 border-surface bg-accent;
   }
 }
 
@@ -117,7 +186,7 @@
   z-index: 4;
   border-color: rgb(var(--accent));
   background: rgb(var(--accent));
-  color: rgb(var(--bg));
+  color: rgb(var(--on-accent));
   transform: scale(1.18);
 }
 .map-far .map-marker:not(.is-selected) {
@@ -126,7 +195,7 @@
   font-size: 0;
 }
 
-/* MapLibre controls in the dark theme. */
+/* MapLibre controls follow the theme tokens. */
 .space-map .maplibregl-ctrl-group {
   background: rgb(var(--surface));
   border: 1px solid rgb(var(--border));
@@ -139,7 +208,12 @@
 .space-map .maplibregl-ctrl-group button + button {
   border-top: 1px solid rgb(var(--border));
 }
-.space-map .maplibregl-ctrl-icon {
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .space-map .maplibregl-ctrl-icon {
+    filter: invert(0.85);
+  }
+}
+:root[data-theme="dark"] .space-map .maplibregl-ctrl-icon {
   filter: invert(0.85);
 }
 .space-map .maplibregl-ctrl-attrib {

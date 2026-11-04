@@ -317,7 +317,7 @@ function Results({ run }: { run: RankingResponse }) {
                     onClick={() =>
                       setLayers((l) => (on ? l.filter((x) => x !== o.value) : [...l, o.value]))
                     }
-                    className={`min-h-touch rounded-full border px-3 text-xs ${on ? "border-accent bg-accent/15 text-accent" : "border-border text-muted hover:text-text"}`}
+                    className={`min-h-touch rounded-full border px-3 text-xs ${on ? "border-accent bg-accent/10 text-accent-strong" : "border-border text-muted hover:text-text"}`}
                   >
                     <span
                       aria-hidden="true"

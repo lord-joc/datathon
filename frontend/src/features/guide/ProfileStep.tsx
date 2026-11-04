@@ -36,10 +36,8 @@ export function ProfileStep() {
                   <label
                     key={p.profile}
                     className={[
-                      "card flex min-h-touch cursor-pointer gap-3 p-4 transition-colors has-[:focus-visible]:shadow-[var(--focus-ring)]",
-                      selected
-                        ? "border-accent bg-accent/10"
-                        : "hover:border-subtle hover:bg-surface-2",
+                      "card spot flex min-h-touch cursor-pointer gap-3 p-4 transition-colors has-[:focus-visible]:shadow-[var(--focus-ring)]",
+                      selected ? "border-accent bg-accent/[0.06]" : "",
                     ].join(" ")}
                   >
                     <input

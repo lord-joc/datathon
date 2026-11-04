@@ -17,6 +17,8 @@ Web aplikacija koja poduzetnicima pomaže usporediti gradske poslovne prostore u
 
 - **Isječak 8:** objava na javnoj adresi (Azure for Students, Austria East, 2 vCPU / 4 GB) prema [`docs/deploy.md`](docs/deploy.md): isti paket podataka kao lokalno, HTTPS (Let's Encrypt), dnevna kopija baze. Provjera je u [`docs/evidence/deploy-check.txt`](docs/evidence/deploy-check.txt).
 
+- **Redizajn (ADR23):** svijetli prikaz kao zadani uz automatski tamni, crvena traka s tražilicom prostora i djelatnosti, crveni rub koji prati miš na karticama.
+
 Odluke su u [`docs/adr/`](docs/adr/README.md).
 
 ## Stack

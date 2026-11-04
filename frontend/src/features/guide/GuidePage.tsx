@@ -49,7 +49,7 @@ export function GuidePage() {
     <div className="mx-auto grid w-full max-w-5xl gap-6 py-6 sm:py-10">
       <Stepper current={step} canOpen={canOpen} onSelect={goTo} />
 
-      <section className="card p-5 sm:p-8">
+      <section className="sm:card sm:p-8">
         {step === 0 && <ProfileStep />}
         {step === 1 && <SpaceStep />}
         {step === 2 && <PriorityStep />}

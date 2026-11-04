@@ -1,6 +1,5 @@
 // One variable file per subset instead of three weights x two subsets (Lighthouse, 2026-10-31).
 import "@fontsource-variable/inter/index.css";
-import "@fontsource-variable/fraunces/index.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "./styles/index.css";
 
@@ -10,6 +9,12 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 
 import { App } from "./app/App";
+import { initSpotlight } from "./lib/spotlight";
+import { initTheme } from "./lib/theme";
+
+// Before the first render, so the page never flashes the other theme.
+initTheme();
+initSpotlight();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false } },

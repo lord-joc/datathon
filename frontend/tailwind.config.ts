@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// All colours come from CSS variables in src/styles/tokens.css (master prompt §7.2).
+// All colours come from CSS variables in src/styles/tokens.css (light + dark, 2026-11-04).
 const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
 
 export default {
@@ -15,14 +15,20 @@ export default {
         text: v("text"),
         muted: v("text-muted"),
         subtle: v("text-subtle"),
+        "border-strong": v("border-strong"),
         accent: v("accent"),
         "accent-strong": v("accent-strong"),
+        "on-accent": v("on-accent"),
+        bar: v("bar"),
+        "bar-strong": v("bar-strong"),
+        "on-bar": v("on-bar"),
         warn: v("warn"),
         danger: v("danger"),
         ok: v("ok"),
       },
       fontFamily: {
-        display: ["'Fraunces Variable'", "Georgia", "serif"],
+        // One family, as on public-service portals: Inter for headings and text.
+        display: ["Inter Variable", "Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         sans: ["Inter Variable", "Inter", "system-ui", "-apple-system", "Segoe UI", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "Menlo", "monospace"],
       },
@@ -36,7 +42,7 @@ export default {
         "3xl": ["36px", "42px"],
         "4xl": ["48px", "52px"],
       },
-      borderRadius: { card: "12px" },
+      borderRadius: { card: "10px" },
       minHeight: { touch: "44px" },
       minWidth: { touch: "44px" },
     },

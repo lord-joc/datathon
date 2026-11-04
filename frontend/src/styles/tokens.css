@@ -1,27 +1,34 @@
 /*
- * ProstorIQ design tokens (master prompt §7.2).
- * Dark is the default theme. Colours are stored as "R G B" so Tailwind can apply alpha.
- * Light blue is the only accent; status colours are muted and always paired with text + icon.
+ * ProstorIQ design tokens (redesign 2026-11-04, replaces the dark-first palette of §7.2).
+ * Light is the default. Dark follows the system setting unless the visitor picks a theme in the
+ * header (html[data-theme]). Colours are stored as "R G B" so Tailwind can apply alpha.
+ * Red is the only accent; status colours are muted and always paired with text + icon.
+ * Contrast (WCAG 2.2): accent on white 5.9:1, white on accent 5.9:1, subtle on bg 5.3:1;
+ * dark: accent on surface 7.0:1, text on accent 7.5:1.
  */
 :root {
-  --bg: 11 13 16; /* #0B0D10 */
-  --surface: 18 21 26; /* #12151A */
-  --surface-2: 25 29 36; /* #191D24 */
-  --border: 38 44 53; /* #262C35 */
-  --text: 231 234 238; /* #E7EAEE */
-  --text-muted: 154 164 178; /* #9AA4B2 */
-  --text-subtle: 128 138 154; /* #808A9A: 4.5:1 on every surface (axe, 2026-10-31); §7.2 had #6B7584 at 3.9:1 */
-  --accent: 124 196 250; /* #7CC4FA */
-  --accent-strong: 58 160 240; /* #3AA0F0 */
-  --warn: 227 179 65; /* #E3B341 */
-  --danger: 240 113 103; /* #F07167 */
-  --ok: 108 203 143; /* #6CCB8F */
+  --bg: 243 244 246; /* #F3F4F6 */
+  --surface: 255 255 255; /* #FFFFFF */
+  --surface-2: 236 238 241; /* #ECEEF1 */
+  --border: 214 218 224; /* #D6DAE0 */
+  --border-strong: 175 182 192; /* #AFB6C0 */
+  --text: 22 25 29; /* #16191D */
+  --text-muted: 75 85 99; /* #4B5563 */
+  --text-subtle: 95 102 112; /* #5F6670: 5.0:1 on surface-2 */
+  --accent: 200 16 46; /* #C8102E */
+  --accent-strong: 160 13 37; /* #A00D25 */
+  --on-accent: 255 255 255;
+  --bar: 200 16 46; /* header bar */
+  --bar-strong: 160 13 37;
+  --on-bar: 255 255 255;
+  --warn: 138 90 0; /* #8A5A00 */
+  --danger: 180 35 24; /* #B42318 */
+  --ok: 31 122 69; /* #1F7A45 */
+  --spot: 200 16 46;
 
   /*
-   * Criterion colours (team decision ADR20, replaces the blue-grey bar of §7.2): eight hues in a
-   * fixed order, validated for colour-vision deficiency on the dark surface #12151A (adjacent
-   * CVD ΔE ≥ 8.4, contrast ≥ 3:1). The same criterion has the same colour everywhere; labels
-   * and legends always name it, so identity is never colour alone. Cost is never scored: grey.
+   * Criterion colours (ADR20): fixed order, validated for colour-vision deficiency. All of them
+   * keep at least 3:1 against white as well (2026-11-04), so both themes use the same hues.
    */
   --crit-transit: #3987e5;
   --crit-universities: #d95926;
@@ -33,7 +40,56 @@
   --crit-competition: #e66767;
   --crit-cost: #6b7584;
 
-  --radius-card: 12px;
-  --focus-ring: 0 0 0 2px rgb(var(--bg)), 0 0 0 4px rgb(var(--accent));
+  --radius-card: 10px;
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.06);
+  --focus-ring: 0 0 0 2px rgb(var(--surface)), 0 0 0 4px rgb(var(--accent));
+  color-scheme: light;
+}
+
+/* Dark: same token names, applied by the system setting or by an explicit choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: 11 13 16; /* #0B0D10 */
+    --surface: 18 21 26; /* #12151A */
+    --surface-2: 25 29 36; /* #191D24 */
+    --border: 38 44 53; /* #262C35 */
+    --border-strong: 70 79 92; /* #464F5C */
+    --text: 231 234 238; /* #E7EAEE */
+    --text-muted: 154 164 178; /* #9AA4B2 */
+    --text-subtle: 128 138 154; /* #808A9A */
+    --accent: 255 116 128; /* #FF7480 */
+    --accent-strong: 255 148 157; /* #FF949D */
+    --on-accent: 11 13 16;
+    --bar: 143 20 38; /* #8F1426 */
+    --bar-strong: 115 15 30;
+    --on-bar: 255 255 255;
+    --warn: 227 179 65;
+    --danger: 240 113 103;
+    --ok: 108 203 143;
+    --spot: 255 116 128;
+    --shadow-card: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: 11 13 16;
+  --surface: 18 21 26;
+  --surface-2: 25 29 36;
+  --border: 38 44 53;
+  --border-strong: 70 79 92;
+  --text: 231 234 238;
+  --text-muted: 154 164 178;
+  --text-subtle: 128 138 154;
+  --accent: 255 116 128;
+  --accent-strong: 255 148 157;
+  --on-accent: 11 13 16;
+  --bar: 143 20 38;
+  --bar-strong: 115 15 30;
+  --on-bar: 255 255 255;
+  --warn: 227 179 65;
+  --danger: 240 113 103;
+  --ok: 108 203 143;
+  --spot: 255 116 128;
+  --shadow-card: none;
   color-scheme: dark;
 }

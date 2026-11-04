@@ -22,9 +22,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { CRITERION_COLOR } from "@/lib/labels";
 import { useDistrictLayer, usePointLayer } from "@/lib/queries";
+import { useTheme } from "@/lib/theme";
 import type { PointLayerName, Radius } from "@/lib/types";
 
-import { loadBasemapStyle } from "./basemap";
+import { loadBasemapStyle, MAP_COLORS } from "./basemap";
 
 export type MarkerKind = "entrance" | "building" | "district";
 
@@ -95,6 +96,9 @@ export default function SpaceMap({
   const [ready, setReady] = useState(0);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const theme = useTheme();
+  // A theme switch rebuilds the map; keep the visitor's view.
+  const view = useRef<{ center: [number, number]; zoom: number } | null>(null);
 
   const districts = useDistrictLayer();
   const transit = usePointLayer("transit", layers.includes("transit"));
@@ -109,7 +113,7 @@ export default function SpaceMap({
     let cancelled = false;
     let created: MapLibre | null = null;
     const registry = markers.current;
-    void loadBasemapStyle().then(({ style, basemap }) => {
+    void loadBasemapStyle(theme).then(({ style, basemap }) => {
       if (cancelled || !container.current) return;
       created = createMap(container.current, style, basemap);
     });
@@ -117,19 +121,24 @@ export default function SpaceMap({
       cancelled = true;
       registry.forEach(({ marker }) => marker.remove());
       registry.clear();
+      if (created) {
+        const c = created.getCenter();
+        view.current = { center: [c.lng, c.lat], zoom: created.getZoom() };
+      }
       created?.remove();
       map.current = null;
       loaded.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cooperative]);
+  }, [cooperative, theme]);
 
   const createMap = (el: HTMLDivElement, style: StyleSpecification, basemap: boolean) => {
+    const colors = MAP_COLORS[theme];
     const m = new MapLibre({
       container: el,
       style,
-      center: ZAGREB,
-      zoom: 11,
+      center: view.current?.center ?? ZAGREB,
+      zoom: view.current?.zoom ?? 11,
       minZoom: 9,
       maxZoom: 18,
       maxBounds: [
@@ -158,14 +167,14 @@ export default function SpaceMap({
         type: "fill",
         source: "districts",
         // With streets underneath the districts are outlines only.
-        paint: { "fill-color": "#12151A", "fill-opacity": basemap ? 0 : 0.9 },
+        paint: { "fill-color": colors.districtFill, "fill-opacity": basemap ? 0 : 0.9 },
       });
       m.addLayer({
         id: "district-line",
         type: "line",
         source: "districts",
         paint: {
-          "line-color": basemap ? "#7CC4FA" : "#3B4654",
+          "line-color": basemap ? colors.outline : colors.districtLine,
           "line-opacity": basemap ? 0.35 : 1,
           "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1, 14, 2],
         },
@@ -175,13 +184,13 @@ export default function SpaceMap({
         id: "radius-fill",
         type: "fill",
         source: "radius",
-        paint: { "fill-color": "#7CC4FA", "fill-opacity": 0.08 },
+        paint: { "fill-color": colors.accent, "fill-opacity": 0.08 },
       });
       m.addLayer({
         id: "radius-line",
         type: "line",
         source: "radius",
-        paint: { "line-color": "#7CC4FA", "line-width": 1.5, "line-dasharray": [2, 2] },
+        paint: { "line-color": colors.accent, "line-width": 1.5, "line-dasharray": [2, 2] },
       });
       for (const name of Object.keys(LAYER_COLOR) as PointLayerName[]) {
         m.addSource(`ref-${name}`, { type: "geojson", data: EMPTY });

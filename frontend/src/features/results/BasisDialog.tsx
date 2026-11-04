@@ -87,7 +87,7 @@ export function BasisDialog({ conflict, total, busy, onConfirm, onCancel }: Basi
             <label
               key={o.value}
               className={[
-                "card flex cursor-pointer gap-3 p-4 has-[:focus-visible]:shadow-[var(--focus-ring)]",
+                "card spot flex cursor-pointer gap-3 p-4 has-[:focus-visible]:shadow-[var(--focus-ring)]",
                 choice === o.value ? "border-accent bg-accent/10" : "hover:bg-surface-2",
               ].join(" ")}
             >

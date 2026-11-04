@@ -1,30 +1,65 @@
 /**
- * Dark vector basemap from a Protomaps PMTiles extract for Zagreb, served from this origin
- * (master prompt §4, §7.4). Fonts and sprites are self-hosted under /basemap. When the
- * extract is not installed the map falls back to district outlines on a neutral background.
+ * Vector basemap from a Protomaps PMTiles extract for Zagreb, served from this origin
+ * (master prompt §4, §7.4), in the light or dark flavour of the current theme. Fonts and
+ * sprites are self-hosted under /basemap (POI icons are off, so the sprite is never drawn).
+ * When the extract is not installed the map falls back to district outlines.
  */
 import { layers, namedFlavor, type Flavor } from "@protomaps/basemaps";
 import { addProtocol, type StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
 
+import type { Theme } from "@/lib/theme";
+
 export const BASEMAP_PATH = "/tiles/zagreb.pmtiles";
 
-// Protomaps "dark", aligned with the app tokens (§7.2): near-black land, muted streets.
+// Aligned with the app tokens: quiet land and streets, so the red markers lead.
 // No POI icons: our own layers show the objects that matter for scoring.
-const FLAVOR: Flavor = {
-  ...namedFlavor("dark"),
-  background: "#0B0D10",
-  earth: "#111419",
-  water: "#0F1E2B",
-  buildings: "#1B2028",
+const FLAVORS: Record<Theme, Flavor> = {
+  dark: {
+    ...namedFlavor("dark"),
+    background: "#0B0D10",
+    earth: "#111419",
+    water: "#0F1E2B",
+    buildings: "#1B2028",
+  },
+  light: {
+    ...namedFlavor("light"),
+    background: "#EEF0F3",
+    earth: "#F3F4F6",
+    water: "#C9DDEB",
+    buildings: "#E2E5EA",
+  },
 };
-delete FLAVOR.pois;
+delete FLAVORS.dark.pois;
+delete FLAVORS.light.pois;
 
-export const FALLBACK_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {},
-  layers: [{ id: "background", type: "background", paint: { "background-color": "#0E1115" } }],
+/** Colours of our own map layers per theme (districts, radius circle). */
+export const MAP_COLORS: Record<
+  Theme,
+  { districtFill: string; districtLine: string; outline: string; accent: string }
+> = {
+  dark: { districtFill: "#12151A", districtLine: "#3B4654", outline: "#9AA4B2", accent: "#FF7480" },
+  light: {
+    districtFill: "#FFFFFF",
+    districtLine: "#AFB6C0",
+    outline: "#5F6670",
+    accent: "#C8102E",
+  },
 };
+
+export function fallbackStyle(theme: Theme): StyleSpecification {
+  return {
+    version: 8,
+    sources: {},
+    layers: [
+      {
+        id: "background",
+        type: "background",
+        paint: { "background-color": theme === "dark" ? "#0E1115" : "#E6E9ED" },
+      },
+    ],
+  };
+}
 
 let registered = false;
 let probe: Promise<boolean> | null = null;
@@ -39,8 +74,10 @@ function basemapAvailable(): Promise<boolean> {
   return probe;
 }
 
-export async function loadBasemapStyle(): Promise<{ style: StyleSpecification; basemap: boolean }> {
-  if (!(await basemapAvailable())) return { style: FALLBACK_STYLE, basemap: false };
+export async function loadBasemapStyle(
+  theme: Theme,
+): Promise<{ style: StyleSpecification; basemap: boolean }> {
+  if (!(await basemapAvailable())) return { style: fallbackStyle(theme), basemap: false };
   if (!registered) {
     addProtocol("pmtiles", new Protocol().tile);
     registered = true;
@@ -60,7 +97,7 @@ export async function loadBasemapStyle(): Promise<{ style: StyleSpecification; b
             '<a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a> © <a href="https://openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
         },
       },
-      layers: layers("protomaps", FLAVOR, { lang: "hr" }),
+      layers: layers("protomaps", FLAVORS[theme], { lang: "hr" }),
     },
   };
 }

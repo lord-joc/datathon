@@ -41,7 +41,9 @@ export function Segmented<T extends string | number>({
               className={[
                 "flex min-h-touch cursor-pointer items-center justify-center rounded-md px-2 text-center transition-colors has-[:focus-visible]:shadow-[var(--focus-ring)]",
                 size === "sm" ? "text-xs" : "text-sm",
-                checked ? "bg-accent/15 font-semibold text-accent" : "text-muted hover:text-text",
+                checked
+                  ? "bg-accent/10 font-semibold text-accent-strong"
+                  : "text-muted hover:text-text",
                 disabled ? "cursor-not-allowed opacity-60" : "",
               ].join(" ")}
             >

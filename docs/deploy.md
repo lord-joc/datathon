@@ -67,7 +67,7 @@ docker compose up -d db
 # Pričekaj da se baza pokrene dvaput (inicijalizacija, pa pravi start):
 until [ "$(docker compose logs db 2>&1 | grep -c 'ready to accept connections')" -ge 2 ]; do sleep 2; done
 sh scripts/db-import.sh prostoriq.dump
-docker compose build
+docker compose --profile tools build
 # Kontejner radi kao korisnik 10001, pa mu treba pravo pisanja u mapu modela:
 sudo chown -R 10001:10001 data/models
 docker compose run --rm cli python -m app.cli ai-fetch-model
@@ -109,7 +109,8 @@ Skripta čuva zadnjih 7 izvoza u `/var/backups/prostoriq`. Kopiju povremeno pren
 ```sh
 cd /opt/prostoriq && git pull
 export COMPOSE_FILE=compose.yaml:compose.prod.yaml
-docker compose build && docker compose run --rm cli python -m app.cli migrate && docker compose up -d
+# --profile tools gradi i sliku cli; bez toga migracije i uvozi rade sa starim kodom:
+docker compose --profile tools build && docker compose run --rm cli python -m app.cli migrate && docker compose up -d
 ```
 
 Novi paket podataka gradi se i aktivira CLI-jem (`bundle-build`, `bundle-activate`). Povratak je aktivacija ranijeg paketa (`bundle-activate --id …`), vidi `docs/evidence/rollback-demo.txt`.

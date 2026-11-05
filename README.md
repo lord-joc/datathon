@@ -353,6 +353,7 @@ Iste provjere, uz stvarne migracije na PostGIS-u, pokreće GitHub Actions na sva
   docker compose up -d --build
   docker compose run --rm cli python -m app.cli migrate
   ```
+- **Nakon `git pull` migracija ili uvoz ne vide novi kod**: `cli` je u profilu `tools`, pa ga `docker compose up --build` ne gradi. Izgradi ga zasebno: `docker compose build cli`.
 - **Port 8080 ili 5432 je zauzet**: zaustavi drugu aplikaciju na tom portu ili promijeni lijevi broj u `compose.yaml` (npr. `"8081:80"`).
 
 ## Sigurnost (sažetak)
